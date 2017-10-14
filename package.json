@@ -1,0 +1,26 @@
+{
+  "name": "hmwimm-server",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "Sebastian Pekarek <mail@sebbo.net>",
+  "dependencies": {
+    "basic-auth": "^2.0.0",
+    "bcrypt": "^1.0.3",
+    "body-parser": "^1.18.2",
+    "bunyan": "^1.8.12",
+    "commander": "^2.11.0",
+    "email-validator": "^1.1.1",
+    "express": "^4.15.5",
+    "mysql2": "^1.4.2",
+    "raven": "^2.1.2",
+    "sequelize": "^4.9.0",
+    "socket.io": "^2.0.3",
+    "umzug": "^2.0.1",
+    "underscore": "^1.8.3",
+    "uuid": "^3.1.0"
+  }
+}

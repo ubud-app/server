@@ -1,0 +1,90 @@
+#!/usr/bin/env node
+'use strict';
+
+const commander = require('commander');
+const LogHelper = require('../helpers/log');
+const ConfigHelper = require('../helpers/config');
+const DatabaseHelper = require('../helpers/database');
+
+const log = new LogHelper('bin/database');
+const migrator = DatabaseHelper.getMigrator();
+
+
+function run (promise, type) {
+	promise.then(function (migrations) {
+		if (type === 'read' && migrations.length) {
+			log.info('Result: \n - %s', migrations.length, migrations.map(m => m.file).join('\n - '));
+		}
+		else if (type === 'read' && !migrations.length) {
+			log.info('Done, no migrations found.');
+		}
+		else if (type === 'reset') {
+			log.info('Done, database reset complete.');
+		}
+		else if (type === 'write' && migrations.length) {
+			log.info('Done, executed %s migrations.\n - %s', migrations.length, migrations.map(m => m.file).join('\n - '));
+		}
+		else {
+			log.info('Done, no migrations executed.');
+		}
+
+		process.exit(0);
+	}).catch(function (error) {
+		log.error(error);
+		process.exit(1);
+	});
+}
+
+commander.version(ConfigHelper.getVersion(), '-V, --version');
+
+commander
+	.command('up [id]')
+	.description('Run pending migrations till <id>')
+	.action(function (id) {
+		if (id !== true) {
+			run(migrator.up({
+				to: id
+			}), 'write');
+		} else {
+			run(migrator.up(), 'write');
+		}
+	});
+
+commander
+	.command('exec <id>')
+	.description('Run migration, also needs --up or --down')
+	.option('-u --up', 'Run up()', null, null)
+	.option('-d --down', 'Run down()', null, null)
+	.action(function (id, options) {
+		if (options.up || options.down) {
+			run(migrator.execute({
+				migrations: [id],
+				method: options.down ? 'down' : 'up'
+			}), 'write');
+		} else {
+			log.warn('Either --up or --down required.');
+		}
+	});
+
+commander
+	.command('pending')
+	.description('List pending migrations')
+	.action(function () {
+		run(migrator.pending(), 'read');
+	});
+
+commander
+	.command('list')
+	.description('List executed migrations')
+	.action(function () {
+		run(migrator.executed(), 'read');
+	});
+
+commander
+	.command('reset')
+	.description('Reset database')
+	.action(function () {
+		run(DatabaseHelper.reset(), 'reset');
+	});
+
+commander.parse(process.argv);
