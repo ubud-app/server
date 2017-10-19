@@ -1,5 +1,6 @@
 'use strict';
 
+const _ = require('underscore');
 const BaseLogic = require('./_');
 const ErrorResponse = require('../helpers/errorResponse');
 
@@ -109,9 +110,8 @@ class AccountLogic extends BaseLogic {
 		});
 	}
 
-	static list (id, options) {
+	static list (params, options) {
 		const DatabaseHelper = require('../helpers/database');
-		const idp = id.split('/');
 
 		const sql = {
 			include: [{
@@ -127,11 +127,13 @@ class AccountLogic extends BaseLogic {
 			}]
 		};
 
-		if(idp[0] === 'documents' && idp[1]) {
-			sql.include[0].where = {
-				id: idp[1]
-			};
-		}
+		_.each(params, (id, k) => {
+			if(k === 'documents') {
+				sql.include[0].where = {id};
+			} else {
+				throw new ErrorResponse(400, 'Unknown filter `' + k + '`!')
+			}
+		});
 
 		return this.getModel().findAll(sql);
 	}

@@ -16,8 +16,13 @@ class DocumentLogic extends BaseLogic {
 	static format (document, secrets, options) {
 		const r = {
 			id: document.id,
-			name: document.name
+			name: document.name,
+			settings: {}
 		};
+
+		document.settings.forEach(function(setting) {
+			r.settings[ setting.key ] = setting.value;
+		});
 
 		if (options.session.user.isAdmin && document.users) {
 			r.users = document.users.map(user => ({
@@ -73,17 +78,23 @@ class DocumentLogic extends BaseLogic {
 		return this.getModel().findOne(sql);
 	}
 
-	static list (id, options) {
-		const sql = {};
+	static list (params, options) {
+		const sql = {
+			include: [
+				{
+					model: DatabaseHelper.get('setting')
+				}
+			]
+		};
 
 		if(!options.session.user.isAdmin) {
-			sql.include = [{
+			sql.include.push({
 				model: DatabaseHelper.get('user'),
 				attributes: [],
 				where: {
 					id: options.session.userId
 				}
-			}];
+			});
 		}
 
 		return this.getModel().findAll(sql);

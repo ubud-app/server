@@ -124,7 +124,7 @@ class SettingLogic extends BaseLogic {
 		});
 	}
 
-	static list (id, options) {
+	static list (params, options) {
 		return this.getModel().findAll({
 			include: [{
 				model: DatabaseHelper.get('document'),

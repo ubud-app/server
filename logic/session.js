@@ -122,7 +122,7 @@ class SessionLogic extends BaseLogic {
 		});
 	}
 
-	static list (id, options) {
+	static list (params, options) {
 		return this.getModel().findAll({
 			where: {
 				userId: options.session.userId

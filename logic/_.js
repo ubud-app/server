@@ -72,7 +72,13 @@ class BaseLogic {
 			throw new ErrorResponse(501, 'Not implemented yet!');
 		}
 
-		return l.list(id, options)
+		const params = {};
+		id.split('/').forEach(part => {
+			const p = part.split(':', 2);
+			params[ p[0] ] = p[1] !== undefined ? p[1] : true;
+		});
+
+		return l.list(params, options)
 			.then(function (models) {
 				return models.map(model => l.format(model, {}, options));
 			})

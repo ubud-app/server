@@ -104,7 +104,7 @@ class UserLogic extends BaseLogic {
 		return Promise.resolve(null);
 	}
 
-	static list (id, options) {
+	static list (params, options) {
 		const req = {};
 
 		if (!options.session.user.isAdmin) {

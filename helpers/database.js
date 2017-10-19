@@ -212,6 +212,19 @@ class DatabaseHelper {
 	static close () {
 		return sequelize.close();
 	}
+
+	/**
+	 * Returns the Sequelize Op Object…
+	 * @param {String} [operator]
+	 * @returns {Sequelize.Op}
+	 */
+	static op(operator) {
+		if(operator) {
+			return Sequelize.Op[operator];
+		}
+
+		return Sequelize.Op;
+	}
 }
 
 module.exports = DatabaseHelper;
