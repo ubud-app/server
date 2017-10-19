@@ -1,7 +1,6 @@
 'use strict';
 
 const BaseLogic = require('./_');
-const DatabaseHelper = require('../helpers/database');
 const ErrorResponse = require('../helpers/errorResponse');
 
 class AccountLogic extends BaseLogic {
@@ -29,6 +28,7 @@ class AccountLogic extends BaseLogic {
 	}
 
 	static create (body, options) {
+		const DatabaseHelper = require('../helpers/database');
 		const model = this.getModel().build();
 
 		model.name = body.name;
@@ -90,6 +90,7 @@ class AccountLogic extends BaseLogic {
 	}
 
 	static get (id, options) {
+		const DatabaseHelper = require('../helpers/database');
 		return this.getModel().findOne({
 			where: {
 				id: id
@@ -109,7 +110,9 @@ class AccountLogic extends BaseLogic {
 	}
 
 	static list (id, options) {
+		const DatabaseHelper = require('../helpers/database');
 		const idp = id.split('/');
+
 		const sql = {
 			include: [{
 				model: DatabaseHelper.get('document'),
@@ -124,7 +127,7 @@ class AccountLogic extends BaseLogic {
 			}]
 		};
 
-		if(idp[0] === 'listByDocument' && idp[1]) {
+		if(idp[0] === 'documents' && idp[1]) {
 			sql.include[0].where = {
 				id: idp[1]
 			};
@@ -165,7 +168,7 @@ class AccountLogic extends BaseLogic {
 				});
 		}
 
-		if(body.number !== undefined) {
+		if(body.number !== undefined && !model.pluginId) {
 			model.number = body.number || null;
 		}
 
