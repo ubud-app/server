@@ -84,6 +84,9 @@ class DocumentLogic extends BaseLogic {
 				{
 					model: DatabaseHelper.get('setting')
 				}
+			],
+			order: [
+				['name', 'ASC']
 			]
 		};
 

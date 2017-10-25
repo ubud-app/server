@@ -86,53 +86,53 @@ fs.readdirSync(modelsPath).forEach(function (modelFile) {
 
 
 // setup associations
-models.document.hasMany(models.account, {onDelete: 'CASCADE'});
-models.account.belongsTo(models.document);
+models.document.hasMany(models.account, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+models.account.belongsTo(models.document, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 
 models.plugin.hasOne(models.account, {onDelete: 'CASCADE'});
-models.account.belongsTo(models.plugin);
+models.account.belongsTo(models.plugin, {onDelete: 'CASCADE'});
 
-models.account.hasMany(models.transaction, {onDelete: 'CASCADE'});
-models.transaction.belongsTo(models.account);
+models.account.hasMany(models.transaction, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+models.transaction.belongsTo(models.account, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 
 models.payee.hasMany(models.transaction, {onDelete: 'CASCADE'});
-models.transaction.belongsTo(models.payee);
+models.transaction.belongsTo(models.payee, {onDelete: 'CASCADE'});
 
-models.transaction.hasMany(models.unit, {onDelete: 'CASCADE'});
-models.unit.belongsTo(models.transaction);
+models.transaction.hasMany(models.unit, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+models.unit.belongsTo(models.transaction, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 
-models.budget.hasOne(models.unit, {onDelete: 'CASCADE'});
-models.unit.belongsTo(models.budget);
+models.budget.hasOne(models.unit, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+models.unit.belongsTo(models.budget, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 
-models.document.hasMany(models.category, {onDelete: 'CASCADE'});
-models.category.belongsTo(models.document);
+models.document.hasMany(models.category, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+models.category.belongsTo(models.document, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 
 models.plugin.hasOne(models.budget, {onDelete: 'CASCADE'});
-models.budget.belongsTo(models.plugin);
+models.budget.belongsTo(models.plugin, {onDelete: 'CASCADE'});
 
-models.category.hasMany(models.budget, {onDelete: 'CASCADE'});
-models.budget.belongsTo(models.category);
+models.category.hasMany(models.budget, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+models.budget.belongsTo(models.category, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 
-models.budget.hasMany(models.portion, {onDelete: 'CASCADE'});
-models.portion.belongsTo(models.budget);
+models.budget.hasMany(models.portion, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+models.portion.belongsTo(models.budget, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 
-models.document.hasMany(models.setting, {onDelete: 'CASCADE'});
-models.setting.belongsTo(models.document);
+models.document.hasMany(models.setting, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+models.setting.belongsTo(models.document, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 
-models.user.hasMany(models.session, {onDelete: 'CASCADE'});
-models.session.belongsTo(models.user);
+models.user.hasMany(models.session, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+models.session.belongsTo(models.user, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 
 models.user.belongsToMany(models.document, {through: models.share});
 models.document.belongsToMany(models.user, {through: models.share});
 
-models.document.hasMany(models.plugin, {onDelete: 'CASCADE'});
-models.plugin.belongsTo(models.document);
+models.document.hasMany(models.plugin, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+models.plugin.belongsTo(models.document, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 
-models.document.hasMany(models.learning, {onDelete: 'CASCADE'});
-models.learning.belongsTo(models.document);
+models.document.hasMany(models.learning, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+models.learning.belongsTo(models.document, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 
-models.category.hasMany(models.learning, {onDelete: 'CASCADE'});
-models.learning.belongsTo(models.category);
+models.category.hasMany(models.learning, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+models.learning.belongsTo(models.category, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 
 
 /**
@@ -150,7 +150,7 @@ class DatabaseHelper {
 	 * @returns {Model}
 	 */
 	static get (name) {
-		if(!models[name]) {
+		if (!models[name]) {
 			throw new Error('Can\'t get model `' + name + ': Model unknown.`');
 		}
 		return models[name];
@@ -218,8 +218,8 @@ class DatabaseHelper {
 	 * @param {String} [operator]
 	 * @returns {Sequelize.Op}
 	 */
-	static op(operator) {
-		if(operator) {
+	static op (operator) {
+		if (operator) {
 			return Sequelize.Op[operator];
 		}
 

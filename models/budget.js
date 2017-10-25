@@ -22,11 +22,6 @@ module.exports = class TransactionModelDefinition {
 			overspending: {
 				type: DataTypes.ENUM('available', 'budget'),
 				allowNull: true
-			},
-			position: {
-				type: DataTypes.INTEGER,
-				allowNull: false,
-				defaultValue: 0
 			}
 		};
 	}

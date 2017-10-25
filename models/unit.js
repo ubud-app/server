@@ -9,6 +9,10 @@ module.exports = class UnitModelDefinition {
 			amount: {
 				type: DataTypes.INTEGER,
 				allowNull: false
+			},
+			memo: {
+				type: DataTypes.STRING(512),
+				allowNull: true
 			}
 		};
 	}

@@ -144,7 +144,7 @@ class ServerHelper {
 	static setupSocketUpdateEvents (socket, session) {
 		const handleEvent = function (event) {
 			if (!event.name || !allLogics[event.name]) {
-				log.error(new Error('Unknown Logic `' + event.name + '`!'));
+				log.warn('Unknown Logic `' + event.name + '`!');
 				return;
 			}
 			if(!session.isAuthenticated()) {

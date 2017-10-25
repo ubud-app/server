@@ -124,11 +124,14 @@ class AccountLogic extends BaseLogic {
 						id: options.session.userId
 					}
 				}]
-			}]
+			}],
+			order: [
+				['name', 'ASC']
+			]
 		};
 
 		_.each(params, (id, k) => {
-			if(k === 'documents') {
+			if(k === 'document') {
 				sql.include[0].where = {id};
 			} else {
 				throw new ErrorResponse(400, 'Unknown filter `' + k + '`!')
