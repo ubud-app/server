@@ -101,8 +101,8 @@ models.transaction.belongsTo(models.payee, {onDelete: 'CASCADE'});
 models.transaction.hasMany(models.unit, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 models.unit.belongsTo(models.transaction, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 
-models.budget.hasOne(models.unit, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
-models.unit.belongsTo(models.budget, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+models.budget.hasOne(models.unit, {onDelete: 'CASCADE'});
+models.unit.belongsTo(models.budget, {onDelete: 'CASCADE'});
 
 models.document.hasMany(models.category, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 models.category.belongsTo(models.document, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
@@ -224,6 +224,14 @@ class DatabaseHelper {
 		}
 
 		return Sequelize.Op;
+	}
+
+	/**
+	 * Helps to get a sum
+	 * @param {String} column
+	 */
+	static sum(column) {
+		return sequelize.fn('sum', sequelize.col(column));
 	}
 }
 

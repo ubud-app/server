@@ -13,6 +13,10 @@ module.exports = class UnitModelDefinition {
 			memo: {
 				type: DataTypes.STRING(512),
 				allowNull: true
+			},
+			incomeMonth: {
+				type: DataTypes.ENUM('this', 'next'),
+				allowNull: true
 			}
 		};
 	}

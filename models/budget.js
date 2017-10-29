@@ -18,10 +18,6 @@ module.exports = class TransactionModelDefinition {
 				type: DataTypes.BOOLEAN,
 				allowNull: false,
 				defaultValue: false
-			},
-			overspending: {
-				type: DataTypes.ENUM('available', 'budget'),
-				allowNull: true
 			}
 		};
 	}

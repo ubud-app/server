@@ -22,13 +22,23 @@ class TransactionLogic extends BaseLogic {
 			memo: transaction.memo,
 			payeeId: transaction.payeeId,
 			payeePluginId: transaction.payeePluginId,
-			units: transaction.units.map(unit => ({
-				id: unit.id,
-				amount: unit.amount,
-				memo: unit.memo,
-				budgetId: unit.budgetId,
-				transactionId: unit.transactionId
-			})),
+			units: transaction.units.map(unit => {
+				let budget = unit.budgetId;
+				if(unit.incomeMonth === 'this') {
+					budget = 'income-0';
+				}
+				else if(unit.incomeMonth === 'next') {
+					budget = 'income-1';
+				}
+
+				return {
+					id: unit.id,
+					amount: unit.amount,
+					memo: unit.memo,
+					budgetId: budget,
+					transactionId: unit.transactionId
+				};
+			}),
 			approved: transaction.approved,
 			status: transaction.status,
 			locationAccuracy: transaction.locationAccuracy,
@@ -148,19 +158,38 @@ class TransactionLogic extends BaseLogic {
 						});
 					}
 
-					unitJobs.push(
-						DatabaseHelper.get('unit').create({
-								amount: unit.amount,
-								transactionId: model.id,
-								budgetId: unit.budgetId
-							})
-							.then(unit => {
-								units.push(unit);
-							})
-							.catch(e => {
-								throw e;
-							})
-					);
+
+					if (unit.budgetId === 'income-0' || unit.budgetId === 'income-1') {
+						unitJobs.push(
+							DatabaseHelper.get('unit').create({
+									amount: unit.amount,
+									transactionId: model.id,
+									budgetId: null,
+									incomeMonth: unit.budgetId === 'income-0' ? 'this' : 'next'
+								})
+								.then(unit => {
+									units.push(unit);
+								})
+								.catch(e => {
+									throw e;
+								})
+						);
+					} else {
+						unitJobs.push(
+							DatabaseHelper.get('unit').create({
+									amount: unit.amount,
+									transactionId: model.id,
+									budgetId: unit.budgetId,
+									incomeMonth: null
+								})
+								.then(unit => {
+									units.push(unit);
+								})
+								.catch(e => {
+									throw e;
+								})
+						);
+					}
 				});
 
 				return Promise.all(unitJobs)
@@ -423,9 +452,18 @@ class TransactionLogic extends BaseLogic {
 										}
 									});
 								}
+
 								unitModel.amount = unit.amount;
-								unitModel.budgetId = unit.budgetId;
 								unitModel.memo = unit.memo;
+
+								if (unit.budgetId === 'income-0' || unit.budgetId === 'income-1') {
+									unitModel.incomeMonth = unit.budgetId === 'income-0' ? 'this' : 'next';
+									unitModel.budgetId = null;
+								}else{
+									unitModel.incomeMonth = null;
+									unitModel.budgetId = unit.budgetId;
+								}
+
 								units.push(unitModel);
 								return unitModel.save();
 							})
@@ -433,12 +471,30 @@ class TransactionLogic extends BaseLogic {
 								throw e;
 							})
 					);
-				} else {
+				}
+				else if (unit.budgetId === 'income-0' || unit.budgetId === 'income-1') {
 					unitJobs.push(
 						DatabaseHelper.get('unit').create({
 								amount: unit.amount,
 								transactionId: model.id,
-								budgetId: unit.budgetId
+								budgetId: null,
+								incomeMonth: unit.budgetId === 'income-0' ? 'this' : 'next'
+							})
+							.then(unit => {
+								units.push(unit);
+							})
+							.catch(e => {
+								throw e;
+							})
+					);
+				}
+				else {
+					unitJobs.push(
+						DatabaseHelper.get('unit').create({
+								amount: unit.amount,
+								transactionId: model.id,
+								budgetId: unit.budgetId,
+								incomeMonth: null
 							})
 							.then(unit => {
 								units.push(unit);
@@ -482,7 +538,7 @@ class TransactionLogic extends BaseLogic {
 	}
 
 	static delete (model) {
-		if(model.account.pluginId) {
+		if (model.account.pluginId) {
 			throw new ErrorResponse(400, 'Not able to destroy transaction: managed by transaction');
 		}
 

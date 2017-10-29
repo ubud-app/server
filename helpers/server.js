@@ -161,6 +161,9 @@ class ServerHelper {
 				});
 				return;
 			}
+			if(!Logic.get) {
+				return;
+			}
 
 			Logic.get(event.model.id, {session: session.getSessionModel()})
 				.then(model => {return Logic.format(model, {}, {session: session.getSessionModel()})})
