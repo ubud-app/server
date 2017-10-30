@@ -20,8 +20,8 @@ class DocumentLogic extends BaseLogic {
 			settings: {}
 		};
 
-		document.settings.forEach(function(setting) {
-			r.settings[ setting.key ] = setting.value;
+		(document.settings || []).forEach(function (setting) {
+			r.settings[setting.key] = JSON.parse(setting.value);
 		});
 
 		if (options.session.user.isAdmin && document.users) {
@@ -35,8 +35,9 @@ class DocumentLogic extends BaseLogic {
 	}
 
 	static create (attributes, options) {
+		const _ = require('underscore');
 		const model = this.getModel().build();
-		let document;
+		let document, settings;
 
 		model.name = attributes.name;
 		if (!model.name) {
@@ -48,9 +49,29 @@ class DocumentLogic extends BaseLogic {
 		}
 
 		return model.save()
-			.then(function(_document) {
+			.then(function (_document) {
 				document = _document;
-				return document.addUser(options.session.user);
+				let jobs = [document.addUser(options.session.user)];
+
+				// Settings
+				_.each(attributes.settings || {}, (v, k) => {
+					jobs.push(
+						DatabaseHelper.get('setting').create({
+								key: k,
+								value: JSON.stringify(v),
+								documentId: document.id
+							})
+							.then(setting => {
+								document.settings = document.settings || [];
+								document.settings.push(setting);
+							})
+							.catch(e => {
+								throw e;
+							})
+					);
+				});
+
+				return Promise.all(jobs);
 			})
 			.then(function () {
 				return {model: document};
@@ -62,10 +83,10 @@ class DocumentLogic extends BaseLogic {
 
 	static get (id, options) {
 		const sql = {
-			where: {id},
+			where: {id}
 		};
 
-		if(!options.session.user.isAdmin) {
+		if (!options.session.user.isAdmin) {
 			sql.include = [{
 				model: DatabaseHelper.get('user'),
 				attributes: [],
@@ -90,7 +111,7 @@ class DocumentLogic extends BaseLogic {
 			]
 		};
 
-		if(!options.session.user.isAdmin) {
+		if (!options.session.user.isAdmin) {
 			sql.include.push({
 				model: DatabaseHelper.get('user'),
 				attributes: [],
@@ -111,7 +132,7 @@ class DocumentLogic extends BaseLogic {
 				}
 			});
 		}
-		if(body.name) {
+		if (body.name) {
 			model.name = body.name;
 		}
 
