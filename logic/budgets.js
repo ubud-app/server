@@ -25,6 +25,60 @@ class BudgetLogic extends BaseLogic {
 		};
 	}
 
+	static create (body, options) {
+		const DatabaseHelper = require('../helpers/database');
+		const model = this.getModel().build();
+
+		model.name = body.name;
+		if (!model.name) {
+			throw new ErrorResponse(400, 'Budget requires attribute `name`…', {
+				attributes: {
+					name: 'Is required!'
+				}
+			});
+		}
+		if (model.name.length > 255) {
+			throw new ErrorResponse(400, 'Attribute `Budget.name` has a maximum length of 255 chars, sorry…', {
+				attributes: {
+					name: 'Is too long, only 255 characters allowed…'
+				}
+			});
+		}
+
+		model.goal = parseInt(body.goal, 10) || null;
+
+		return DatabaseHelper.get('category')
+			.find({
+				where: {id: body.categoryId},
+				attributes: ['id'],
+				include: [{
+					model: DatabaseHelper.get('document'),
+					attributes: [],
+					include: [{
+						model: DatabaseHelper.get('user'),
+						attributes: [],
+						where: {
+							id: options.session.userId
+						}
+					}]
+				}]
+			})
+			.then(function (categoryModel) {
+				if (!categoryModel) {
+					throw new ErrorResponse(400, 'Not able to create budget: linked category not found.');
+				}
+
+				model.categoryId = categoryModel.id;
+				return model.save();
+			})
+			.then(function (model) {
+				return {model};
+			})
+			.catch(e => {
+				throw e;
+			});
+	}
+
 	static get (id, options) {
 		const DatabaseHelper = require('../helpers/database');
 		return this.getModel().findOne({
