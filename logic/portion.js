@@ -24,6 +24,34 @@ class PortionLogic extends BaseLogic {
 		};
 	}
 
+	static get (id, options) {
+		const DatabaseHelper = require('../helpers/database');
+		return this.getModel().findOne({
+			where: {
+				id: id
+			},
+			include: [{
+				model: DatabaseHelper.get('budget'),
+				attributes: ['id'],
+				include: [{
+					model: DatabaseHelper.get('category'),
+					attributes: ['documentId'],
+					include: [{
+						model: DatabaseHelper.get('document'),
+						attributes: [],
+						include: [{
+							model: DatabaseHelper.get('user'),
+							attributes: [],
+							where: {
+								id: options.session.userId
+							}
+						}]
+					}]
+				}]
+			}]
+		});
+	}
+
 	static list (params, options) {
 		const moment = require('moment');
 		const DatabaseHelper = require('../helpers/database');
