@@ -159,6 +159,83 @@ class PortionLogic extends BaseLogic {
 			});
 	}
 
+	static update (model, body) {
+		const moment = require('moment');
+		const SummaryLogic = require('../logic/summary');
+
+		if (body.budgeted !== undefined && body.budgeted !== model.budgeted) {
+			model.budgeted = parseInt(body.budgeted) || null;
+
+			return PortionLogic.recalculatePortion(model)
+				.then(() => {
+
+					// update portions
+					PortionLogic.recalculatePortionsFrom({
+						month: moment(model.month, 'YYYY-MM').add(1, 'month').startOf('month'),
+						budgetId: model.budgetId
+					});
+
+					// update summaries
+					SummaryLogic.recalculateSummariesFrom(
+						model.budget.category.documentId,
+						moment(model.month, 'YYYY-MM').startOf('month')
+					);
+
+					return model;
+				})
+				.catch(e => {
+					throw e;
+				});
+		}
+
+		return Promise.resolve(model);
+	}
+
+	static recalculatePortionsFrom (options) {
+		const moment = require('moment');
+		const DatabaseHelper = require('../helpers/database');
+		const monthMoment = moment(options.month);
+		if (!monthMoment.isValid()) {
+			throw new Error('Invalid Month: ' + options.month);
+		}
+
+		const query = {
+			where: {
+				month: {
+					[DatabaseHelper.op('gte')]: moment(monthMoment).format('YYYY-MM')
+				}
+			}
+		};
+
+		if (options.budgetId) {
+			query.where.budgetId = options.budgetId;
+		}
+		else if (options.documentId) {
+			query.include = [{
+				model: DatabaseHelper.get('budget'),
+				attributes: [],
+				include: [{
+					model: DatabaseHelper.get('category'),
+					attributes: [],
+					where: {
+						documentId: options.documentId
+					}
+				}]
+			}];
+		}
+		else {
+			throw new Error('Either budgetId or documentId required!');
+		}
+
+		return PortionLogic.getModel().findAll(query)
+			.then(portions => {
+				return Promise.all(portions.map(PortionLogic.recalculatePortion));
+			})
+			.catch(e => {
+				throw e;
+			});
+	}
+
 	static recalculatePortion (portion) {
 		const moment = require('moment');
 		const DatabaseHelper = require('../helpers/database');
@@ -188,11 +265,11 @@ class PortionLogic extends BaseLogic {
 				}),
 
 				/*
-				 *   2. Calculate Portion's Balance
+				 *   2. Calculate Portion's Transactions
 				 */
 				DatabaseHelper.get('unit').findOne({
 					attributes: [
-						[DatabaseHelper.sum('unit.amount'), 'balance']
+						[DatabaseHelper.sum('unit.amount'), 'transactions']
 					],
 					where: {
 						budgetId: portion.budgetId
@@ -206,11 +283,28 @@ class PortionLogic extends BaseLogic {
 							}
 						}
 					}]
-				})
+				}),
+
+				/*
+				 *   3: Calculate Portions Budgeted
+				 */
+				DatabaseHelper.get('portion').findOne({
+					attributes: [
+						[DatabaseHelper.sum('budgeted'), 'budgetedTillLastMonth']
+					],
+					where: {
+						month: {
+							[DatabaseHelper.op('lte')]: moment(monthMoment).subtract(1, 'month').endOf('month').toJSON()
+						},
+						budgetId: portion.budgetId
+					}
+				}),
 			])
 			.then(calculated => {
 				portion.outflow = parseInt(calculated[0].dataValues.outflow) || 0;
-				portion.balance = parseInt(calculated[1].dataValues.balance) || 0;
+				portion.balance = (parseInt(calculated[2].dataValues.budgetedTillLastMonth) || 0) +
+					(parseInt(calculated[1].dataValues.transactions) || 0) +
+					(portion.budgeted || 0);
 
 				portion.outflow *= -1;
 				return portion.save();
