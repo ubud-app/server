@@ -56,14 +56,25 @@ class TransactionLogic extends BaseLogic {
 	}
 
 	static create (body, options) {
+		const moment = require('moment');
 		const DatabaseHelper = require('../helpers/database');
 		const model = this.getModel().build();
+		let documentId;
 
 		model.time = body.time;
 		if (!model.time) {
 			throw new ErrorResponse(400, 'Transaction requires attribute `time`…', {
 				attributes: {
 					time: 'Is required!'
+				}
+			});
+		}
+
+		const timeMoment = moment(model.time);
+		if (!timeMoment.isValid()) {
+			throw new ErrorResponse(400, 'Transaction requires valid attribute `time`…', {
+				attributes: {
+					time: 'Is invalid!'
 				}
 			});
 		}
@@ -121,81 +132,107 @@ class TransactionLogic extends BaseLogic {
 					throw new ErrorResponse(400, 'Not able to create transaction: linked account is managed by a plugin');
 				}
 
+				documentId = accountModel.document.id;
 				model.accountId = accountModel.id;
 				return model.save();
 			})
 			.then(function () {
 				const unitJobs = [];
 				const units = [];
+				let sum = 0;
 
-				body.units.forEach((unit, i) => {
-					if (!unit.budgetId && !unit.amount) {
-						return;
-					}
+				if(body.units) {
+					body.units.forEach((unit, i) => {
+						if (!unit.budgetId && !unit.amount) {
+							return;
+						}
 
-					if (!unit.budgetId) {
-						throw new ErrorResponse(400, 'Not able to update transaction: unit[' + i + '] has no budgetId set', {
-							attributes: {
-								units: 'unit[' + i + ' has no budgetId'
-							}
-						});
-					}
+						if (!unit.budgetId) {
+							throw new ErrorResponse(400, 'Not able to update transaction: unit[' + i + '] has no budgetId set', {
+								attributes: {
+									units: 'unit[' + i + ' has no budgetId'
+								}
+							});
+						}
 
-					let amount = parseInt(unit.amount);
-					if (!amount) {
-						throw new ErrorResponse(400, 'Not able to update transaction: unit[' + i + '] has no amount set', {
-							attributes: {
-								units: 'unit[' + i + ' has no amount'
-							}
-						});
-					}
+						let amount = parseInt(unit.amount, 10);
+						sum += amount;
+						if (!amount) {
+							throw new ErrorResponse(400, 'Not able to update transaction: unit[' + i + '] has no amount set', {
+								attributes: {
+									units: 'unit[' + i + ' has no amount'
+								}
+							});
+						}
 
-					if (unit.memo && unit.memo.length > 255) {
-						throw new ErrorResponse(400, 'Not able to update transaction: unit[' + i + '].memo is to long', {
-							attributes: {
-								units: 'unit[' + i + '.memo is to long'
-							}
-						});
-					}
+						if (unit.memo && unit.memo.length > 255) {
+							throw new ErrorResponse(400, 'Not able to update transaction: unit[' + i + '].memo is to long', {
+								attributes: {
+									units: 'unit[' + i + '.memo is to long'
+								}
+							});
+						}
 
 
-					if (unit.budgetId === 'income-0' || unit.budgetId === 'income-1') {
-						unitJobs.push(
-							DatabaseHelper.get('unit').create({
-									amount: unit.amount,
-									transactionId: model.id,
-									budgetId: null,
-									incomeMonth: unit.budgetId === 'income-0' ? 'this' : 'next'
-								})
-								.then(unit => {
-									units.push(unit);
-								})
-								.catch(e => {
-									throw e;
-								})
-						);
-					} else {
-						unitJobs.push(
-							DatabaseHelper.get('unit').create({
-									amount: unit.amount,
-									transactionId: model.id,
-									budgetId: unit.budgetId,
-									incomeMonth: null
-								})
-								.then(unit => {
-									units.push(unit);
-								})
-								.catch(e => {
-									throw e;
-								})
-						);
-					}
-				});
+						if (unit.budgetId === 'income-0' || unit.budgetId === 'income-1') {
+							unitJobs.push(
+								DatabaseHelper.get('unit').create({
+										amount: unit.amount,
+										transactionId: model.id,
+										budgetId: null,
+										incomeMonth: unit.budgetId === 'income-0' ? 'this' : 'next'
+									})
+									.then(unit => {
+										units.push(unit);
+									})
+									.catch(e => {
+										throw e;
+									})
+							);
+						} else {
+							unitJobs.push(
+								DatabaseHelper.get('unit').create({
+										amount: unit.amount,
+										transactionId: model.id,
+										budgetId: unit.budgetId,
+										incomeMonth: null
+									})
+									.then(unit => {
+										units.push(unit);
+									})
+									.catch(e => {
+										throw e;
+									})
+							);
+						}
+					});
+				}
+
+				if (body.units && sum !== model.amount) {
+					throw new ErrorResponse(400, 'Not able to update transaction: sum of units is not same as amount!', {
+						attributes: {
+							units: 'Does not match with amount',
+							amount: 'Does not match with units'
+						}
+					});
+				}
 
 				return Promise.all(unitJobs)
 					.then(function () {
 						model.units = units;
-						console.log(units.map(m => m.id).join(', '));
+
+						const PortionLogic = require('../logic/portion');
+						const SummaryLogic = require('../logic/summary');
+
+						// update portions
+						PortionLogic.recalculatePortionsFrom({
+							month: timeMoment.startOf('month'),
+							documentId: documentId
+						});
+
+						// update summaries
+						SummaryLogic.recalculateSummariesFrom(documentId, timeMoment.startOf('month'));
+
 						return model;
 					})
 					.catch(e => {
@@ -222,7 +259,7 @@ class TransactionLogic extends BaseLogic {
 					attributes: ['pluginId'],
 					include: [{
 						model: DatabaseHelper.get('document'),
-						attributes: [],
+						attributes: ['id'],
 						include: [{
 							model: DatabaseHelper.get('user'),
 							attributes: [],
@@ -311,8 +348,11 @@ class TransactionLogic extends BaseLogic {
 	}
 
 	static update (model, body, options) {
+		const moment = require('moment');
 		const DatabaseHelper = require('../helpers/database');
+
 		const checks = [];
+		let timeMoment = moment(model.time);
 
 		// Memo
 		if (body.memo !== undefined) {
@@ -406,6 +446,8 @@ class TransactionLogic extends BaseLogic {
 		if (body.units !== undefined) {
 			const units = [];
 			const unitJobs = [];
+			let sum = 0;
+
 			body.units.forEach((unit, i) => {
 				if (!unit.budgetId && !unit.amount) {
 					return;
@@ -420,6 +462,7 @@ class TransactionLogic extends BaseLogic {
 				}
 
 				let amount = parseInt(unit.amount);
+				sum += amount;
 				if (!amount) {
 					throw new ErrorResponse(400, 'Not able to update transaction: unit[' + i + '] has no amount set', {
 						attributes: {
@@ -506,6 +549,15 @@ class TransactionLogic extends BaseLogic {
 				}
 			});
 
+			if (sum !== model.amount) {
+				throw new ErrorResponse(400, 'Not able to update transaction: sum of units is not same as amount!', {
+					attributes: {
+						units: 'Does not match with amount',
+						amount: 'Does not match with units'
+					}
+				});
+			}
+
 			model.units.forEach(unitModel => {
 				if (!_.find(body.units, u => u.id === unitModel.id)) {
 					unitJobs.push(unitModel.destroy());
@@ -532,6 +584,21 @@ class TransactionLogic extends BaseLogic {
 			.then(() => {
 				return model.save();
 			})
+			.then(() => {
+				const PortionLogic = require('../logic/portion');
+				const SummaryLogic = require('../logic/summary');
+
+				// update portions
+				PortionLogic.recalculatePortionsFrom({
+					month: timeMoment.startOf('month'),
+					documentId: model.account.document.id
+				});
+
+				// update summaries
+				SummaryLogic.recalculateSummariesFrom(model.account.document.id, timeMoment.startOf('month'));
+
+				return model;
+			})
 			.catch(e => {
 				throw e;
 			});
@@ -542,7 +609,26 @@ class TransactionLogic extends BaseLogic {
 			throw new ErrorResponse(400, 'Not able to destroy transaction: managed by transaction');
 		}
 
-		return model.destroy();
+		const moment = require('moment');
+		const month = moment(model).startOf('month');
+		const documentId = model.account.document.id;
+
+		return model.destroy()
+			.then(model => {
+				const PortionLogic = require('../logic/portion');
+				const SummaryLogic = require('../logic/summary');
+
+				// update portions
+				PortionLogic.recalculatePortionsFrom({month, documentId});
+
+				// update summaries
+				SummaryLogic.recalculateSummariesFrom(documentId, month);
+
+				return model;
+			})
+			.catch(e => {
+				throw e;
+			});
 	}
 }
 

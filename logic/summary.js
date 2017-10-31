@@ -28,6 +28,26 @@ class SummaryLogic extends BaseLogic {
 		};
 	}
 
+	static get (id, options) {
+		const DatabaseHelper = require('../helpers/database');
+		return this.getModel().findOne({
+			where: {
+				id: id
+			},
+			include: [{
+				model: DatabaseHelper.get('document'),
+				attributes: [],
+				include: [{
+					model: DatabaseHelper.get('user'),
+					attributes: [],
+					where: {
+						id: options.session.userId
+					}
+				}]
+			}]
+		});
+	}
+
 	static list (params, options) {
 		const moment = require('moment');
 		const DatabaseHelper = require('../helpers/database');
@@ -111,6 +131,32 @@ class SummaryLogic extends BaseLogic {
 					.catch(e => {
 						throw e;
 					});
+			})
+			.catch(e => {
+				throw e;
+			});
+	}
+
+	static recalculateSummariesFrom (documentId, month) {
+		const moment = require('moment');
+		const DatabaseHelper = require('../helpers/database');
+		const monthMoment = moment(month);
+		if (!monthMoment.isValid()) {
+			throw new Error('Invalid Month: ' + month);
+		}
+
+		const query = {
+			where: {
+				documentId,
+				month: {
+					[DatabaseHelper.op('gte')]: moment(monthMoment).format('YYYY-MM')
+				}
+			}
+		};
+
+		return SummaryLogic.getModel().findAll(query)
+			.then(summaries => {
+				return Promise.all(summaries.map(SummaryLogic.recalculateSummary));
 			})
 			.catch(e => {
 				throw e;
@@ -404,18 +450,10 @@ class SummaryLogic extends BaseLogic {
 				const unbudgetedTransactionsTillThisMonth = unbudgetedTransactionsTillLastMonth + unbudgetedTransactionsThisMonth;
 				const balanceUnitsTillThisMonth = parseInt(calculated[9].dataValues.balanceUnitsTillThisMonth) || 0;
 
-				console.log('\n\n\n## ' + monthMoment.format('YYYY-MM'));
-				console.log('Income till this month:', incomeThisMonth);
-				console.log('Budgeted till this month:', budgetedTillThisMonth);
-				console.log('Unbudgeted Units till this month:', unbudgetedUnitsTillThisMonth);
-				console.log('Unbudgeted Transactions till this month:', unbudgetedTransactionsTillThisMonth);
-
-				summary.available = incomeTillThisMonth + budgetedTillThisMonth +
+				summary.available = incomeTillThisMonth - budgetedTillThisMonth +
 					unbudgetedUnitsTillThisMonth + unbudgetedTransactionsTillThisMonth;
 
-				console.log('=> available =', summary.available);
-
-				summary.availableLastMonth = incomeTillLastMonth + budgetedTillLastMonth +
+				summary.availableLastMonth = incomeTillLastMonth - budgetedTillLastMonth +
 					unbudgetedUnitsTillLastMonth + unbudgetedTransactionsTillLastMonth;
 
 				summary.income = incomeThisMonth;
