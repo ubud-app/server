@@ -134,6 +134,9 @@ models.learning.belongsTo(models.document, {foreignKey: {allowNull: false}, onDe
 models.category.hasMany(models.learning, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 models.learning.belongsTo(models.category, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 
+models.document.hasMany(models.summary, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+models.summary.belongsTo(models.document, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+
 
 /**
  * DatabaseHelper
@@ -227,11 +230,34 @@ class DatabaseHelper {
 	}
 
 	/**
+	 * @param {String} literal
+	 */
+	static literal(literal) {
+		return sequelize.literal(literal);
+	}
+
+	static where(k, v) {
+		return sequelize.where(k, v);
+	}
+
+	static query(query) {
+		return sequelize.query(query, {type: sequelize.QueryTypes.SELECT});
+	}
+
+	/**
 	 * Helps to get a sum
 	 * @param {String} column
 	 */
 	static sum(column) {
 		return sequelize.fn('sum', sequelize.col(column));
+	}
+
+	/**
+	 * Helps to get count of elements
+	 * @param {String} column
+	 */
+	static count(column) {
+		return sequelize.fn('count', sequelize.col(column));
 	}
 }
 
