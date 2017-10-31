@@ -47,14 +47,21 @@ class ServerHelper {
 		app.use(bodyParser.json());
 		io = socketio(server);
 
-		this.loadRoutes();
-		server.listen(ConfigHelper.getPort());
+		this.migrateDatabaseIfRequired()
+			.then(() => {
+				return this.createDefaultUserIfRequired();
+			})
+			.then(() => {
+				this.loadRoutes();
+				server.listen(ConfigHelper.getPort());
 
-		this.createDefaultUserIfRequired();
-
-		io.on('connection', function (socket) {
-			ServerHelper.handleSocketConnection(socket);
-		});
+				io.on('connection', function (socket) {
+					ServerHelper.handleSocketConnection(socket);
+				});
+			})
+			.catch(e => {
+				throw e;
+			});
 	}
 
 	/**
@@ -190,8 +197,30 @@ class ServerHelper {
 	}
 
 	/**
+	 * Checks the database for pending migrations
+	 * and runs them…
+	 *
+	 * @returns {Promise}
+	 */
+	static migrateDatabaseIfRequired () {
+		return DatabaseHelper.getMigrator().up()
+			.then(migrations => {
+				if(migrations.length > 0) {
+					log.info('Executed %s migrations.\n - %s', migrations.length, migrations.map(m => m.file).join('\n - '));
+				}
+
+				return Promise.resolve();
+			})
+			.catch(e => {
+				throw e;
+			});
+	}
+
+	/**
 	 * Creates a default user if required and
 	 * prints it's password.
+	 *
+	 * @returns {Promise}
 	 */
 	static createDefaultUserIfRequired () {
 		const crypto = require('crypto');
@@ -199,7 +228,7 @@ class ServerHelper {
 		const user = DatabaseHelper.get('user');
 		let password;
 
-		user.destroy({where: {email: 'setup@dwimm.org'}})
+		return user.destroy({where: {email: 'setup@dwimm.org'}})
 			.then(function() {
 				return user.count();
 			})
@@ -239,6 +268,7 @@ class ServerHelper {
 				s += '##########################################\n\n\n';
 
 				log.info(s);
+				return Promise.resolve();
 			})
 			.catch(function (err) {
 				if (err !== false) {
