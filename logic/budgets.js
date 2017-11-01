@@ -110,12 +110,15 @@ class BudgetLogic extends BaseLogic {
 			include: [{
 				model: DatabaseHelper.get('category'),
 				attributes: [],
+				required: true,
 				include: [{
 					model: DatabaseHelper.get('document'),
 					attributes: [],
+					required: true,
 					include: [{
 						model: DatabaseHelper.get('user'),
 						attributes: [],
+						required: true,
 						where: {
 							id: options.session.userId
 						}

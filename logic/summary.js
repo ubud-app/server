@@ -37,6 +37,7 @@ class SummaryLogic extends BaseLogic {
 			include: [{
 				model: DatabaseHelper.get('document'),
 				attributes: [],
+				required: true,
 				include: [{
 					model: DatabaseHelper.get('user'),
 					attributes: [],
@@ -195,6 +196,7 @@ class SummaryLogic extends BaseLogic {
 					include: [{
 						model: DatabaseHelper.get('transaction'),
 						attributes: [],
+						required: true,
 						include: [{
 							model: DatabaseHelper.get('account'),
 							attributes: [],
@@ -220,6 +222,7 @@ class SummaryLogic extends BaseLogic {
 					include: [{
 						model: DatabaseHelper.get('budget'),
 						attributes: [],
+						required: true,
 						include: [{
 							model: DatabaseHelper.get('category'),
 							attributes: [],
@@ -267,7 +270,8 @@ class SummaryLogic extends BaseLogic {
 					'FROM `transactions` AS `transaction` ' +
 					'WHERE ' +
 					'  `transaction`.`time` <= "' + moment(monthMoment).subtract(1, 'month').endOf('month').toJSON() + '" AND ' +
-					'  (SELECT COUNT(*) FROM `units` WHERE `units`.`transactionId` = `transaction`.`id`) = 0;'
+					'  (SELECT COUNT(*) FROM `units` WHERE `units`.`transactionId` = `transaction`.`id`) = 0 AND ' +
+					'  `accountId` IN (SELECT `id` FROM `accounts` WHERE `documentId` = "' + summary.documentId + '");'
 				),
 
 				/*
@@ -298,6 +302,7 @@ class SummaryLogic extends BaseLogic {
 					include: [{
 						model: DatabaseHelper.get('transaction'),
 						attributes: [],
+						required: true,
 						include: [{
 							model: DatabaseHelper.get('account'),
 							attributes: [],
@@ -324,6 +329,7 @@ class SummaryLogic extends BaseLogic {
 					include: [{
 						model: DatabaseHelper.get('budget'),
 						attributes: [],
+						required: true,
 						include: [{
 							model: DatabaseHelper.get('category'),
 							attributes: [],
@@ -373,7 +379,8 @@ class SummaryLogic extends BaseLogic {
 					'WHERE ' +
 					'  `transaction`.`time` <= "' + moment(monthMoment).endOf('month').toJSON() + '" AND ' +
 					'  `transaction`.`time` >= "' + moment(monthMoment).startOf('month').toJSON() + '" AND ' +
-					'  (SELECT COUNT(*) FROM `units` WHERE `units`.`transactionId` = `transaction`.`id`) = 0;'
+					'  (SELECT COUNT(*) FROM `units` WHERE `units`.`transactionId` = `transaction`.`id`) = 0 AND ' +
+					'  `accountId` IN (SELECT `id` FROM `accounts` WHERE `documentId` = "' + summary.documentId + '");'
 				),
 
 				/*
@@ -393,6 +400,7 @@ class SummaryLogic extends BaseLogic {
 					include: [{
 						model: DatabaseHelper.get('transaction'),
 						attributes: [],
+						required: true,
 						include: [{
 							model: DatabaseHelper.get('account'),
 							attributes: [],
@@ -418,6 +426,7 @@ class SummaryLogic extends BaseLogic {
 					include: [{
 						model: DatabaseHelper.get('transaction'),
 						attributes: [],
+						required: true,
 						include: [{
 							model: DatabaseHelper.get('account'),
 							attributes: [],

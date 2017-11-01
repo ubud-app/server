@@ -285,9 +285,11 @@ class TransactionLogic extends BaseLogic {
 				{
 					model: DatabaseHelper.get('account'),
 					attributes: [],
+					required: true,
 					include: [{
 						model: DatabaseHelper.get('document'),
 						attributes: [],
+						required: true,
 						include: [{
 							model: DatabaseHelper.get('user'),
 							attributes: [],

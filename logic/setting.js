@@ -128,9 +128,11 @@ class SettingLogic extends BaseLogic {
 		return this.getModel().findAll({
 			include: [{
 				model: DatabaseHelper.get('document'),
+				required: true,
 				include: [{
 					model: DatabaseHelper.get('user'),
 					attributes: [],
+					required: true,
 					where: {
 						id: options.session.userId
 					}
