@@ -15,11 +15,11 @@ const log = new LogHelper('ServerHelper');
 
 const allLogics = {};
 const allMethods = {
-	'create': ['post'],
-	'get': ['get'],
-	'list': ['get'],
-	'update': ['put', 'patch'],
-	'delete': ['delete']
+    'create': ['post'],
+    'get': ['get'],
+    'list': ['get'],
+    'update': ['put', 'patch'],
+    'delete': ['delete']
 };
 
 let io;
@@ -34,248 +34,253 @@ let server;
  * @class ServerHelper
  */
 class ServerHelper {
-	/**
-	 * Initializes socket.io and the web server…
-	 */
-	static initialize () {
-		if (app) {
-			return;
-		}
+    /**
+     * Initializes socket.io and the web server…
+     */
+    static initialize() {
+        if (app) {
+            return;
+        }
 
-		app = express();
-		server = http.Server(app);
-		app.use(bodyParser.json());
-		io = socketio(server);
+        app = express();
+        server = http.Server(app);
+        app.use(bodyParser.json());
+        io = socketio(server);
 
-		this.migrateDatabaseIfRequired()
-			.then(() => {
-				return this.createDefaultUserIfRequired();
-			})
-			.then(() => {
-				this.loadRoutes();
-				server.listen(ConfigHelper.getPort());
+        this.migrateDatabaseIfRequired()
+            .then(() => {
+                return this.createDefaultUserIfRequired();
+            })
+            .then(() => {
+                this.loadRoutes();
+                server.listen(ConfigHelper.getPort());
 
-				io.on('connection', function (socket) {
-					ServerHelper.handleSocketConnection(socket);
-				});
-			})
-			.catch(e => {
-				throw e;
-			});
-	}
+                io.on('connection', function (socket) {
+                    ServerHelper.handleSocketConnection(socket);
+                });
+            })
+            .catch(e => {
+                throw e;
+            });
+    }
 
-	/**
-	 * Loades the available logic routes and generates HTTP
-	 * routes for them. Also stores all routes in `allRoutes`
-	 * for later usage.
-	 *
-	 * @todo Currently this method works sync, but it should make no difference to run this asynchronously, right?
-	 */
-	static loadRoutes () {
-		const fs = require('fs');
-		fs.readdirSync(__dirname + '/../logic').forEach(function (dir) {
-			if (dir.substr(0, 1) === '_') {
-				return;
-			}
+    /**
+     * Loades the available logic routes and generates HTTP
+     * routes for them. Also stores all routes in `allRoutes`
+     * for later usage.
+     *
+     * @todo Currently this method works sync, but it should make no difference to run this asynchronously, right?
+     */
+    static loadRoutes() {
+        const fs = require('fs');
+        fs.readdirSync('./../logic').forEach(function (dir) {
+            if (dir.substr(0, 1) === '_') {
+                return;
+            }
 
-			const Logic = require(__dirname + '/../logic/' + dir);
-			allLogics[Logic.getModelName()] = Logic;
+            /* eslint-disable security/detect-non-literal-require */
+            const Logic = require('./../logic/' + dir);
+            /* eslint-enable security/detect-non-literal-require */
 
-			Logic.getAvailableRoutes().forEach(route => {
-				ServerHelper.addHTTPRoute(Logic, route);
-			});
-		});
-	}
+            allLogics[Logic.getModelName()] = Logic;
 
-	/**
-	 * Adds a single HTTP Route by passing an Logic
-	 * Object and the route to build.
-	 *
-	 * @param {Logic} Logic Logic Object
-	 * @param {String} route One of 'create', 'get', 'list', 'update' or 'delete'
-	 */
-	static addHTTPRoute (Logic, route) {
-		const methods = allMethods[route];
-		const regex = Logic.getPathForRoute(route);
+            Logic.getAvailableRoutes().forEach(route => {
+                ServerHelper.addHTTPRoute(Logic, route);
+            });
+        });
+    }
 
-		methods.forEach(function (method) {
-			app[method](regex, function (req, res) {
-				new HTTPRequestHandler({Logic, route, req, res}).run();
-			});
-		});
-	}
+    /**
+     * Adds a single HTTP Route by passing an Logic
+     * Object and the route to build.
+     *
+     * @param {Logic} Logic Logic Object
+     * @param {String} route One of 'create', 'get', 'list', 'update' or 'delete'
+     */
+    static addHTTPRoute(Logic, route) {
+        const methods = allMethods[route];
+        const regex = Logic.getPathForRoute(route);
 
-	/**
-	 * Handles new socket connections
-	 * @param {Socket} socket socket.io Socket Object
-	 */
-	static handleSocketConnection (socket) {
-		const session = new SocketSession();
-		this.setupSocketRoutes(socket, session);
-		this.setupSocketUpdateEvents(socket, session);
-	}
+        methods.forEach(function (method) {
+            app[method](regex, function (req, res) {
+                new HTTPRequestHandler({Logic, route, req, res}).run();
+            });
+        });
+    }
 
-	/**
-	 * Registers the required event listeners for new
-	 * sockets to handle basic CRUD operations.
-	 *
-	 * @param {Socket} socket socket.io Socket Object
-	 * @param {SocketSession} session
-	 */
-	static setupSocketRoutes (socket, session) {
-		socket.on('auth', function (data, cb) {
-			session.authenticate(data).then(function () {
-				cb({});
-			}).catch(err => {
-				log.warn(err);
-				new SocketRequestHandler({session, data, cb}).error(err);
-			});
-		});
+    /**
+     * Handles new socket connections
+     * @param {Socket} socket socket.io Socket Object
+     */
+    static handleSocketConnection(socket) {
+        const session = new SocketSession();
+        this.setupSocketRoutes(socket, session);
+        this.setupSocketUpdateEvents(socket, session);
+    }
 
-		Object.entries(allLogics).forEach(([k, Logic]) => {
-			Logic.getAvailableRoutes().forEach(route => {
-				socket.on(Logic.getPluralModelName() + '/' + route, function (data, cb) {
-					new SocketRequestHandler({Logic, route, session, data, cb}).run();
-				});
-			});
-		});
-	}
+    /**
+     * Registers the required event listeners for new
+     * sockets to handle basic CRUD operations.
+     *
+     * @param {Socket} socket socket.io Socket Object
+     * @param {SocketSession} session
+     */
+    static setupSocketRoutes(socket, session) {
+        socket.on('auth', function (data, cb) {
+            session.authenticate(data).then(function () {
+                cb({});
+            }).catch(err => {
+                log.warn(err);
+                new SocketRequestHandler({session, data, cb}).error(err);
+            });
+        });
 
-	/**
-	 * Registers the required event listeners for new
-	 * sockets to handle model change events.
-	 *
-	 * @param {Socket} socket socket.io Socket Object
-	 * @param {SocketSession} session
-	 */
-	static setupSocketUpdateEvents (socket, session) {
-		const handleEvent = function (event) {
-			if (!event.name || !allLogics[event.name]) {
-				log.warn('Unknown Logic `' + event.name + '`!');
-				return;
-			}
-			if(!session.isAuthenticated()) {
-				return;
-			}
+        Object.entries(allLogics).forEach(([, Logic]) => {
+            Logic.getAvailableRoutes().forEach(route => {
+                socket.on(Logic.getPluralModelName() + '/' + route, function (data, cb) {
+                    new SocketRequestHandler({Logic, route, session, data, cb}).run();
+                });
+            });
+        });
+    }
 
-			const Logic = allLogics[event.name];
+    /**
+     * Registers the required event listeners for new
+     * sockets to handle model change events.
+     *
+     * @param {Socket} socket socket.io Socket Object
+     * @param {SocketSession} session
+     */
+    static setupSocketUpdateEvents(socket, session) {
+        const handleEvent = function (event) {
+            if (!event.name || !allLogics[event.name]) {
+                log.warn('Unknown Logic `' + event.name + '`!');
+                return;
+            }
+            if (!session.isAuthenticated()) {
+                return;
+            }
 
-			if(event.action === 'deleted') {
-				socket.emit('update', {
-					action: event.action,
-					name: Logic.getPluralModelName(),
-					id: event.model.id
-				});
-				return;
-			}
-			if(!Logic.get) {
-				return;
-			}
+            const Logic = allLogics[event.name];
 
-			Logic.get(event.model.id, {session: session.getSessionModel()})
-				.then(model => {return Logic.format(model, {}, {session: session.getSessionModel()})})
-				.then(function (json) {
-					socket.emit('update', {
-						action: event.action,
-						name: Logic.getPluralModelName(),
-						id: event.model.id,
-						data: json
-					});
-				})
-				.catch(err => {
-					log.error(err);
-				});
-		};
+            if (event.action === 'deleted') {
+                socket.emit('update', {
+                    action: event.action,
+                    name: Logic.getPluralModelName(),
+                    id: event.model.id
+                });
+                return;
+            }
+            if (!Logic.get) {
+                return;
+            }
 
-		DatabaseHelper.events().on('update', handleEvent);
-		socket.once('disconnecting', function () {
-			DatabaseHelper.events().removeListener('update', handleEvent);
-		});
-		socket.once('error', function (err) {
-			log.warn(err);
-		});
-	}
+            Logic.get(event.model.id, {session: session.getSessionModel()})
+                .then(model => {
+                    return Logic.format(model, {}, {session: session.getSessionModel()});
+                })
+                .then(function (json) {
+                    socket.emit('update', {
+                        action: event.action,
+                        name: Logic.getPluralModelName(),
+                        id: event.model.id,
+                        data: json
+                    });
+                })
+                .catch(err => {
+                    log.error(err);
+                });
+        };
 
-	/**
-	 * Checks the database for pending migrations
-	 * and runs them…
-	 *
-	 * @returns {Promise}
-	 */
-	static migrateDatabaseIfRequired () {
-		return DatabaseHelper.getMigrator().up()
-			.then(migrations => {
-				if(migrations.length > 0) {
-					log.info('Executed %s migrations.\n - %s', migrations.length, migrations.map(m => m.file).join('\n - '));
-				}
+        DatabaseHelper.events().on('update', handleEvent);
+        socket.once('disconnecting', function () {
+            DatabaseHelper.events().removeListener('update', handleEvent);
+        });
+        socket.once('error', function (err) {
+            log.warn(err);
+        });
+    }
 
-				return Promise.resolve();
-			})
-			.catch(e => {
-				throw e;
-			});
-	}
+    /**
+     * Checks the database for pending migrations
+     * and runs them…
+     *
+     * @returns {Promise}
+     */
+    static migrateDatabaseIfRequired() {
+        return DatabaseHelper.getMigrator().up()
+            .then(migrations => {
+                if (migrations.length > 0) {
+                    log.info('Executed %s migrations.\n - %s', migrations.length, migrations.map(m => m.file).join('\n - '));
+                }
 
-	/**
-	 * Creates a default user if required and
-	 * prints it's password.
-	 *
-	 * @returns {Promise}
-	 */
-	static createDefaultUserIfRequired () {
-		const crypto = require('crypto');
-		const bcrypt = require('bcrypt');
-		const user = DatabaseHelper.get('user');
-		let password;
+                return Promise.resolve();
+            })
+            .catch(e => {
+                throw e;
+            });
+    }
 
-		return user.destroy({where: {email: 'setup@dwimm.org'}})
-			.then(function() {
-				return user.count();
-			})
-			.then(function(count) {
-				if (count > 0) {
-					throw false; // -> "abort promise"
-				}
+    /**
+     * Creates a default user if required and
+     * prints it's password.
+     *
+     * @returns {Promise}
+     */
+    static createDefaultUserIfRequired() {
+        const crypto = require('crypto');
+        const bcrypt = require('bcrypt');
+        const user = DatabaseHelper.get('user');
+        let password;
 
-				return new Promise((resolve, reject) => {
-					crypto.randomBytes(16, (err, buffer) => {
-						if (err) {
-							reject(err);
-						} else {
-							resolve(buffer.toString('hex'));
-						}
-					});
-				});
-			})
-			.then(function (random) {
-				password = random;
-				return bcrypt.hash(random, 10);
-			})
-			.then(function (hash) {
-				return DatabaseHelper.get('user').create({
-					email: 'setup@dwimm.org',
-					password: hash,
-					isAdmin: true,
-					needsPasswordChange: true
-				});
-			})
-			.then(function() {
-				let s = '\n\n\n##########################################\n\n';
-				s += 'Hey buddy,\n\nI just created a new admin user for you. \nUse these credentials to login:\n\n';
-				s += 'Email: setup@dwimm.org\n';
-				s += 'Password: ' + password + '\n\n';
-				s += 'Cheers, \nyour lovely HMWIMM server :)\n\n';
-				s += '##########################################\n\n\n';
+        return user.destroy({where: {email: 'setup@dwimm.org'}})
+            .then(function () {
+                return user.count();
+            })
+            .then(function (count) {
+                if (count > 0) {
+                    throw false; // -> "abort promise"
+                }
 
-				log.info(s);
-				return Promise.resolve();
-			})
-			.catch(function (err) {
-				if (err !== false) {
-					throw err;
-				}
-			});
-	}
+                return new Promise((resolve, reject) => {
+                    crypto.randomBytes(16, (err, buffer) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve(buffer.toString('hex'));
+                        }
+                    });
+                });
+            })
+            .then(function (random) {
+                password = random;
+                return bcrypt.hash(random, 10);
+            })
+            .then(function (hash) {
+                return DatabaseHelper.get('user').create({
+                    email: 'setup@dwimm.org',
+                    password: hash,
+                    isAdmin: true,
+                    needsPasswordChange: true
+                });
+            })
+            .then(function () {
+                let s = '\n\n\n##########################################\n\n';
+                s += 'Hey buddy,\n\nI just created a new admin user for you. \nUse these credentials to login:\n\n';
+                s += 'Email: setup@dwimm.org\n';
+                s += 'Password: ' + password + '\n\n';
+                s += 'Cheers, \nyour lovely DWIMM server :)\n\n';
+                s += '##########################################\n\n\n';
+
+                log.info(s);
+                return Promise.resolve();
+            })
+            .catch(function (err) {
+                if (err !== false) {
+                    throw err;
+                }
+            });
+    }
 }
 
 

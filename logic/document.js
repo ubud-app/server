@@ -5,143 +5,143 @@ const DatabaseHelper = require('../helpers/database');
 const ErrorResponse = require('../helpers/errorResponse');
 
 class DocumentLogic extends BaseLogic {
-	static getModelName () {
-		return 'document';
-	}
+    static getModelName() {
+        return 'document';
+    }
 
-	static getPluralModelName () {
-		return 'documents';
-	}
+    static getPluralModelName() {
+        return 'documents';
+    }
 
-	static format (document, secrets, options) {
-		const r = {
-			id: document.id,
-			name: document.name,
-			settings: {}
-		};
+    static format(document, secrets, options) {
+        const r = {
+            id: document.id,
+            name: document.name,
+            settings: {}
+        };
 
-		(document.settings || []).forEach(function (setting) {
-			r.settings[setting.key] = JSON.parse(setting.value);
-		});
+        (document.settings || []).forEach(function (setting) {
+            r.settings[setting.key] = JSON.parse(setting.value);
+        });
 
-		if (options.session.user.isAdmin && document.users) {
-			r.users = document.users.map(user => ({
-				id: user.id,
-				email: user.email
-			}));
-		}
+        if (options.session.user.isAdmin && document.users) {
+            r.users = document.users.map(user => ({
+                id: user.id,
+                email: user.email
+            }));
+        }
 
-		return r;
-	}
+        return r;
+    }
 
-	static create (attributes, options) {
-		const _ = require('underscore');
-		const model = this.getModel().build();
-		let document, settings;
+    static create(attributes, options) {
+        const _ = require('underscore');
+        const model = this.getModel().build();
+        let document;
 
-		model.name = attributes.name;
-		if (!model.name) {
-			throw new ErrorResponse(400, 'Documents require an attribute `name`…', {
-				attributes: {
-					name: 'Is required!'
-				}
-			});
-		}
+        model.name = attributes.name;
+        if (!model.name) {
+            throw new ErrorResponse(400, 'Documents require an attribute `name`…', {
+                attributes: {
+                    name: 'Is required!'
+                }
+            });
+        }
 
-		return model.save()
-			.then(function (_document) {
-				document = _document;
-				let jobs = [document.addUser(options.session.user)];
+        return model.save()
+            .then(function (_document) {
+                document = _document;
+                let jobs = [document.addUser(options.session.user)];
 
-				// Settings
-				_.each(attributes.settings || {}, (v, k) => {
-					jobs.push(
-						DatabaseHelper.get('setting').create({
-								key: k,
-								value: JSON.stringify(v),
-								documentId: document.id
-							})
-							.then(setting => {
-								document.settings = document.settings || [];
-								document.settings.push(setting);
-							})
-							.catch(e => {
-								throw e;
-							})
-					);
-				});
+                // Settings
+                _.each(attributes.settings || {}, (v, k) => {
+                    jobs.push(
+                        DatabaseHelper.get('setting').create({
+                            key: k,
+                            value: JSON.stringify(v),
+                            documentId: document.id
+                        })
+                            .then(setting => {
+                                document.settings = document.settings || [];
+                                document.settings.push(setting);
+                            })
+                            .catch(e => {
+                                throw e;
+                            })
+                    );
+                });
 
-				return Promise.all(jobs);
-			})
-			.then(function () {
-				return {model: document};
-			})
-			.catch(err => {
-				throw err;
-			});
-	}
+                return Promise.all(jobs);
+            })
+            .then(function () {
+                return {model: document};
+            })
+            .catch(err => {
+                throw err;
+            });
+    }
 
-	static get (id, options) {
-		const sql = {
-			where: {id}
-		};
+    static get(id, options) {
+        const sql = {
+            where: {id}
+        };
 
-		if (!options.session.user.isAdmin) {
-			sql.include = [{
-				model: DatabaseHelper.get('user'),
-				attributes: [],
-				where: {
-					id: options.session.userId
-				}
-			}];
-		}
+        if (!options.session.user.isAdmin) {
+            sql.include = [{
+                model: DatabaseHelper.get('user'),
+                attributes: [],
+                where: {
+                    id: options.session.userId
+                }
+            }];
+        }
 
-		return this.getModel().findOne(sql);
-	}
+        return this.getModel().findOne(sql);
+    }
 
-	static list (params, options) {
-		const sql = {
-			include: [
-				{
-					model: DatabaseHelper.get('setting')
-				}
-			],
-			order: [
-				['name', 'ASC']
-			]
-		};
+    static list(params, options) {
+        const sql = {
+            include: [
+                {
+                    model: DatabaseHelper.get('setting')
+                }
+            ],
+            order: [
+                ['name', 'ASC']
+            ]
+        };
 
-		if (!options.session.user.isAdmin) {
-			sql.include.push({
-				model: DatabaseHelper.get('user'),
-				attributes: [],
-				where: {
-					id: options.session.userId
-				}
-			});
-		}
+        if (!options.session.user.isAdmin) {
+            sql.include.push({
+                model: DatabaseHelper.get('user'),
+                attributes: [],
+                where: {
+                    id: options.session.userId
+                }
+            });
+        }
 
-		return this.getModel().findAll(sql);
-	}
+        return this.getModel().findAll(sql);
+    }
 
-	static update (model, body) {
-		if (body.name !== undefined && !body.name) {
-			throw new ErrorResponse(400, 'Document name can\'t be empty…', {
-				attributes: {
-					name: 'Is required'
-				}
-			});
-		}
-		if (body.name) {
-			model.name = body.name;
-		}
+    static update(model, body) {
+        if (body.name !== undefined && !body.name) {
+            throw new ErrorResponse(400, 'Document name can\'t be empty…', {
+                attributes: {
+                    name: 'Is required'
+                }
+            });
+        }
+        if (body.name) {
+            model.name = body.name;
+        }
 
-		return model.save();
-	}
+        return model.save();
+    }
 
-	static delete (model) {
-		return model.destroy();
-	}
+    static delete(model) {
+        return model.destroy();
+    }
 }
 
 module.exports = DocumentLogic;

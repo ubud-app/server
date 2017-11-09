@@ -1,0 +1,37 @@
+language: node_js
+sudo: false
+node_js:
+  - lts/*
+  - node
+
+cache:
+  yarn: true
+  directories:
+      - node_modules
+
+install:
+  - yarn install
+
+script:
+  - npm run pipeline
+
+jobs:
+  include:
+  - stage: deploy@next
+    script: skip
+    node_js: lts/*
+    before_deploy:
+      - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
+      - cat ./package.json
+      - npm run bump:develop
+      - cat ./package.json
+    deploy:
+      provider: npm
+      skip_cleanup: true
+      email: mail@sebbo.net
+      api_key:
+        secure: DWpNZ0ZZgboRIP6N2XQJ9JKIwq8qtSZy7KgnN3rU51Q6Rpgth7DakM6WK6FKNG6AYvfLmZjbZNdYPbHEYYubmitdv3ljWiDd6HbvsBu5rlz83qjp9swUscHgfGoA0ZG2M75+ju3OElTevyewmq0yka1669sx1Bd7cVR1eNABLZh1Akd9C66oWqVYYjYY0Tj0pwI09pnvkGWYUiFmGjx3n68upFgOD/d2cB5yr+PATy+DooIa2X3VAinIKKUtwI75PYZ6mzRrVVACtn2qHodX7srpOftQQeN1ysvIsjcK1MD4j6r++J3ECQyebLdq0vU29+d+RtCk/8A35Lj+ix9mjwIEoO4DztvkJK+g2JRKiDkDQeyNBsMQvA3wWpBboka53Rxn/BJuK4qSDlRU039O3SB6hgMli5q6/DYigwvqWlw2PG8CAiSSXsKmkH3lQkUc30R/M3+RztSjlTIgxn9fj6oW3zZTmheD8grsQPKouapIDwPnzykNj05McfVih4byfJ0RTiwJ2YBXCo09VjsSkIF+UJ/xrOw97Zj6X3y73ptldWImUq7rKepuq/R/dvGOqaMz+yZs6Dk/n5A0AF1RI8O0LcE1nQf3f/jkc1OyvTR+wq9UNbUZbULbZkn3dGUe//SgyNPIOPJLJi3TlQKXekl16CRoCR562AKSZt58dEA=
+      on:
+        repo: sebbo2002/dwimm-server
+        branch: develop
+      tag: next

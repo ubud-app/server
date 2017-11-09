@@ -1,10 +1,16 @@
 {
-  "name": "hmwimm-server",
-  "version": "1.0.0",
+  "name": "@dwimm/server",
+  "version": null,
   "description": "",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "check": "npm run check:eslint",
+    "check:eslint": "eslint ./",
+    "visualize": "plato -rt dwimm-server -d ./code-visualization -e \".eslintrc.json\" -x 'code-visualization|node_modules' ./**/*.js",
+    "bump:reset": "export MODULEVERSION=$(npm view @dwimm/server version) && npm run bump:reset:save",
+    "bump:reset:next": "export MODULEVERSION=$(npm view @dwimm/server@next version) && npm run bump:reset:save",
+    "bump:reset:save": "node ./.travis-update-version",
+    "bump:develop": "npm run bump:reset:next && npm --no-git-tag-version version prerelease",
+    "bump:production": "npm run bump:reset && npm --no-git-tag-version version from-git"
   },
   "author": "Sebastian Pekarek <mail@sebbo.net>",
   "dependencies": {
@@ -23,5 +29,10 @@
     "umzug": "^2.0.1",
     "underscore": "^1.8.3",
     "uuid": "^3.1.0"
+  },
+  "devDependencies": {
+    "eslint": "^4.10.0",
+    "eslint-plugin-security": "^1.4.0",
+    "plato": "^1.7.0"
   }
 }

@@ -7,81 +7,83 @@ const LogHelper = require('./log.js');
 const ConfigHelper = require('./config.js');
 
 const log = new LogHelper('Database');
-const modelsPath = __dirname + '/../models';
 const modelEvents = new EventEmitter();
 const models = {};
 
 
 // initialize sequalize.js
 const sequelize = new Sequelize(ConfigHelper.getDatabaseURI(), {
-	logging: function (text) {
-		log.log(text);
-	},
-	define: {
-		timestamps: true,
-		charset: 'utf8',
-		collate: 'utf8_general_ci'
-	},
-	pool: {
-		maxConnections: 5,
-		maxIdleTime: 30
-	}
+    logging: function (text) {
+        log.log(text);
+    },
+    define: {
+        timestamps: true,
+        charset: 'utf8',
+        collate: 'utf8_general_ci'
+    },
+    pool: {
+        maxConnections: 5,
+        maxIdleTime: 30
+    }
 });
 
 
 // load models (sync)
-fs.readdirSync(modelsPath).forEach(function (modelFile) {
-	const name = modelFile.split('.')[0];
+fs.readdirSync('./../models').forEach(function (modelFile) {
+    const name = modelFile.split('.')[0];
 
-	if (name) {
-		const def = require(modelsPath + '/' + modelFile);
-		models[name] = sequelize.define(
-			name,
-			def.getDefinition(Sequelize),
-			{
-				hooks: {
-					afterCreate (model) {
-						setTimeout(function () {
-							modelEvents.emit('update', {
-								action: 'created',
-								name: name,
-								model: model
-							});
-						}, 10);
-					},
-					afterDestroy (model) {
-						setTimeout(function () {
-							modelEvents.emit('update', {
-								action: 'deleted',
-								name: name,
-								model: model
-							});
-						}, 10);
-					},
-					afterUpdate (model) {
-						setTimeout(function () {
-							modelEvents.emit('update', {
-								action: 'updated',
-								name: name,
-								model: model
-							});
-						}, 10);
-					},
-					afterSave (model) {
-						setTimeout(function () {
-							modelEvents.emit('update', {
-								action: 'updated',
-								name: name,
-								model: model
-							});
-						}, 10);
-					}
-				},
-				indexes: def.getIndexes ? def.getIndexes() : [],
-				paranoid: def.isParanoid ? !!def.isParanoid() : false
-			}
-		);
-	}
+    if (name) {
+        /* eslint-disable security/detect-non-literal-require */
+        const def = require('./../models/' + modelFile);
+        /* eslint-enable security/detect-non-literal-require */
+
+        models[name] = sequelize.define(
+            name,
+            def.getDefinition(Sequelize),
+            {
+                hooks: {
+                    afterCreate(model) {
+                        setTimeout(function () {
+                            modelEvents.emit('update', {
+                                action: 'created',
+                                name: name,
+                                model: model
+                            });
+                        }, 10);
+                    },
+                    afterDestroy(model) {
+                        setTimeout(function () {
+                            modelEvents.emit('update', {
+                                action: 'deleted',
+                                name: name,
+                                model: model
+                            });
+                        }, 10);
+                    },
+                    afterUpdate(model) {
+                        setTimeout(function () {
+                            modelEvents.emit('update', {
+                                action: 'updated',
+                                name: name,
+                                model: model
+                            });
+                        }, 10);
+                    },
+                    afterSave(model) {
+                        setTimeout(function () {
+                            modelEvents.emit('update', {
+                                action: 'updated',
+                                name: name,
+                                model: model
+                            });
+                        }, 10);
+                    }
+                },
+                indexes: def.getIndexes ? def.getIndexes() : [],
+                paranoid: def.isParanoid ? !!def.isParanoid() : false
+            }
+        );
+    }
 });
 
 
@@ -145,120 +147,120 @@ models.summary.belongsTo(models.document, {foreignKey: {allowNull: false}, onDel
  * @class DatabaseHelper
  */
 class DatabaseHelper {
-	/**
-	 * Returns the model specified by the model name
-	 *
-	 * @example DatabaseHelper.get('user') -> Sequelize Model
-	 * @param {String} name Name of model
-	 * @returns {Model}
-	 */
-	static get (name) {
-		if (!models[name]) {
-			throw new Error('Can\'t get model `' + name + ': Model unknown.`');
-		}
-		return models[name];
-	}
+    /**
+     * Returns the model specified by the model name
+     *
+     * @example DatabaseHelper.get('user') -> Sequelize Model
+     * @param {String} name Name of model
+     * @returns {Model}
+     */
+    static get(name) {
+        if (!models[name]) {
+            throw new Error('Can\'t get model `' + name + ': Model unknown.`');
+        }
+        return models[name];
+    }
 
-	/**
-	 * Returns the database migrator required to do
-	 * database migrations. Used in bin/database to
-	 * run migrations.
-	 *
-	 * @returns {Umzug}
-	 */
-	static getMigrator () {
-		const Umzug = require('umzug');
-		const path = require('path');
-		const log = new LogHelper('DatabaseMigrator');
+    /**
+     * Returns the database migrator required to do
+     * database migrations. Used in bin/database to
+     * run migrations.
+     *
+     * @returns {Umzug}
+     */
+    static getMigrator() {
+        const Umzug = require('umzug');
+        const path = require('path');
+        const log = new LogHelper('DatabaseMigrator');
 
-		return new Umzug({
-			storage: 'sequelize',
-			storageOptions: {
-				sequelize: sequelize,
-				modelName: '_migrations'
-			},
-			logging: function (text) {
-				log.info(text);
-			},
-			migrations: {
-				params: [models, sequelize],
-				index: path.resolve(__dirname + '/../../migrations')
-			}
-		});
-	}
+        return new Umzug({
+            storage: 'sequelize',
+            storageOptions: {
+                sequelize: sequelize,
+                modelName: '_migrations'
+            },
+            logging: function (text) {
+                log.info(text);
+            },
+            migrations: {
+                params: [models, sequelize],
+                index: path.resolve(__dirname + '/../../migrations')
+            }
+        });
+    }
 
-	/**
-	 * Returns the EventEmitter instance which reflects
-	 * all model events for this server instance.
-	 *
-	 * @returns {EventEmitter}
-	 * @instance
-	 */
-	static events () {
-		return modelEvents;
-	}
+    /**
+     * Returns the EventEmitter instance which reflects
+     * all model events for this server instance.
+     *
+     * @returns {EventEmitter}
+     * @instance
+     */
+    static events() {
+        return modelEvents;
+    }
 
-	/**
-	 * Resets the database by dropping all tables in
-	 * the database. Used in bin/database.
-	 *
-	 * @returns {Promise}
-	 */
-	static reset () {
-		return sequelize.dropAllSchemas({force: true});
-	}
+    /**
+     * Resets the database by dropping all tables in
+     * the database. Used in bin/database.
+     *
+     * @returns {Promise}
+     */
+    static reset() {
+        return sequelize.dropAllSchemas({force: true});
+    }
 
-	/**
-	 * Closes all database connections.
-	 * @returns {Promise}
-	 */
-	static close () {
-		return sequelize.close();
-	}
+    /**
+     * Closes all database connections.
+     * @returns {Promise}
+     */
+    static close() {
+        return sequelize.close();
+    }
 
-	/**
-	 * Returns the Sequelize Op Object…
-	 * @param {String} [operator]
-	 * @returns {Sequelize.Op}
-	 */
-	static op (operator) {
-		if (operator) {
-			return Sequelize.Op[operator];
-		}
+    /**
+     * Returns the Sequelize Op Object…
+     * @param {String} [operator]
+     * @returns {Sequelize.Op}
+     */
+    static op(operator) {
+        if (operator) {
+            return Sequelize.Op[operator];
+        }
 
-		return Sequelize.Op;
-	}
+        return Sequelize.Op;
+    }
 
-	/**
-	 * @param {String} literal
-	 */
-	static literal(literal) {
-		return sequelize.literal(literal);
-	}
+    /**
+     * @param {String} literal
+     */
+    static literal(literal) {
+        return sequelize.literal(literal);
+    }
 
-	static where(k, v) {
-		return sequelize.where(k, v);
-	}
+    static where(k, v) {
+        return sequelize.where(k, v);
+    }
 
-	static query(query) {
-		return sequelize.query(query, {type: sequelize.QueryTypes.SELECT});
-	}
+    static query(query) {
+        return sequelize.query(query, {type: sequelize.QueryTypes.SELECT});
+    }
 
-	/**
-	 * Helps to get a sum
-	 * @param {String} column
-	 */
-	static sum(column) {
-		return sequelize.fn('sum', sequelize.col(column));
-	}
+    /**
+     * Helps to get a sum
+     * @param {String} column
+     */
+    static sum(column) {
+        return sequelize.fn('sum', sequelize.col(column));
+    }
 
-	/**
-	 * Helps to get count of elements
-	 * @param {String} column
-	 */
-	static count(column) {
-		return sequelize.fn('count', sequelize.col(column));
-	}
+    /**
+     * Helps to get count of elements
+     * @param {String} column
+     */
+    static count(column) {
+        return sequelize.fn('count', sequelize.col(column));
+    }
 }
 
 module.exports = DatabaseHelper;
