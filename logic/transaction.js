@@ -610,7 +610,7 @@ class TransactionLogic extends BaseLogic {
 
                 // update portions
                 PortionLogic.recalculatePortionsFrom({
-                    month: timeMoment.startOf('month'),
+                    month: recalculateFrom,
                     documentId: model.account.document.id
                 });
 
