@@ -355,6 +355,24 @@ class TransactionLogic extends BaseLogic {
 
         const checks = [];
         let timeMoment = moment(model.time);
+        let recalculateFrom = moment(timeMoment).startOf('month');
+
+        // Time
+        if (body.time && moment(body.time).isSame(timeMoment)) {
+            model.time = body.time;
+            timeMoment = moment(body.time);
+
+            if(timeMoment.isBefore(recalculateFrom)) {
+                recalculateFrom = moment(timeMoment).startOf('month');
+            }
+        }
+        if(!timeMoment.isValid()) {
+            throw new ErrorResponse(400, 'Attribute `Transaction.time` seems to be invalid…', {
+                attributes: {
+                    time: 'Is invalid…'
+                }
+            });
+        }
 
         // Memo
         if (body.memo !== undefined) {
@@ -597,7 +615,7 @@ class TransactionLogic extends BaseLogic {
                 });
 
                 // update summaries
-                SummaryLogic.recalculateSummariesFrom(model.account.document.id, timeMoment.startOf('month'));
+                SummaryLogic.recalculateSummariesFrom(model.account.document.id, recalculateFrom);
 
                 return model;
             })

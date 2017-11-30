@@ -73,7 +73,7 @@ class ServerHelper {
      */
     static loadRoutes() {
         const fs = require('fs');
-        fs.readdirSync('./../logic').forEach(function (dir) {
+        fs.readdirSync('./logic').forEach(function (dir) {
             if (dir.substr(0, 1) === '_') {
                 return;
             }
