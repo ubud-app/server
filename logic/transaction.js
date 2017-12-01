@@ -55,12 +55,13 @@ class TransactionLogic extends BaseLogic {
         return ['pending', 'normal', 'cleared'];
     }
 
-    static create(body, options) {
+    static async create(body, options) {
         const moment = require('moment');
         const DatabaseHelper = require('../helpers/database');
         const model = this.getModel().build();
         let documentId;
 
+        // date & time
         model.time = body.time;
         if (!model.time) {
             throw new ErrorResponse(400, 'Transaction requires attribute `time`…', {
@@ -79,6 +80,8 @@ class TransactionLogic extends BaseLogic {
             });
         }
 
+
+        // memo
         model.memo = body.memo || null;
         if (model.memo && model.memo.length > 255) {
             throw new ErrorResponse(400, 'Attribute `Transaction.memo` has a maximum length of 255 chars, sorry…', {
@@ -88,6 +91,8 @@ class TransactionLogic extends BaseLogic {
             });
         }
 
+
+        // amount
         model.amount = parseInt(body.amount, 10) || null;
         if (isNaN(model.amount)) {
             throw new ErrorResponse(400, 'Transaction requires attribute `amount`…', {
@@ -97,6 +102,8 @@ class TransactionLogic extends BaseLogic {
             });
         }
 
+
+        // status
         model.status = body.status || 'normal';
         if (this.getValidManualStatusValues().indexOf(model.status) === -1) {
             throw new ErrorResponse(
@@ -108,6 +115,22 @@ class TransactionLogic extends BaseLogic {
                 });
         }
 
+
+        // payee
+        if (body.payeeId) {
+            await DatabaseHelper.get('payee')
+                .findById(body.payeeId)
+                .then(function (payee) {
+                    if (!payee) {
+                        throw new ErrorResponse(400, 'Not able to create transaction: linked payee not found.');
+                    }
+
+                    model.payeeId = payee.id;
+                });
+        }
+
+
+        // account & units
         return DatabaseHelper.get('account')
             .find({
                 where: {id: body.accountId},
@@ -362,11 +385,11 @@ class TransactionLogic extends BaseLogic {
             model.time = body.time;
             timeMoment = moment(body.time);
 
-            if(timeMoment.isBefore(recalculateFrom)) {
+            if (timeMoment.isBefore(recalculateFrom)) {
                 recalculateFrom = moment(timeMoment).startOf('month');
             }
         }
-        if(!timeMoment.isValid()) {
+        if (!timeMoment.isValid()) {
             throw new ErrorResponse(400, 'Attribute `Transaction.time` seems to be invalid…', {
                 attributes: {
                     time: 'Is invalid…'
@@ -384,6 +407,25 @@ class TransactionLogic extends BaseLogic {
                     memo: 'Is too long, only 255 characters allowed…'
                 }
             });
+        }
+
+
+        // Payee
+        if (body.payeeId !== model.payeeId) {
+            checks.push(
+                DatabaseHelper.get('payee')
+                    .findById(body.payeeId)
+                    .then(function (payee) {
+                        if (!payee) {
+                            throw new ErrorResponse(400, 'Not able to create transaction: linked payee not found.');
+                        }
+
+                        model.payeeId = payee.id;
+                    })
+                    .catch(e => {
+                        throw e;
+                    })
+            );
         }
 
 
@@ -438,8 +480,8 @@ class TransactionLogic extends BaseLogic {
             });
         }
         if (body.accountId !== undefined && body.accountId !== model.accountId) {
-            checks.push(function () {
-                return DatabaseHelper.get('account')
+            checks.push(
+                DatabaseHelper.get('account')
                     .find({
                         where: {id: body.accountId},
                         attributes: ['id', 'pluginId']
@@ -458,8 +500,8 @@ class TransactionLogic extends BaseLogic {
                     })
                     .catch(e => {
                         throw e;
-                    });
-            });
+                    })
+            );
         }
 
         // Units / Budget

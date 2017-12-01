@@ -100,6 +100,9 @@ models.transaction.belongsTo(models.account, {foreignKey: {allowNull: false}, on
 models.payee.hasMany(models.transaction, {onDelete: 'CASCADE'});
 models.transaction.belongsTo(models.payee, {onDelete: 'CASCADE'});
 
+models.document.hasMany(models.payee, {onDelete: 'CASCADE'});
+models.payee.belongsTo(models.document, {onDelete: 'CASCADE'});
+
 models.transaction.hasMany(models.unit, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 models.unit.belongsTo(models.transaction, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 
