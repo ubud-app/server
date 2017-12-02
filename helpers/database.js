@@ -189,7 +189,7 @@ class DatabaseHelper {
             },
             migrations: {
                 params: [models, sequelize],
-                index: path.resolve(__dirname + '/../../migrations')
+                index: path.resolve(__dirname + '/../migrations')
             }
         });
     }
