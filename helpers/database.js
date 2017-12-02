@@ -34,7 +34,7 @@ fs.readdirSync('./models').forEach(function (modelFile) {
 
     if (name) {
         /* eslint-disable security/detect-non-literal-require */
-        const def = require('./../models/' + modelFile);
+        const def = require(__dirname + '/../models/' + modelFile);
         /* eslint-enable security/detect-non-literal-require */
 
         models[name] = sequelize.define(

@@ -68,13 +68,16 @@ class ServerHelper {
      */
     static loadRoutes() {
         const fs = require('fs');
-        fs.readdirSync('./logic').forEach(function (dir) {
+
+        /* eslint-disable security/detect-non-literal-fs-filename */
+        fs.readdirSync(__dirname + '/../logic').forEach(function (dir) {
+            /* eslint-enable security/detect-non-literal-fs-filename */
             if (dir.substr(0, 1) === '_') {
                 return;
             }
 
             /* eslint-disable security/detect-non-literal-require */
-            const Logic = require('./../logic/' + dir);
+            const Logic = require(__dirname + '/../logic/' + dir);
             /* eslint-enable security/detect-non-literal-require */
 
             allLogics[Logic.getModelName()] = Logic;
