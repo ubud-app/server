@@ -29,7 +29,9 @@ const sequelize = new Sequelize(ConfigHelper.getDatabaseURI(), {
 
 
 // load models (sync)
-fs.readdirSync('./models').forEach(function (modelFile) {
+/* eslint-disable security/detect-non-literal-fs-filename */
+fs.readdirSync(__dirname + '/models').forEach(function (modelFile) {
+    /* eslint-enable security/detect-non-literal-fs-filename */
     const name = modelFile.split('.')[0];
 
     if (name) {
