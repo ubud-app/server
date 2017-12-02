@@ -37,7 +37,7 @@ class ServerHelper {
     /**
      * Initializes socket.io and the web server…
      */
-    static initialize() {
+    static async initialize() {
         if (app) {
             return;
         }
@@ -47,21 +47,16 @@ class ServerHelper {
         app.use(bodyParser.json());
         io = socketio(server);
 
-        this.migrateDatabaseIfRequired()
-            .then(() => {
-                return this.createDefaultUserIfRequired();
-            })
-            .then(() => {
-                this.loadRoutes();
-                server.listen(ConfigHelper.getPort());
+        await this.migrateDatabaseIfRequired();
+        await this.createDefaultUserIfRequired();
 
-                io.on('connection', function (socket) {
-                    ServerHelper.handleSocketConnection(socket);
-                });
-            })
-            .catch(e => {
-                throw e;
-            });
+        this.loadRoutes();
+        this.serveUI();
+        server.listen(ConfigHelper.getPort());
+
+        io.on('connection', function (socket) {
+            ServerHelper.handleSocketConnection(socket);
+        });
     }
 
     /**
@@ -88,6 +83,22 @@ class ServerHelper {
                 ServerHelper.addHTTPRoute(Logic, route);
             });
         });
+    }
+
+    /**
+     * Tries to get the directory of dwimm-client and serve it's
+     * static files by our server. Woun't do anything in case
+     * client-web is not installed within our scope…
+     */
+    static serveUI() {
+        try {
+            const web = require('@dwimm/client-web');
+            app.use(express.static(web.static));
+        }
+        catch(err) {
+            const msg = err.toString().replace('Error:', '').trim();
+            log.warn('Unable to serve UI: %s', msg);
+        }
     }
 
     /**
