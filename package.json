@@ -2,6 +2,10 @@
   "name": "@dwimm/server",
   "version": null,
   "description": "",
+  "bin": {
+    "dwimm-db": "./bin/database",
+    "dwimm-server": "./server.js"
+  },
   "scripts": {
     "check": "npm run check:eslint",
     "check:eslint": "eslint ./",
