@@ -47,8 +47,14 @@ class ServerHelper {
         app.use(bodyParser.json());
         io = socketio(server);
 
-        await this.migrateDatabaseIfRequired();
-        await this.createDefaultUserIfRequired();
+        try {
+            await this.migrateDatabaseIfRequired();
+            await this.createDefaultUserIfRequired();
+        }
+        catch(err) {
+            log.error(err);
+            throw err;
+        }
 
         this.loadRoutes();
         this.serveUI();
@@ -96,7 +102,15 @@ class ServerHelper {
     static serveUI() {
         try {
             const web = require('@dwimm/client-web');
+            web.static = require('path').resolve(web.static);
+
+            // static files
             app.use(express.static(web.static));
+
+            // default route
+            app.use(function(req, res) {
+                res.sendFile(web.static + '/index.html');
+            });
         }
         catch(err) {
             const msg = err.toString().replace('Error:', '').trim();
