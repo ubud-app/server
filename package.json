@@ -18,7 +18,6 @@
   },
   "author": "Sebastian Pekarek <mail@sebbo.net>",
   "dependencies": {
-    "@dwimm/client-web": "^0.0.2",
     "basic-auth": "^2.0.0",
     "bcrypt": "^1.0.3",
     "body-parser": "^1.18.2",
