@@ -256,8 +256,8 @@ class PortionLogic extends BaseLogic {
                     attributes: [],
                     where: {
                         time: {
-                            [DatabaseHelper.op('gte')]: moment(monthMoment).startOf('month'),
-                            [DatabaseHelper.op('lte')]: moment(monthMoment).endOf('month')
+                            [DatabaseHelper.op('gte')]: moment(monthMoment).startOf('month').toJSON(),
+                            [DatabaseHelper.op('lte')]: moment(monthMoment).endOf('month').toJSON()
                         }
                     }
                 }]
@@ -278,7 +278,7 @@ class PortionLogic extends BaseLogic {
                     attributes: [],
                     where: {
                         time: {
-                            [DatabaseHelper.op('lte')]: moment(monthMoment).endOf('month')
+                            [DatabaseHelper.op('lte')]: moment(monthMoment).endOf('month').toJSON()
                         }
                     }
                 }]
