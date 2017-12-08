@@ -31,7 +31,9 @@ class PluginRunner {
     }
 
     static async check(job) {
+        /* eslint-disable security/detect-non-literal-require */
         const plugin = require(job.type);
+        /* eslint-enable security/detect-non-literal-require */
 
         if(PluginTools.getConfig().length > 0 && typeof plugin.validateConfig !== 'function') {
             throw new Error('Plugin has config, but validateConfig() is not a function!');

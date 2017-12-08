@@ -45,7 +45,10 @@ class PluginInstance {
      * @returns {Promise<object|void>}
      */
     static async request(type, method, params) {
+        /* eslint-disable security/detect-child-process */
         const fork = require('child_process').fork;
+        /* eslint-enable security/detect-child-process */
+
         const process = fork(__dirname + '/runner.js', {
             cwd: require('os').tmpdir(),
             stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
