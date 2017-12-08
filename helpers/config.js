@@ -3,6 +3,7 @@
 let version;
 let database;
 let sentryDSN;
+let ui;
 
 
 // get version number
@@ -21,6 +22,19 @@ if (!database) {
 
 // Sentry DSN
 sentryDSN = process.env['SENTRY'];
+
+// Client / UI
+try {
+    const path = require('path');
+
+    ui = require('@dwimm/client-web');
+
+    ui.static = path.resolve(ui.static);
+    ui.version = require(path.resolve(ui.all + '/../package.json')).version;
+}
+catch(err) {
+    // do nothing
+}
 
 
 /**
@@ -71,6 +85,15 @@ class ConfigHelper {
      */
     static isDev() {
         return !!process.env.DEVELOP;
+    }
+
+    /**
+     * Returns client paths if client is installed,
+     * otherwise null.
+     * @returns {object|null}
+     */
+    static getClient() {
+        return ui;
     }
 }
 

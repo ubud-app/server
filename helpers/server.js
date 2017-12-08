@@ -11,6 +11,7 @@ const SocketSession = require('./socketSession');
 const HTTPRequestHandler = require('./httpRequestHandler');
 const SocketRequestHandler = require('./socketRequestHandler');
 const DatabaseHelper = require('./database');
+const RepositoryHelper = require('./repository');
 const log = new LogHelper('ServerHelper');
 
 const allLogics = {};
@@ -50,6 +51,7 @@ class ServerHelper {
         try {
             await this.migrateDatabaseIfRequired();
             await this.createDefaultUserIfRequired();
+            await RepositoryHelper.initialize();
         }
         catch(err) {
             log.error(err);
@@ -101,16 +103,18 @@ class ServerHelper {
      */
     static serveUI() {
         try {
-            const web = require('@dwimm/client-web');
-            web.static = require('path').resolve(web.static);
+            const web = ConfigHelper.getClient();
 
-            // static files
-            app.use(express.static(web.static));
+            if(web) {
 
-            // default route
-            app.use(function(req, res) {
-                res.sendFile(web.static + '/index.html');
-            });
+                // static files
+                app.use(express.static(web.static));
+
+                // default route
+                app.use(function (req, res) {
+                    res.sendFile(web.static + '/index.html');
+                });
+            }
         }
         catch(err) {
             const msg = err.toString().replace('Error:', '').trim();

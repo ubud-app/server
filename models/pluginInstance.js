@@ -1,4 +1,4 @@
-module.exports = class PluginModelDefinition {
+module.exports = class PluginInstanceModelDefinition {
     static getDefinition(DataTypes) {
         return {
             id: {
