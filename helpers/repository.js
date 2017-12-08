@@ -199,8 +199,8 @@ class RepositoryHelper {
 
             return !!plugin.banks.find(bank => {
                 return bank.name.toLowerCase().includes(q) || bank.bic.find(bic => {
-                    return bic.toLowerCase().includes(q)
-                })
+                    return bic.toLowerCase().includes(q);
+                });
             });
         });
     }

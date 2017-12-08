@@ -30,7 +30,10 @@ try {
     ui = require('@dwimm/client-web');
 
     ui.static = path.resolve(ui.static);
+
+    /* eslint-disable security/detect-non-literal-require */
     ui.version = require(path.resolve(ui.all + '/../package.json')).version;
+    /* eslint-enable security/detect-non-literal-require */
 }
 catch(err) {
     // do nothing
