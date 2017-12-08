@@ -1,0 +1,64 @@
+#!/usr/bin/env node
+'use strict';
+
+const commander = require('commander');
+const LogHelper = require('../helpers/log');
+const ConfigHelper = require('../helpers/config');
+const PluginHelper = require('../helpers/plugin');
+const DatabaseHelper = require('../helpers/database');
+
+const log = new LogHelper('bin/plugin');
+
+async function run(action) {
+    try {
+        await action();
+        process.exit(0);
+    }
+    catch(error) {
+        log.error(error);
+        process.exit(1);
+    }
+}
+
+commander.version(ConfigHelper.getVersion(), '-V, --version');
+
+commander
+    .command('install [document] [plugin]')
+    .alias('i')
+    .description('Install a plugin, where document is a valid document id and plugin is a `npm install` parameter (name, tarball, etc.)')
+    .action(function (document, plugin) {
+        run(async function() {
+            const result = PluginHelper.installPlugin(plugin, document, {dontLoad: true});
+            log.info('Plugin installed successfully!');
+        });
+    });
+
+commander
+    .command('list')
+    .alias('ls')
+    .description('List all installed plugin instances and their status…')
+    .action(function () {
+        run(async function() {
+            const Table = require('cli-table');
+            const table = new Table({
+                head: ['ID', 'Document', 'Plugin']
+            });
+
+            const plugins = await DatabaseHelper.get('plugin-instance').findAll({
+                include: [{
+                    model: DatabaseHelper.get('document')
+                }]
+            });
+            plugins.forEach(plugin => {
+                table.push([
+                    plugin.id,
+                    plugin.document.name,
+                    plugin.type
+                ]);
+            });
+
+            log.info(table.toString());
+        });
+    });
+
+commander.parse(process.argv);

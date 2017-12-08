@@ -12,6 +12,7 @@ const HTTPRequestHandler = require('./httpRequestHandler');
 const SocketRequestHandler = require('./socketRequestHandler');
 const DatabaseHelper = require('./database');
 const RepositoryHelper = require('./repository');
+const PluginHelper = require('./plugin');
 const log = new LogHelper('ServerHelper');
 
 const allLogics = {};
@@ -51,7 +52,9 @@ class ServerHelper {
         try {
             await this.migrateDatabaseIfRequired();
             await this.createDefaultUserIfRequired();
+
             await RepositoryHelper.initialize();
+            await PluginHelper.initialize();
         }
         catch(err) {
             log.error(err);

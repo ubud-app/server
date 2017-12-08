@@ -27,6 +27,8 @@ class RepositoryHelper {
             return;
         }
 
+        initialized = true;
+
         try {
             instanceIdModel = await DatabaseHelper.get('setting').findOne({
                 where: {
@@ -181,28 +183,6 @@ class RepositoryHelper {
         }
 
         return null;
-    }
-
-    /**
-     * Tries to find the given account plugin by BIC or name
-     *
-     * @param {string} q
-     * @returns {Promise.<object[]>}
-     */
-    static async searchAccountPlugin(q) {
-        q = q.toLowerCase();
-
-        return this.filterPluginByFilter(plugin => {
-            if(!plugin.banks) {
-                return false;
-            }
-
-            return !!plugin.banks.find(bank => {
-                return bank.name.toLowerCase().includes(q) || bank.bic.find(bic => {
-                    return bic.toLowerCase().includes(q);
-                });
-            });
-        });
     }
 }
 
