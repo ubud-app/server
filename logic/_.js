@@ -69,7 +69,6 @@ class BaseLogic {
 
     static serveList(options) {
         const l = this;
-        const id = options.id || 'default';
         if (!l.list) {
             throw new ErrorResponse(501, 'Not implemented yet!');
         }
