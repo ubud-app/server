@@ -177,7 +177,7 @@ class RepositoryHelper {
      * @returns {Promise.<object|null>}
      */
     static async getPluginById(id) {
-        const plugins = this.filterPluginByFilter(plugin => plugin.id === id);
+        const plugins = await this.filterPluginByFilter(plugin => plugin.id === id);
         if(plugins.length >= 1) {
             return plugins[0];
         }

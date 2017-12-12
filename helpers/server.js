@@ -252,7 +252,9 @@ class ServerHelper {
                 return Promise.resolve();
             })
             .catch(e => {
-                throw e;
+                log.error(e);
+                log.error(new Error('Unable to execute pending database transactions, stop server…'));
+                process.exit(1);
             });
     }
 

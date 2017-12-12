@@ -94,8 +94,8 @@ fs.readdirSync(__dirname + '/../models').forEach(function (modelFile) {
 models.document.hasMany(models.account, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 models.account.belongsTo(models.document, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 
-models['plugin-instance'].hasOne(models.account, {onDelete: 'CASCADE'});
-models.account.belongsTo(models['plugin-instance'], {onDelete: 'CASCADE'});
+models['plugin-instance'].hasOne(models.account, {onDelete: 'SET NULL'});
+models.account.belongsTo(models['plugin-instance'], {onDelete: 'SET NULL'});
 
 models.account.hasMany(models.transaction, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 models.transaction.belongsTo(models.account, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
@@ -144,6 +144,9 @@ models.learning.belongsTo(models.category, {foreignKey: {allowNull: false}, onDe
 
 models.document.hasMany(models.summary, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 models.summary.belongsTo(models.document, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+
+models['plugin-instance'].hasMany(models['plugin-config'], {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+models['plugin-config'].belongsTo(models['plugin-instance'], {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 
 
 /**

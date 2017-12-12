@@ -33,6 +33,10 @@ class PluginLogic extends BaseLogic {
          */
         const q = params.q ? params.q.toString().toLowerCase() : null;
         plugins = plugins.filter(plugin => {
+            if(!q) {
+                return true;
+            }
+
             return !!plugin.responsibilities.find(r => {
                 // account
                 if(params.account && !r.account) {

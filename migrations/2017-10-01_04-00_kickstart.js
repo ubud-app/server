@@ -1,10 +1,81 @@
 'use strict';
 
 module.exports = {
-    async up (q) {
+    async up (q, models, sequelize) {
+
+        // documents
+        await sequelize.query(
+            'CREATE TABLE `documents` (\n' +
+            '  `id` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
+            '  `name` varchar(255) NOT NULL,\n' +
+            '  `createdAt` datetime NOT NULL,\n' +
+            '  `updatedAt` datetime NOT NULL,\n' +
+            '  PRIMARY KEY (`id`)\n' +
+            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+        );
+
+        // categories
+        await sequelize.query(
+            'CREATE TABLE `categories` (\n' +
+            '  `id` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
+            '  `name` varchar(255) NOT NULL,\n' +
+            '  `createdAt` datetime NOT NULL,\n' +
+            '  `updatedAt` datetime NOT NULL,\n' +
+            '  `documentId` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
+            '  PRIMARY KEY (`id`),\n' +
+            '  KEY `documentId` (`documentId`),\n' +
+            '  CONSTRAINT `categories_ibfk_1` FOREIGN KEY (`documentId`) REFERENCES `documents` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n' +
+            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+        );
+
+        // learnings
+        await sequelize.query(
+            'CREATE TABLE `learnings` (\n' +
+            '  `id` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
+            '  `location` enum(\'payee.name\',\'payee.account\',\'reference\') NOT NULL,\n' +
+            '  `word` varchar(50) NOT NULL,\n' +
+            '  `createdAt` datetime NOT NULL,\n' +
+            '  `updatedAt` datetime NOT NULL,\n' +
+            '  `documentId` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
+            '  `categoryId` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
+            '  PRIMARY KEY (`id`),\n' +
+            '  KEY `documentId` (`documentId`),\n' +
+            '  KEY `categoryId` (`categoryId`),\n' +
+            '  CONSTRAINT `learnings_ibfk_1` FOREIGN KEY (`documentId`) REFERENCES `documents` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,\n' +
+            '  CONSTRAINT `learnings_ibfk_2` FOREIGN KEY (`categoryId`) REFERENCES `categories` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n' +
+            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+        );
+
+        // payees
+        await sequelize.query(
+            'CREATE TABLE `payees` (\n' +
+            '  `id` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
+            '  `name` varchar(255) NOT NULL,\n' +
+            '  `createdAt` datetime NOT NULL,\n' +
+            '  `updatedAt` datetime NOT NULL,\n' +
+            '  `documentId` char(36) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,\n' +
+            '  PRIMARY KEY (`id`),\n' +
+            '  KEY `documentId` (`documentId`),\n' +
+            '  CONSTRAINT `payees_ibfk_1` FOREIGN KEY (`documentId`) REFERENCES `documents` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n' +
+            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+        );
+
+        // plugins
+        await sequelize.query(
+            'CREATE TABLE `plugins` (\n' +
+            '  `id` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
+            '  `type` varchar(255) NOT NULL,\n' +
+            '  `createdAt` datetime NOT NULL,\n' +
+            '  `updatedAt` datetime NOT NULL,\n' +
+            '  `documentId` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
+            '  PRIMARY KEY (`id`),\n' +
+            '  KEY `documentId` (`documentId`),\n' +
+            '  CONSTRAINT `plugins_ibfk_1` FOREIGN KEY (`documentId`) REFERENCES `documents` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n' +
+            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+        );
 
         // accounts
-        await q.query(
+        await sequelize.query(
             'CREATE TABLE `accounts` (\n' +
             '  `id` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
             '  `name` varchar(255) NOT NULL,\n' +
@@ -24,7 +95,7 @@ module.exports = {
         );
 
         // budgets
-        await q.query(
+        await sequelize.query(
             'CREATE TABLE `budgets` (\n' +
             '  `id` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
             '  `name` varchar(255) NOT NULL,\n' +
@@ -42,79 +113,8 @@ module.exports = {
             ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
         );
 
-        // categories
-        await q.query(
-            'CREATE TABLE `categories` (\n' +
-            '  `id` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
-            '  `name` varchar(255) NOT NULL,\n' +
-            '  `createdAt` datetime NOT NULL,\n' +
-            '  `updatedAt` datetime NOT NULL,\n' +
-            '  `documentId` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
-            '  PRIMARY KEY (`id`),\n' +
-            '  KEY `documentId` (`documentId`),\n' +
-            '  CONSTRAINT `categories_ibfk_1` FOREIGN KEY (`documentId`) REFERENCES `documents` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n' +
-            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
-        );
-
-        // documents
-        await q.query(
-            'CREATE TABLE `documents` (\n' +
-            '  `id` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
-            '  `name` varchar(255) NOT NULL,\n' +
-            '  `createdAt` datetime NOT NULL,\n' +
-            '  `updatedAt` datetime NOT NULL,\n' +
-            '  PRIMARY KEY (`id`)\n' +
-            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
-        );
-
-        // learnings
-        await q.query(
-            'CREATE TABLE `learnings` (\n' +
-            '  `id` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
-            '  `location` enum(\'payee.name\',\'payee.account\',\'reference\') NOT NULL,\n' +
-            '  `word` varchar(50) NOT NULL,\n' +
-            '  `createdAt` datetime NOT NULL,\n' +
-            '  `updatedAt` datetime NOT NULL,\n' +
-            '  `documentId` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
-            '  `categoryId` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
-            '  PRIMARY KEY (`id`),\n' +
-            '  KEY `documentId` (`documentId`),\n' +
-            '  KEY `categoryId` (`categoryId`),\n' +
-            '  CONSTRAINT `learnings_ibfk_1` FOREIGN KEY (`documentId`) REFERENCES `documents` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,\n' +
-            '  CONSTRAINT `learnings_ibfk_2` FOREIGN KEY (`categoryId`) REFERENCES `categories` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n' +
-            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
-        );
-
-        // payees
-        await q.query(
-            'CREATE TABLE `payees` (\n' +
-            '  `id` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
-            '  `name` varchar(255) NOT NULL,\n' +
-            '  `createdAt` datetime NOT NULL,\n' +
-            '  `updatedAt` datetime NOT NULL,\n' +
-            '  `documentId` char(36) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,\n' +
-            '  PRIMARY KEY (`id`),\n' +
-            '  KEY `documentId` (`documentId`),\n' +
-            '  CONSTRAINT `payees_ibfk_1` FOREIGN KEY (`documentId`) REFERENCES `documents` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n' +
-            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
-        );
-
-        // plugins
-        await q.query(
-            'CREATE TABLE `plugins` (\n' +
-            '  `id` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
-            '  `type` varchar(255) NOT NULL,\n' +
-            '  `createdAt` datetime NOT NULL,\n' +
-            '  `updatedAt` datetime NOT NULL,\n' +
-            '  `documentId` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
-            '  PRIMARY KEY (`id`),\n' +
-            '  KEY `documentId` (`documentId`),\n' +
-            '  CONSTRAINT `plugins_ibfk_1` FOREIGN KEY (`documentId`) REFERENCES `documents` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n' +
-            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
-        );
-
         // portions
-        await q.query(
+        await sequelize.query(
             'CREATE TABLE `portions` (\n' +
             '  `id` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
             '  `month` varchar(7) NOT NULL,\n' +
@@ -130,24 +130,8 @@ module.exports = {
             ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
         );
 
-        // sessions
-        await q.query(
-            'CREATE TABLE `sessions` (\n' +
-            '  `id` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
-            '  `name` varchar(255) NOT NULL,\n' +
-            '  `url` varchar(255) DEFAULT NULL,\n' +
-            '  `secret` varchar(255) NOT NULL,\n' +
-            '  `createdAt` datetime NOT NULL,\n' +
-            '  `updatedAt` datetime NOT NULL,\n' +
-            '  `userId` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
-            '  PRIMARY KEY (`id`),\n' +
-            '  KEY `userId` (`userId`),\n' +
-            '  CONSTRAINT `sessions_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n' +
-            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
-        );
-
         // settings
-        await q.query(
+        await sequelize.query(
             'CREATE TABLE `settings` (\n' +
             '  `id` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
             '  `key` varchar(255) NOT NULL,\n' +
@@ -161,24 +145,8 @@ module.exports = {
             ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
         );
 
-        // shares
-        await q.query(
-            'CREATE TABLE `shares` (\n' +
-            '  `id` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
-            '  `createdAt` datetime NOT NULL,\n' +
-            '  `updatedAt` datetime NOT NULL,\n' +
-            '  `userId` char(36) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,\n' +
-            '  `documentId` char(36) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,\n' +
-            '  PRIMARY KEY (`id`),\n' +
-            '  UNIQUE KEY `shares_documentId_userId_unique` (`userId`,`documentId`),\n' +
-            '  KEY `documentId` (`documentId`),\n' +
-            '  CONSTRAINT `shares_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,\n' +
-            '  CONSTRAINT `shares_ibfk_2` FOREIGN KEY (`documentId`) REFERENCES `documents` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n' +
-            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
-        );
-
         // summaries
-        await q.query(
+        await sequelize.query(
             'CREATE TABLE `summaries` (\n' +
             '  `id` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
             '  `month` varchar(7) NOT NULL,\n' +
@@ -198,7 +166,7 @@ module.exports = {
         );
 
         // transactions
-        await q.query(
+        await sequelize.query(
             'CREATE TABLE `transactions` (\n' +
             '  `id` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
             '  `time` datetime NOT NULL,\n' +
@@ -223,7 +191,7 @@ module.exports = {
         );
 
         // units
-        await q.query(
+        await sequelize.query(
             'CREATE TABLE `units` (\n' +
             '  `id` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
             '  `amount` int(11) NOT NULL,\n' +
@@ -242,7 +210,7 @@ module.exports = {
         );
 
         // users
-        await q.query(
+        await sequelize.query(
             'CREATE TABLE `users` (\n' +
             '  `id` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
             '  `email` varchar(255) NOT NULL,\n' +
@@ -256,6 +224,38 @@ module.exports = {
             '  PRIMARY KEY (`id`),\n' +
             '  UNIQUE KEY `email` (`email`),\n' +
             '  UNIQUE KEY `users_email_unique` (`email`)\n' +
+            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+        );
+
+        // sessions
+        await sequelize.query(
+            'CREATE TABLE `sessions` (\n' +
+            '  `id` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
+            '  `name` varchar(255) NOT NULL,\n' +
+            '  `url` varchar(255) DEFAULT NULL,\n' +
+            '  `secret` varchar(255) NOT NULL,\n' +
+            '  `createdAt` datetime NOT NULL,\n' +
+            '  `updatedAt` datetime NOT NULL,\n' +
+            '  `userId` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
+            '  PRIMARY KEY (`id`),\n' +
+            '  KEY `userId` (`userId`),\n' +
+            '  CONSTRAINT `sessions_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n' +
+            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+        );
+
+        // shares
+        await sequelize.query(
+            'CREATE TABLE `shares` (\n' +
+            '  `id` char(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,\n' +
+            '  `createdAt` datetime NOT NULL,\n' +
+            '  `updatedAt` datetime NOT NULL,\n' +
+            '  `userId` char(36) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,\n' +
+            '  `documentId` char(36) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,\n' +
+            '  PRIMARY KEY (`id`),\n' +
+            '  UNIQUE KEY `shares_documentId_userId_unique` (`userId`,`documentId`),\n' +
+            '  KEY `documentId` (`documentId`),\n' +
+            '  CONSTRAINT `shares_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,\n' +
+            '  CONSTRAINT `shares_ibfk_2` FOREIGN KEY (`documentId`) REFERENCES `documents` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n' +
             ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
         );
     },

@@ -111,10 +111,18 @@ class SocketRequestHandler {
     runLogic(session) {
         const Logic = this.Logic;
         const method = 'serve' + this.route.substr(0, 1).toUpperCase() + this.route.substr(1);
+
+        const params = {};
+        (this.data.id || '').split('/').forEach(part => {
+            const p = part.split(':', 2);
+            params[p[0]] = p[1] !== undefined ? p[1] : true;
+        });
+
         const options = {
             id: this.data.id || null,
             body: this.data || {},
             session: session,
+            params,
             setSession: session => {
                 this.session.setSessionModel(session);
             }

@@ -133,6 +133,7 @@ class HTTPRequestHandler {
         const options = {
             id: this.req.params[0] || null,
             body: this.req.body || {},
+            params: this.req.query,
             session: session
         };
 

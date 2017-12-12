@@ -65,21 +65,13 @@ class PluginHelper {
      *    - Invalid: go to waiting for configuration state
      *
      * @param {string} type Plugin type, for example "@dwimm/plugin-n26" or "~/my-plugin"
-     * @param {string} documentId
+     * @param {Sequelize.Model} document
      * @param {object} [options]
      * @param {boolean} [options.dontLoad] Don't load plugin instance. Method will return null then.
      * @returns {Promise.<PluginInstance>}
      */
-    static async installPlugin(type, documentId, options) {
+    static async installPlugin(type, document, options) {
         options = options || {};
-
-        /*
-         * get document
-         */
-        const document = await DatabaseHelper.get('document').findById(documentId);
-        if(!document) {
-            throw new Error('Document not found, is the id correct?');
-        }
 
         /*
          *  npm install
@@ -130,6 +122,48 @@ class PluginHelper {
         return instance;
     }
 
+
+    /**
+     * removePlugin()
+     *
+     * @param {PluginInstance} instance
+     * @returns {Promise.<void>}
+     */
+    static async removePlugin(instance) {
+
+        // destroy database model
+        await instance.model().destroy();
+
+        // wait till all plugin threads stopped
+        await new Promise(resolve => {
+            if(instance.forks() === 0) {
+                resolve();
+            }
+
+            instance.once('change:forks', () => {
+                resolve();
+            });
+        });
+
+        // remove plugin from index
+        const i = plugins.indexOf(instance);
+        if(i !== -1) {
+            plugins.splice(i, 1);
+        }
+
+        // get package usages by other plugin instances
+        const usages = await DatabaseHelper.get('plugin-instance').count({
+            where: {
+                type: instance.type()
+            }
+        });
+
+        // remove package if not used anymore
+        if(!usages) {
+            await this._runPackageRemove(instance.type());
+        }
+    }
+
     static async _runPackageInstall(type) {
         const exec = require('promised-exec');
         const escape = require('shell-escape');
@@ -145,7 +179,8 @@ class PluginHelper {
                 return id.substr(2, id.lastIndexOf('@') - 2).trim();
             })
             .catch(e => {
-                throw e;
+                log.error(e.string);
+                throw new Error('Unable to install required package via npm`: ' + e.string);
             });
     }
 

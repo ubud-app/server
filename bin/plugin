@@ -23,17 +23,6 @@ async function run(action) {
 commander.version(ConfigHelper.getVersion(), '-V, --version');
 
 commander
-    .command('install [document] [plugin]')
-    .alias('i')
-    .description('Install a plugin, where document is a valid document id and plugin is a `npm install` parameter (name, tarball, etc.)')
-    .action(function (document, plugin) {
-        run(async function() {
-            const result = PluginHelper.installPlugin(plugin, document, {dontLoad: true});
-            log.info('Plugin installed successfully!');
-        });
-    });
-
-commander
     .command('list')
     .alias('ls')
     .description('List all installed plugin instances and their status…')
@@ -58,6 +47,22 @@ commander
             });
 
             log.info(table.toString());
+        });
+    });
+
+commander
+    .command('install [document] [plugin]')
+    .alias('i')
+    .description('Install a plugin, where document is a valid document id and plugin is a `npm install` parameter (name, tarball, etc.)')
+    .action(function (documentId, plugin) {
+        run(async function() {
+            const document = await DatabaseHelper.get('document').findById(documentId);
+            if(!document) {
+                throw new Error('Document not found, is the id correct?');
+            }
+
+            await PluginHelper.installPlugin(plugin, document, {dontLoad: true});
+            log.info('Plugin installed successfully. Please restart dwimm-server to apply changes.');
         });
     });
 
