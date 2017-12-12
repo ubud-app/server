@@ -41,7 +41,9 @@ class PluginInstance extends EventEmitter {
         log.debug('Initialize Plugin %s', this._model.id);
 
         try {
+            /* eslint-disable security/detect-non-literal-require */
             this._version = require(this._model.type + '/package.json').version;
+            /* eslint-enable security/detect-non-literal-require */
         }
         catch (err) {
             log.warn('Unable to get version of plugin %s: %s', this._model.type, err);
