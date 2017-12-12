@@ -20,6 +20,7 @@ class PluginInstance extends EventEmitter {
         this._status = 0;
         this._forks = 0;
         this._config = null;
+        this._version = null;
 
         this._initialize()
             .catch(err => {
@@ -38,6 +39,13 @@ class PluginInstance extends EventEmitter {
      */
     async _initialize() {
         log.debug('Initialize Plugin %s', this._model.id);
+
+        try {
+            this._version = require(this._model.type + '/package.json').version;
+        }
+        catch (err) {
+            log.warn('Unable to get version of plugin %s: %s', this._model.type, err);
+        }
 
         // get configuration from database
         const dbConfigs = await DatabaseHelper.get('plugin-config').findAll({
@@ -77,7 +85,7 @@ class PluginInstance extends EventEmitter {
                 try {
                     config.value = JSON.parse(config.model.value);
                 }
-                catch(err) {
+                catch (err) {
                     config.value = null;
                     log.warn('Unable to set plugin %s\'s config value for `%s`: %s', this.model.id, config.id, err);
                 }
@@ -202,6 +210,10 @@ class PluginInstance extends EventEmitter {
         });
     }
 
+    version() {
+        return this._version;
+    }
+
     /**
      * Returns a json ready to serve to the client…
      *
@@ -212,6 +224,7 @@ class PluginInstance extends EventEmitter {
         return {
             id: this.id(),
             type: this.type(),
+            version: this.version(),
             documentId: this.documentId(),
             status: this.status(),
             forks: this.forks(),
@@ -250,7 +263,7 @@ class PluginInstance extends EventEmitter {
         const validation = await PluginInstance.request(this, this.type(), 'validateConfig', config);
 
         // persistent configuration if valid
-        if(validation.valid) {
+        if (validation.valid) {
             await Promise.all(this._config.map(config => {
                 config.model.value = JSON.stringify(config.value);
                 if (config.model.value.length > 255) {
@@ -299,7 +312,7 @@ class PluginInstance extends EventEmitter {
             instance._forks += 1;
             instance.emit('change:forks', instance._forks);
         }
-        if(!method) {
+        if (!method) {
             console.log(new Error());
         }
 

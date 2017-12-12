@@ -4,6 +4,7 @@ const EventEmitter = require('events');
 const LogHelper = require('./log');
 const ConfigHelper = require('./config');
 const DatabaseHelper = require('./database');
+const PluginHelper = require('./plugin');
 const log = new LogHelper('RepositoryHelper');
 
 let events = new EventEmitter();
@@ -42,7 +43,7 @@ class RepositoryHelper {
             instanceIdModel = null;
         }
 
-        this.run();
+        setTimeout(() => {this.run();}, 500);
     }
 
     /**
@@ -133,8 +134,33 @@ class RepositoryHelper {
         data.users = await DatabaseHelper.get('user').count();
         data.documents = await DatabaseHelper.get('document').count();
 
-        // @todo sync usages
-        data.usages = [];
+        // Usages
+        const plugins = await PluginHelper.listPlugins();
+        const usages = {};
+
+        await Promise.all(
+            plugins.map(async function(plugin) {
+                usages[plugin.type()] = usages[plugin.type()] || {};
+                usages[plugin.type()].type = plugin.type();
+                usages[plugin.type()].version = plugin.version();
+
+                usages[plugin.type()].accounts = usages[plugin.type()].accounts || 0;
+                usages[plugin.type()].accounts = await DatabaseHelper.get('account').count({
+                    where: {
+                        pluginInstanceId: plugin.id()
+                    }
+                });
+
+                usages[plugin.type()].goals = usages[plugin.type()].goals || 0;
+                usages[plugin.type()].goals = await DatabaseHelper.get('budget').count({
+                    where: {
+                        pluginInstanceId: plugin.id()
+                    }
+                });
+            })
+        );
+
+        data.usages = Object.keys(usages).map((k) => usages[k]);
 
         return data;
     }
