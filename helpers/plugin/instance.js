@@ -42,7 +42,7 @@ class PluginInstance extends EventEmitter {
 
         try {
             /* eslint-disable security/detect-non-literal-require */
-            this._version = require(this._model.type + '/package.json').version;
+            this._version = require(this._model.type + '/package.json').version.toString();
             /* eslint-enable security/detect-non-literal-require */
         }
         catch (err) {
@@ -212,6 +212,12 @@ class PluginInstance extends EventEmitter {
         });
     }
 
+    /**
+     * Get the plugin version definied in the package's
+     * package.json file
+     *
+     * @returns {string|null}
+     */
     version() {
         return this._version;
     }
