@@ -1,10 +1,13 @@
 'use strict';
 
+const EventEmitter = require('events');
 const LogHelper = require('../log');
 const DatabaseHelper = require('../database');
 const PluginInstance = require('./instance');
 const log = new LogHelper('PluginHelper');
 
+
+const pluginEvents = new EventEmitter();
 let initialized = false;
 let plugins = [];
 
@@ -32,7 +35,7 @@ class PluginHelper {
             throw err;
         }
 
-        plugins = models.map(plugin => new PluginInstance(plugin));
+        plugins = models.map(plugin => new PluginInstance(plugin, pluginEvents));
     }
 
     static async listPlugins() {
@@ -116,7 +119,7 @@ class PluginHelper {
             return null;
         }
 
-        const instance = new PluginInstance(model);
+        const instance = new PluginInstance(model, pluginEvents);
         plugins.push(instance);
 
         return instance;
@@ -130,20 +133,11 @@ class PluginHelper {
      * @returns {Promise.<void>}
      */
     static async removePlugin(instance) {
+        // stop plugin
+        await instance.destroy();
 
         // destroy database model
         await instance.model().destroy();
-
-        // wait till all plugin threads stopped
-        await new Promise(resolve => {
-            if(instance.forks() === 0) {
-                resolve();
-            }
-
-            instance.once('change:forks', () => {
-                resolve();
-            });
-        });
 
         // remove plugin from index
         const i = plugins.indexOf(instance);
@@ -163,6 +157,18 @@ class PluginHelper {
             await this._runPackageRemove(instance.type());
         }
     }
+
+
+    /**
+     * Returns the event object used to transmit all
+     * plugin events to our sockets…
+     *
+     * @returns {EventEmitter}
+     */
+    static events() {
+        return pluginEvents;
+    }
+
 
     static async _runPackageInstall(type) {
         const exec = require('promised-exec');

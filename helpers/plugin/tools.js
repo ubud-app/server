@@ -1,6 +1,6 @@
 'use strict';
 
-const configs = [];
+const config = [];
 
 /**
  * PluginTools
@@ -9,14 +9,18 @@ const configs = [];
  */
 class PluginTools {
     static _getConfig() {
-        return configs;
+        return config;
     }
     static _hasConfig(key) {
-        const conf = configs.find(c => c.id() === key);
+        const conf = config.find(c => c.id() === key);
         return !!conf;
     }
     static config(key) {
-        const conf = configs.find(c => c.id() === key);
+        if(PluginTools._config && PluginTools._config[key]) {
+            return PluginTools._config[key];
+        }
+
+        const conf = config.find(c => c.id() === key);
         if(!conf) {
             return null;
         }
@@ -53,7 +57,7 @@ PluginTools.Config = class {
         }
 
         // type
-        if(options.type && ['text', 'checkbox', 'email', 'number', 'password', 'tel'].indexOf(options.type) === -1) {
+        if(options.type && ['text', 'email', 'number', 'password', 'tel'].indexOf(options.type) === -1) {
             throw new Error('`type` is invalid!');
         }
 
@@ -85,7 +89,7 @@ PluginTools.Config = class {
             placeholder: options.placeholder || null
         };
 
-        configs.push(this);
+        config.push(this);
     }
 
     id() {

@@ -23,6 +23,9 @@ class PluginRunner {
         if (job.method === 'check') {
             return this.check(job);
         }
+        else if (job.method === 'getSupported') {
+            return this.getSupported(job);
+        }
         else if (job.method === 'getConfig') {
             return this.getConfig();
         }
@@ -97,6 +100,23 @@ class PluginRunner {
     }
 
     /**
+     * Returns a list of all supported methods this plugin implements
+     *
+     * @returns {Promise.<string[]>}
+     */
+    static async getSupported(job) {
+        const supported = [];
+
+        ['validateConfig', 'getAccounts', 'getTransactions', 'getMetadata', 'getGoals'].forEach(method => {
+            if(job.plugin[method] && typeof job.plugin[method] === 'function') {
+                supported.push(method);
+            }
+        });
+
+        return supported;
+    }
+
+    /**
      * Returns the configuration object for this instance.
      *
      * @returns {Promise.<object>}
@@ -111,6 +131,10 @@ class PluginRunner {
      * @returns {Promise.<object[]>}
      */
     static async validateConfig(job) {
+        if(!job.plugin.validateConfig) {
+            return {valid: true};
+        }
+
         try {
             await job.plugin.validateConfig();
             return {valid: true};

@@ -46,6 +46,9 @@ fs.readdirSync(__dirname + '/../models').forEach(function (modelFile) {
             {
                 hooks: {
                     afterCreate(model) {
+                        if(def.disableSequelizeSocketHooks && def.disableSequelizeSocketHooks('create') === true) {
+                            return;
+                        }
                         setTimeout(function () {
                             modelEvents.emit('update', {
                                 action: 'created',
@@ -55,6 +58,9 @@ fs.readdirSync(__dirname + '/../models').forEach(function (modelFile) {
                         }, 10);
                     },
                     afterDestroy(model) {
+                        if(def.disableSequelizeSocketHooks && def.disableSequelizeSocketHooks('destroy') === true) {
+                            return;
+                        }
                         setTimeout(function () {
                             modelEvents.emit('update', {
                                 action: 'deleted',
@@ -64,6 +70,9 @@ fs.readdirSync(__dirname + '/../models').forEach(function (modelFile) {
                         }, 10);
                     },
                     afterUpdate(model) {
+                        if(def.disableSequelizeSocketHooks && def.disableSequelizeSocketHooks('update') === true) {
+                            return;
+                        }
                         setTimeout(function () {
                             modelEvents.emit('update', {
                                 action: 'updated',
@@ -73,6 +82,9 @@ fs.readdirSync(__dirname + '/../models').forEach(function (modelFile) {
                         }, 10);
                     },
                     afterSave(model) {
+                        if(def.disableSequelizeSocketHooks && def.disableSequelizeSocketHooks('save') === true) {
+                            return;
+                        }
                         setTimeout(function () {
                             modelEvents.emit('update', {
                                 action: 'updated',

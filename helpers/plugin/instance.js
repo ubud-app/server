@@ -5,7 +5,7 @@ const LogHelper = require('../log');
 const EventEmitter = require('events');
 const DatabaseHelper = require('../database');
 const log = new LogHelper('PluginHelper');
-const status = ['initializing', 'configuration', 'ready', 'waiting'];
+const status = ['initializing', 'configuration', 'ready', 'shutdown', 'error'];
 
 /**
  * PluginInstance
@@ -13,14 +13,35 @@ const status = ['initializing', 'configuration', 'ready', 'waiting'];
  * @class PluginInstance
  */
 class PluginInstance extends EventEmitter {
-    constructor(model) {
+    constructor(model, events) {
         super();
 
         this._model = model;
         this._status = 0;
         this._forks = 0;
+        this._supported = [];
         this._config = null;
         this._version = null;
+        this._events = events;
+        this._shutdown = false;
+        this._errors = {};
+        this._cron = null;
+
+        this._events.emit('update', {
+            action: 'created',
+            name: 'plugin-instance',
+            model: this
+        });
+
+        this.on('change:errors', e => {
+            const n = Object.entries(e).filter(e => e[1]).length;
+            if(this._status === 2 && n > 0) {
+                this._status = 4;
+            }
+            else if(this._status === 4 && n === 0) {
+                this._status = 2;
+            }
+        });
 
         this._initialize()
             .catch(err => {
@@ -56,19 +77,24 @@ class PluginInstance extends EventEmitter {
             }
         });
 
-        // models -> plain object
-        const plainConfigs = {};
-        dbConfigs.forEach(config => {
-            try {
-                plainConfigs[config.key] = JSON.parse(config.value);
-            }
-            catch (err) {
-                log.warn('Unable to parse getConfig `%s` for plugin %s: %s', config.key, this.id(), err);
-            }
-        });
+        // ask plugin for supported methods
+        try {
+            this._supported = await PluginInstance.request(this, this.type(), 'getSupported', {});
+        }
+        catch(err) {
+            log.warn('Unable to load supported methods of plugin `%s`, skip it…', this._model.type);
+            throw err;
+        }
 
         // ask plugin for configuration
-        const config = await PluginInstance.request(this, this.type(), 'getConfig', plainConfigs);
+        let config;
+        try {
+            config = await PluginInstance.request(this, this.type(), 'getConfig', {});
+        }
+        catch(err) {
+            log.warn('Unable to load configuration of plugin `%s`, skip it…', this._model.type);
+            throw err;
+        }
 
         // delete unused configs in database
         dbConfigs.forEach(configModel => {
@@ -92,7 +118,7 @@ class PluginInstance extends EventEmitter {
                     log.warn('Unable to set plugin %s\'s config value for `%s`: %s', this.model.id, config.id, err);
                 }
             }
-            if (!config.value && config.defaultValue) {
+            if (!config.value && config.defaultValue && config.defaultValue !== '{{email}}') {
                 config.value = config.defaultValue;
             }
 
@@ -114,7 +140,13 @@ class PluginInstance extends EventEmitter {
 
         await this.checkAndSaveConfig();
 
-        this.emit('change:getConfig');
+        this.emit('change:config');
+        this._events.emit('update', {
+            action: 'updated',
+            name: 'plugin-instance',
+            model: this
+        });
+
         this.emit('initialized');
     }
 
@@ -187,6 +219,14 @@ class PluginInstance extends EventEmitter {
     }
 
     /**
+     * Returns list of supported methods…
+     * @returns {Array<string>}
+     */
+    supported() {
+        return this._supported;
+    }
+
+    /**
      * Returns a promise which gives you the current
      * configuration data for this plugin. As this is
      * intended to be given to the client, all secrets
@@ -197,7 +237,7 @@ class PluginInstance extends EventEmitter {
     async config() {
         if (this._config === null) {
             return new Promise(resolve => {
-                this.once('change:getConfig', () => {
+                this.once('change:config', () => {
                     resolve(this.config());
                 });
             });
@@ -205,7 +245,7 @@ class PluginInstance extends EventEmitter {
 
         return this._config.slice(0).map(field => {
             if (field.type === 'password' && field.value) {
-                field.value = '**********';
+                field.value = null;
             }
 
             return field;
@@ -223,6 +263,15 @@ class PluginInstance extends EventEmitter {
     }
 
     /**
+     * Returnns an object with tha latest errors per method…
+     *
+     * @returns {object<string>}
+     */
+    errors() {
+        return this._errors;
+    }
+
+    /**
      * Returns a json ready to serve to the client…
      *
      * @returns {Promise.<object>}
@@ -236,10 +285,17 @@ class PluginInstance extends EventEmitter {
             documentId: this.documentId(),
             status: this.status(),
             forks: this.forks(),
-            config: config.map(c => {
-                delete c.model;
-                return c;
-            })
+            supported: this.supported(),
+            config: config.map(c => ({
+                'id': c.id,
+                'value': c.value || null,
+                'defaultValue': c.defaultValue,
+                'type': c.type,
+                'label': c.label,
+                'placeholder': c.placeholder,
+                'lastError': c.lastError
+            })),
+            errors: this.errors()
         };
     }
 
@@ -260,25 +316,43 @@ class PluginInstance extends EventEmitter {
 
         // build temporary getConfig
         const config = {};
+        values = values || {};
         this._config.forEach(c => {
-            config[c.key] = c.value;
+            config[c.id] = values[c.id] || c.value || c.defaultValue;
+            if(config[c.id] === '{{email}}') {
+                config[c.id] = null;
+            }
         });
 
-        // extend with given config
-        _.extend(config, values);
-
         // check configuration with plugin
-        const validation = await PluginInstance.request(this, this.type(), 'validateConfig', config);
+        let validation;
+        try {
+            validation = await PluginInstance.request(this, this.type(), 'validateConfig', JSON.parse(JSON.stringify(config || {})));
+        }
+        catch(err) {
+
+            // stop cron
+            if(this._cron) {
+                clearInterval(this._cron);
+                this._cron = null;
+            }
+
+            throw err;
+        }
 
         // persistent configuration if valid
         if (validation.valid) {
-            await Promise.all(this._config.map(config => {
-                config.model.value = JSON.stringify(config.value);
-                if (config.model.value.length > 255) {
-                    throw new Error('Plugin `' + this._model.id + '`: Value for key `' + config.id + '` is too long!');
+            await Promise.all(this._config.map(field => {
+                // overwrite new value
+                field.value = config[field.id];
+                field.model.value = JSON.stringify(field.value);
+
+                // check length
+                if (field.model.value.length > 255) {
+                    throw new Error('Plugin `' + this._model.id + '`: Value for key `' + field.id + '` is too long!');
                 }
 
-                return config.model.save();
+                return field.model.save();
             }));
         }
 
@@ -287,14 +361,85 @@ class PluginInstance extends EventEmitter {
             const error = (validation.errors || []).find(error => config.id === error.field);
             config.lastError = error ? error.code : null;
         });
+
         this.emit('change:config');
+
+
+        // start / stop cron
+        if(validation.valid && !this._cron) {
+            await this.cron();
+            this._cron = setInterval(() => {
+                this.cron().catch(err => {
+                    log.warn('Unable to execute plugin `%s` cron: %s', this.type(), err);
+                    log.error(err);
+                });
+            }, 1000 * 60 * 60 * 3);
+        }
+        else if(!validation.valid && this._cron) {
+            clearInterval(this._cron);
+            this._cron = null;
+        }
+
 
         // set this._status
         this._status = validation.valid ? 2 : 1;
         this.emit('change:status');
 
+        this._events.emit('update', {
+            action: 'updated',
+            name: 'plugin-instance',
+            model: this
+        });
+
         // return result
         return validation.errors || [];
+    }
+
+
+    async cron() {
+
+    }
+
+
+    /**
+     * Destroys the pluginn instance
+     * @returns {Promise.<void>}
+     */
+    async destroy() {
+
+        // update status
+        this._status = 3;
+        this.emit('change:status', this.status());
+        this._events.emit('update', {
+            action: 'updated',
+            name: 'plugin-instance',
+            model: this
+        });
+
+        // stop cron
+        if(this._cron) {
+            clearInterval(this._cron);
+            this._cron = null;
+        }
+
+        // wait till all plugin threads stopped
+        await new Promise(resolve => {
+            if(this.forks() === 0) {
+                resolve();
+            }
+
+            this.once('change:forks', () => {
+                resolve();
+            });
+        });
+
+        // fire destroy event
+        this.emit('destroy');
+        this._events.emit('update', {
+            action: 'deleted',
+            name: 'plugin-instance',
+            model: this
+        });
     }
 
 
@@ -316,9 +461,18 @@ class PluginInstance extends EventEmitter {
         const fork = require('child_process').fork;
         /* eslint-enable security/detect-child-process */
 
+        if(instance && instance._shutdown) {
+            throw new Error('Instance is shutting down…');
+        }
         if (instance) {
             instance._forks += 1;
+
             instance.emit('change:forks', instance._forks);
+            instance._events.emit('update', {
+                action: 'updated',
+                name: 'plugin-instance',
+                model: instance
+            });
         }
         if (!method) {
             console.log(new Error());
@@ -333,8 +487,8 @@ class PluginInstance extends EventEmitter {
         process.send({
             type,
             method,
-            config: config || {},
-            params: params || {}
+            config: _.extend(config || {}),
+            params: _.extend(params || {})
         });
 
         return new Promise((resolve, reject) => {
@@ -351,16 +505,34 @@ class PluginInstance extends EventEmitter {
                 }
 
                 isRunning = false;
+
+                if(gotResponse) {
+                    instance._events.emit('update', {
+                        action: 'updated',
+                        name: 'plugin-instance',
+                        model: instance
+                    });
+
+                    return;
+                }
                 gotResponse = true;
 
-                reject(
-                    new Error(
-                        (stderr.join('\n').trim() || stdout.join('\n').trim() || 'Plugin died')
-                            .replace(/^Error:/, '')
-                            .trim()
-                            .split('\n')[0]
-                    )
-                );
+                const text = (stderr.join('\n').trim() || stdout.join('\n').trim() || 'Plugin died')
+                    .replace(/^Error:/, '')
+                    .trim()
+                    .split('\n')[0];
+
+                if(instance) {
+                    instance._errors[method] = text;
+                    instance.emit('change:errors', instance._errors);
+                    instance._events.emit('update', {
+                        action: 'updated',
+                        name: 'plugin-instance',
+                        model: instance
+                    });
+                }
+
+                reject(new Error(text));
             });
             process.stdout.on('data', buffer => {
                 log.debug('%s: stdout-> %s', type, buffer.toString().trim());
@@ -385,6 +557,15 @@ class PluginInstance extends EventEmitter {
                         }
                     }, 1000 * 5);
 
+                    if(instance) {
+                        instance._errors[method] = null;
+                        instance.emit('change:errors', instance._errors);
+                        instance._events.emit('update', {
+                            action: 'updated',
+                            name: 'plugin-instance',
+                            model: instance
+                        });
+                    }
                     resolve(message.data || {});
                 }
             });
@@ -394,6 +575,16 @@ class PluginInstance extends EventEmitter {
                     log.error('%s: confirm timeout, kill it', type);
                     process.kill();
 
+                    if(instance) {
+                        instance._errors[method] = 'Confirmation Timeout: Unable to communicate with plugin';
+                        instance.emit('change:errors', instance._errors);
+                        instance._events.emit('update', {
+                            action: 'updated',
+                            name: 'plugin-instance',
+                            model: instance
+                        });
+                    }
+
                     reject(new Error('Unable to communicate with plugin'));
                 }
             }, 1000 * 2);
@@ -402,6 +593,16 @@ class PluginInstance extends EventEmitter {
                 if (!gotResponse) {
                     log.error('%s: response timeout, kill it', type);
                     process.kill();
+
+                    if(instance) {
+                        instance._errors[method] = 'Response Timeout: Unable to communicate with plugin';
+                        instance.emit('change:errors', instance._errors);
+                        instance._events.emit('update', {
+                            action: 'updated',
+                            name: 'plugin-instance',
+                            model: instance
+                        });
+                    }
 
                     reject(new Error('Unable to communicate with plugin'));
                 }

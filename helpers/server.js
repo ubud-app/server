@@ -39,7 +39,7 @@ class ServerHelper {
     /**
      * Initializes socket.io and the web server…
      */
-    static async initialize() {
+    static async initialize () {
         if (app) {
             return;
         }
@@ -56,7 +56,7 @@ class ServerHelper {
             await RepositoryHelper.initialize();
             await PluginHelper.initialize();
         }
-        catch(err) {
+        catch (err) {
             log.error(err);
             throw err;
         }
@@ -77,7 +77,7 @@ class ServerHelper {
      *
      * @todo Currently this method works sync, but it should make no difference to run this asynchronously, right?
      */
-    static loadRoutes() {
+    static loadRoutes () {
         const fs = require('fs');
 
         /* eslint-disable security/detect-non-literal-fs-filename */
@@ -104,11 +104,11 @@ class ServerHelper {
      * static files by our server. Woun't do anything in case
      * client-web is not installed within our scope…
      */
-    static serveUI() {
+    static serveUI () {
         try {
             const web = ConfigHelper.getClient();
 
-            if(web) {
+            if (web) {
 
                 // static files
                 app.use(express.static(web.static));
@@ -119,7 +119,7 @@ class ServerHelper {
                 });
             }
         }
-        catch(err) {
+        catch (err) {
             const msg = err.toString().replace('Error:', '').trim();
             log.warn('Unable to serve UI: %s', msg);
         }
@@ -132,7 +132,7 @@ class ServerHelper {
      * @param {Logic} Logic Logic Object
      * @param {String} route One of 'create', 'get', 'list', 'update' or 'delete'
      */
-    static addHTTPRoute(Logic, route) {
+    static addHTTPRoute (Logic, route) {
         const methods = allMethods[route];
         const regex = Logic.getPathForRoute(route);
 
@@ -147,7 +147,7 @@ class ServerHelper {
      * Handles new socket connections
      * @param {Socket} socket socket.io Socket Object
      */
-    static handleSocketConnection(socket) {
+    static handleSocketConnection (socket) {
         const session = new SocketSession();
         this.setupSocketRoutes(socket, session);
         this.setupSocketUpdateEvents(socket, session);
@@ -160,7 +160,7 @@ class ServerHelper {
      * @param {Socket} socket socket.io Socket Object
      * @param {SocketSession} session
      */
-    static setupSocketRoutes(socket, session) {
+    static setupSocketRoutes (socket, session) {
         socket.on('auth', function (data, cb) {
             session.authenticate(data).then(function () {
                 cb({});
@@ -186,7 +186,7 @@ class ServerHelper {
      * @param {Socket} socket socket.io Socket Object
      * @param {SocketSession} session
      */
-    static setupSocketUpdateEvents(socket, session) {
+    static setupSocketUpdateEvents (socket, session) {
         const handleEvent = function (event) {
             if (!event.name || !allLogics[event.name]) {
                 log.warn('Unknown Logic `' + event.name + '`!');
@@ -210,7 +210,9 @@ class ServerHelper {
                 return;
             }
 
-            Logic.get(event.model.id, {session: session.getSessionModel()})
+            Logic.get(typeof event.model.id === 'function' ? event.model.id() : event.model.id, {
+                    session: session.getSessionModel()
+                })
                 .then(model => {
                     return Logic.format(model, {}, {session: session.getSessionModel()});
                 })
@@ -218,7 +220,7 @@ class ServerHelper {
                     socket.emit('update', {
                         action: event.action,
                         name: Logic.getPluralModelName(),
-                        id: event.model.id,
+                        id: json.id,
                         data: json
                     });
                 })
@@ -228,6 +230,8 @@ class ServerHelper {
         };
 
         DatabaseHelper.events().on('update', handleEvent);
+        PluginHelper.events().on('update', handleEvent);
+
         socket.once('disconnecting', function () {
             DatabaseHelper.events().removeListener('update', handleEvent);
         });
@@ -242,7 +246,7 @@ class ServerHelper {
      *
      * @returns {Promise}
      */
-    static migrateDatabaseIfRequired() {
+    static migrateDatabaseIfRequired () {
         return DatabaseHelper.getMigrator().up()
             .then(migrations => {
                 if (migrations.length > 0) {
@@ -264,7 +268,7 @@ class ServerHelper {
      *
      * @returns {Promise}
      */
-    static createDefaultUserIfRequired() {
+    static createDefaultUserIfRequired () {
         const crypto = require('crypto');
         const bcrypt = require('bcrypt');
         const user = DatabaseHelper.get('user');

@@ -3,6 +3,7 @@
 const BaseLogic = require('./_');
 const ErrorResponse = require('../helpers/errorResponse');
 const PluginHelper = require('../helpers/plugin');
+const DatabaseHelper = require('../helpers/database');
 
 class PluginInstanceLogic extends BaseLogic {
     static getModelName() {
@@ -13,8 +14,12 @@ class PluginInstanceLogic extends BaseLogic {
         return 'plugin-instances';
     }
 
-    static format(plugin) {
+    static async format(plugin) {
         return plugin.toJSON();
+    }
+
+    static disableSequelizeSocketHooks() {
+        return true;
     }
 
     static async create(attributes, options) {
@@ -100,11 +105,59 @@ class PluginInstanceLogic extends BaseLogic {
     }
 
     static async list(params, options) {
+        if(params.document) {
+            const document = await DatabaseHelper.get('document').findById(params.document, {
+                include: [{
+                    model: DatabaseHelper.get('user'),
+                    attributes: [],
+                    where: {
+                        id: options.session.userId
+                    }
+                }]
+            });
+
+            if(!document) {
+                return [];
+            }else{
+                const plugins = await PluginHelper.listPlugins();
+                return plugins.filter(p => p.documentId() === document.id);
+            }
+        }
         if (!options.session.user.isAdmin) {
             throw new ErrorResponse(403, 'Only admins are allowed to list all plugins…');
         }
 
         return PluginHelper.listPlugins();
+    }
+
+    static async update(model, body) {
+        if(body && body.config && body.config.length > 0) {
+            const values = {};
+
+            body.config.forEach(field => {
+                values[field.id] = field.value;
+            });
+
+            const errors = await model.checkAndSaveConfig(values);
+            if(errors.length > 0) {
+                const attributes = {};
+                errors.forEach(error => {
+                    if(error.code === 'empty') {
+                        attributes[error.field] = 'Field `' + error.field + '` is required, but empty.';
+                    }
+                    else if(error.code === 'wrong') {
+                        attributes[error.field] = 'Field `' + error.field + '` is not valid.';
+                    }
+                    else {
+                        attributes[error.field] = 'Field `' + error.field + '` validation failed without reason.';
+                    }
+                });
+
+                throw new ErrorResponse(400, 'Plugin settings are not valid', {attributes});
+            }
+        }
+
+        return model;
     }
 
     static async delete(instance) {
