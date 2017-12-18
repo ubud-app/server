@@ -507,11 +507,13 @@ class PluginInstance extends EventEmitter {
                 isRunning = false;
 
                 if(gotResponse) {
-                    instance._events.emit('update', {
-                        action: 'updated',
-                        name: 'plugin-instance',
-                        model: instance
-                    });
+                    if(instance) {
+                        instance._events.emit('update', {
+                            action: 'updated',
+                            name: 'plugin-instance',
+                            model: instance
+                        });
+                    }
 
                     return;
                 }
