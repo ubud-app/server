@@ -210,9 +210,7 @@ class ServerHelper {
                 return;
             }
 
-            Logic.get(typeof event.model.id === 'function' ? event.model.id() : event.model.id, {
-                    session: session.getSessionModel()
-                })
+            Logic.get(typeof event.model.id === 'function' ? event.model.id() : event.model.id, {session: session.getSessionModel()})
                 .then(model => {
                     return Logic.format(model, {}, {session: session.getSessionModel()});
                 })
