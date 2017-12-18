@@ -481,6 +481,7 @@ class PluginInstance extends EventEmitter {
         const process = fork(__dirname + '/runner.js', {
             cwd: require('os').tmpdir(),
             stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
+            env: {},
             execArgv: ''
         });
 
