@@ -15,7 +15,7 @@ module.exports = {
             allowNull: true
         });
     },
-    async down (q, models, sequelize) {
+    async down (q) {
         await q.removeColumn('accounts', 'pluginsOwnId');
         await q.removeColumn('budgets', 'pluginsOwnId');
         await q.removeColumn('transactions', 'pluginsOwnId');
