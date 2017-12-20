@@ -106,11 +106,135 @@ PluginTools.Config = class {
 };
 
 PluginTools.Account = class {
+    constructor (options) {
+        const AccountLogic = require('../../logic/account');
 
+        // id
+        if(!options.id) {
+            throw new Error('`id` is required!');
+        }
+        if(typeof options.id !== 'string') {
+            throw new Error('`id` has to be a string');
+        }
+        if(options.id.length > 255) {
+            throw new Error('`id` has a max length of 255');
+        }
+
+        // type
+        if(!options.type) {
+            options.type = 'checking';
+        }
+        if(typeof options.type !== 'string') {
+            throw new Error('`type` has to be a string');
+        }
+        if(AccountLogic.getValidTypeValues().indexOf(options.type) === -1) {
+            throw new Error('`type` need to be one of: ' + AccountLogic.getValidTypeValues().join(', '));
+        }
+
+        // name
+        if(!options.name) {
+            throw new Error('`name` is required!');
+        }
+        if(typeof options.name !== 'string') {
+            throw new Error('`name` has to be a string');
+        }
+        if(options.name.length > 255) {
+            throw new Error('`name` has a max length of 255');
+        }
+
+        // balance
+        if(!options.balance && options.balance !== 0) {
+            throw new Error('`balance` is required!');
+        }
+        if(!Number.isInteger(options.balance)) {
+            throw new Error('`balance` has to be an integer');
+        }
+
+        this._values = {
+            id: options.id,
+            type: options.type,
+            name: options.name,
+            balance: options.balance
+        };
+    }
+
+    toJSON() {
+        return this._values;
+    }
 };
 
 PluginTools.Transaction = class {
+    constructor (options) {
+        const TransactionLogic = require('../../logic/transaction');
+        const moment = require('moment');
 
+        // id
+        if(!options.id) {
+            throw new Error('`id` is required!');
+        }
+        if(typeof options.id !== 'string') {
+            throw new Error('`id` has to be a string');
+        }
+        if(options.id.length > 255) {
+            throw new Error('`id` has a max length of 255');
+        }
+
+        // time
+        if(!moment.isMoment(options.time) && !(options.time instanceof Date)) {
+            throw new Error('`time` has to be either a moment- or a Date object');
+        }
+        if(!moment(options.time).isValid()) {
+            throw new Error('`time` is not valid');
+        }
+
+        // payeeId
+        if(!options.payeeId) {
+            throw new Error('`payeeId` is required!');
+        }
+        if(typeof options.payeeId !== 'string') {
+            throw new Error('`payeeId` has to be a string');
+        }
+        if(options.payeeId.length > 255) {
+            throw new Error('`payeeId` has a max length of 255');
+        }
+
+        // memo
+        if(options.memo && typeof options.memo !== 'string') {
+            throw new Error('`memo` has to be a string');
+        }
+
+        // amount
+        if(!options.amount && options.amount !== 0) {
+            throw new Error('`amount` is required!');
+        }
+        if(!Number.isInteger(options.amount)) {
+            throw new Error('`amount` has to be an integer, `' + options.amount + '` given');
+        }
+
+        // status
+        if(!options.status) {
+            options.status = 'cleared';
+        }
+        if(typeof options.status !== 'string') {
+            throw new Error('`status` has to be a string');
+        }
+        if(TransactionLogic.getValidStatusValues().indexOf(options.status) === -1) {
+            throw new Error('`status` need to be one of: ' + TransactionLogic.getValidStatusValues().join(', '));
+        }
+
+        this._values = {
+            id: options.id,
+            time: moment(options.time).toJSON(),
+            payeeId: options.payeeId,
+            memo: options.memo ? options.memo.substr(0, 255) : null,
+            amount: options.amount,
+            status: options.status
+        };
+    }
+
+    toJSON() {
+        return this._values;
+    }
 };
 
 PluginTools.Memo = class {
@@ -151,7 +275,7 @@ PluginTools.ConfigurationError = class {
         if(!options.code) {
             throw new Error('Unable to build ConfigurationError: `code` is required!');
         }
-        if(['empty', 'wrong'].indexOf(options.code) === -1) {
+        if(['empty', 'invalid'].indexOf(options.code) === -1) {
             throw new Error('Unable to build ConfigurationError: `code` is required!');
         }
 

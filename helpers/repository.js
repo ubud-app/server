@@ -53,11 +53,11 @@ class RepositoryHelper {
     static run() {
         this._run()
             .then(() => {
-                setTimeout(this.run, 1000 * 60 * 60 * 6);
+                setTimeout(() => {this.run();}, 1000 * 60 * 60 * 6);
             })
             .catch(err => {
                 log.error(err);
-                setTimeout(this.run, 1000 * 60 * 30);
+                setTimeout(() => {this.run();}, 1000 * 60 * 30);
             });
     }
 

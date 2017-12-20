@@ -67,7 +67,29 @@ class PluginInstance extends EventEmitter {
             /* eslint-enable security/detect-non-literal-require */
         }
         catch (err) {
-            log.warn('Unable to get version of plugin %s: %s', this._model.type, err);
+            log.warn('Unable to get version of plugin %s, try to install it…', this._model.type);
+
+            const PluginHelper = require('./index');
+
+            try {
+                await PluginHelper._runPackageInstall(this.type());
+            }
+            catch(err) {
+                log.warn('Unable to install plugin %s: %s', this.type(), err);
+                log.fatal(err);
+                process.exit(1);
+            }
+
+            try {
+                /* eslint-disable security/detect-non-literal-require */
+                this._version = require(this._model.type + '/package.json').version.toString();
+                /* eslint-enable security/detect-non-literal-require */
+            }
+            catch (err) {
+                log.warn('Unable to get version of plugin %s, is it installed?', this._model.type);
+                log.fatal(err);
+                process.exit(1);
+            }
         }
 
         // get configuration from database
@@ -98,7 +120,7 @@ class PluginInstance extends EventEmitter {
 
         // delete unused configs in database
         dbConfigs.forEach(configModel => {
-            if (!config.find(config => config.id === configModel.key)) {
+            if (!config.find(c => c.id === configModel.key)) {
                 configModel.destory().catch(err => {
                     log.warn('Unable to remove unused plugin getConfig `%id`: %s', configModel.id, err);
                 });
@@ -232,10 +254,11 @@ class PluginInstance extends EventEmitter {
      * intended to be given to the client, all secrets
      * (passwords) are hidden.
      *
-     * @returns {Promise<object[]>}
+     * @param {boolean} [instant]
+     * @returns {object[]|Promise<object[]>}
      */
-    async config() {
-        if (this._config === null) {
+    config(instant) {
+        if (this._config === null && !instant) {
             return new Promise(resolve => {
                 this.once('change:config', () => {
                     resolve(this.config());
@@ -243,13 +266,19 @@ class PluginInstance extends EventEmitter {
             });
         }
 
-        return this._config.slice(0).map(field => {
+        const config = JSON.parse(JSON.stringify(this._config || [])).map(field => {
             if (field.type === 'password' && field.value) {
                 field.value = null;
             }
 
             return field;
         });
+
+        if(instant) {
+            return config;
+        }
+
+        return Promise.resolve(config);
     }
 
     /**
@@ -274,10 +303,11 @@ class PluginInstance extends EventEmitter {
     /**
      * Returns a json ready to serve to the client…
      *
-     * @returns {Promise.<object>}
+     * @param {boolean} [instant]
+     * @returns {object|Promise.<object>}
      */
-    async toJSON() {
-        const config = await this.config();
+    async toJSON(instant) {
+        const config = instant ? (this.config(true) || []) : await this.config();
         return {
             id: this.id(),
             type: this.type(),
@@ -315,14 +345,7 @@ class PluginInstance extends EventEmitter {
     async checkAndSaveConfig(values) {
 
         // build temporary getConfig
-        const config = {};
-        values = values || {};
-        this._config.forEach(c => {
-            config[c.id] = values[c.id] || c.value || c.defaultValue;
-            if(config[c.id] === '{{email}}') {
-                config[c.id] = null;
-            }
-        });
+        const config = this.generateConfig(values);
 
         // check configuration with plugin
         let validation;
@@ -375,6 +398,9 @@ class PluginInstance extends EventEmitter {
                 });
             }, 1000 * 60 * 60 * 3);
         }
+        else if(validation.valid && this._cron) {
+            await this.cron();
+        }
         else if(!validation.valid && this._cron) {
             clearInterval(this._cron);
             this._cron = null;
@@ -396,8 +422,232 @@ class PluginInstance extends EventEmitter {
     }
 
 
+    /**
+     * Starts all jobs required for this plugin.
+     *
+     * @returns {Promise.<void>}
+     */
     async cron() {
+        if(this._supported.indexOf('getAccounts') > -1 && this._supported.indexOf('getTransactions') > -1) {
+            this.syncAccounts().catch(err => {
+                log.warn('Unable to sync transactions with plugin %s: %s', this.type(), err);
+                log.error(err);
+            });
+        }
+    }
 
+    /**
+     * Synchronizes the accounts and their transactions…
+     *
+     * @returns {Promise.<void>}
+     */
+    async syncAccounts() {
+        const accounts = await PluginInstance.request(this, this.type(), 'getAccounts', this.generateConfig());
+        await Promise.all(accounts.map(account => this.syncAccount(account)));
+    }
+
+    /**
+     * Synchronizes one single account and it's transactions…
+     *
+     * @param {object} account
+     * @param {string} account.id
+     * @param {string} account.type
+     * @param {string} account.name
+     * @param {number} account.balance
+     * @returns {Promise.<void>}
+     */
+    async syncAccount(account) {
+        const AccountLogic = require('../../logic/account');
+        const TransactionLogic = require('../../logic/transaction');
+        const SummaryLogic = require('../../logic/summary');
+
+        const moment = require('moment');
+
+        let accountIsNew = false;
+
+        // find account model
+        let accountModel = await AccountLogic.getModel().findOne({
+            where: {
+                pluginInstanceId: this.id(),
+                pluginsOwnId: account.id
+            }
+        });
+
+        // create new account model if not already there
+        if(!accountModel) {
+            accountIsNew = true;
+            accountModel = AccountLogic.getModel().build({
+                documentId: this.documentId(),
+                pluginInstanceId: this.id(),
+                pluginsOwnId: account.id
+            });
+        }
+
+        // update account attributes
+        accountModel.name = account.name;
+        accountModel.type = account.type;
+        await accountModel.save();
+
+        // get newest cleared transaction
+        const newestClearedTransaction = await TransactionLogic.getModel().findOne({
+            attributes: ['time'],
+            where: {
+                status: 'cleared',
+                accountId: account.id
+            },
+            order: [
+                ['time', 'DESC']
+            ],
+            limit: 1
+        });
+
+        // get oldest pending transaction
+        const oldestPendingTransaction = await TransactionLogic.getModel().findOne({
+            attributes: ['time'],
+            where: {
+                status: 'pending',
+                accountId: account.id
+            },
+            order: [
+                ['time', 'ASC']
+            ],
+            limit: 1
+        });
+
+
+        // find out sync begin
+        let syncBeginningFrom = moment().startOf('month');
+        if(newestClearedTransaction) {
+            syncBeginningFrom = moment(newestClearedTransaction.time).subtract(1, 'day').startOf('day');
+        }
+        if(oldestPendingTransaction && moment(oldestPendingTransaction.time).isBefore(syncBeginningFrom)) {
+            syncBeginningFrom = moment(oldestPendingTransaction.time).startOf('day');
+        }
+
+
+        // get transactions
+        const transactions = await PluginInstance.request(
+            this,
+            this.type(),
+            'getTransactions',
+            this.generateConfig(),
+            {
+                accountId: account.id,
+                since: syncBeginningFrom.toJSON()
+            }
+        );
+
+
+        const transactionModels = await Promise.all(
+            transactions.map(transaction => {
+                if(moment(transaction.time).isBefore(syncBeginningFrom)) {
+                    return null;
+                }
+
+                return this.syncTransaction(accountModel, transaction);
+            })
+        );
+
+        if(!accountIsNew) {
+
+            // update summaries
+            await SummaryLogic.recalculateSummariesFrom(account.documentId, syncBeginningFrom);
+
+            return;
+        }
+
+        const sum = transactionModels.reduce(function(acc, transactionModel) {
+            if(!transactionModel) {
+                return acc;
+            }
+
+            return acc + transactionModel.amount;
+        }, 0);
+
+        const startingBalance = account.balance - sum;
+        if(startingBalance === 0) {
+            return;
+        }
+
+        await TransactionLogic.getModel().create({
+            time: syncBeginningFrom.toJSON(),
+            amount: startingBalance,
+            status: 'cleared',
+            accountId: accountModel.id,
+            units: [{
+                amount: startingBalance,
+                incomeMonth: 'this'
+            }]
+        }, {include: [DatabaseHelper.get('unit')]});
+
+
+
+        // update summaries
+        await SummaryLogic.recalculateSummariesFrom(this.documentId(), syncBeginningFrom);
+    }
+
+    /**
+     * Synchronizes one single account and it's transactions…
+     *
+     * @param {Model} accountModel
+     * @param {object} transaction
+     * @param {string} transaction.id
+     * @param {string} transaction.time
+     * @param {string} transaction.payeeId
+     * @param {string} transaction.memo
+     * @param {number} transaction.amount
+     * @param {string} transaction.status
+     * @returns {Promise.<Model>} TransactionModel
+     */
+    async syncTransaction(accountModel, transaction) {
+        const moment = require('moment');
+        const TransactionLogic = require('../../logic/transaction');
+
+        // find transaction model
+        let transactionModel = await TransactionLogic.getModel().findOne({
+            where: {
+                accountId: accountModel.id,
+                pluginsOwnId: transaction.id
+            }
+        });
+
+        // create new transaction model if not already there
+        if(!transactionModel) {
+            transactionModel = TransactionLogic.getModel().build({
+                accountId: accountModel.id,
+                pluginsOwnId: transaction.id,
+                memo: transaction.memo
+            });
+        }
+
+        // update transaction attributes
+        transactionModel.time = moment(transaction.time).toJSON();
+        transactionModel.pluginsOwnPayeeId = transaction.payeeId;
+        transactionModel.amount = transaction.amount;
+        transactionModel.status = transaction.status;
+        await transactionModel.save();
+
+        return transactionModel;
+    }
+
+    /**
+     * Generates Configuration Key-Value Pair for request()
+     * @param {object} [values]
+     * @returns {object}
+     */
+    generateConfig(values) {
+        // build temporary getConfig
+        const config = {};
+        values = values || {};
+
+        this._config.forEach(c => {
+            config[c.id] = values[c.id] || c.value || c.defaultValue;
+            if(config[c.id] === '{{email}}') {
+                config[c.id] = null;
+            }
+        });
+
+        return JSON.parse(JSON.stringify(config || {}));
     }
 
 
@@ -455,7 +705,6 @@ class PluginInstance extends EventEmitter {
      * @param {object} [params]
      * @returns {Promise<object|void>}
      */
-
     static async request(instance, type, method, config, params) {
         /* eslint-disable security/detect-child-process */
         const fork = require('child_process').fork;
@@ -496,6 +745,7 @@ class PluginInstance extends EventEmitter {
             let isRunning = true,
                 stderr = [],
                 stdout = [],
+                responseArray,
                 gotConfirm,
                 gotResponse;
 
@@ -549,6 +799,10 @@ class PluginInstance extends EventEmitter {
                 if (!gotConfirm && message && message.type === 'confirm') {
                     gotConfirm = true;
                 }
+                if (!gotResponse && message && message.type === 'item') {
+                    responseArray = responseArray || [];
+                    responseArray.push(message.item);
+                }
                 if (!gotResponse && message && message.type === 'response') {
                     gotResponse = true;
 
@@ -569,7 +823,8 @@ class PluginInstance extends EventEmitter {
                             model: instance
                         });
                     }
-                    resolve(message.data || {});
+
+                    resolve(responseArray || message.data || {});
                 }
             });
 

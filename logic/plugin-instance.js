@@ -15,7 +15,7 @@ class PluginInstanceLogic extends BaseLogic {
     }
 
     static async format(plugin) {
-        return plugin.toJSON();
+        return plugin.toJSON(true);
     }
 
     static disableSequelizeSocketHooks() {
@@ -69,8 +69,8 @@ class PluginInstanceLogic extends BaseLogic {
 
         const PluginHelper = require('../helpers/plugin');
         try {
-            const plugin = await PluginHelper.installPlugin(attributes.type, document.id);
-            return await plugin.toJSON();
+            const plugin = await PluginHelper.installPlugin(attributes.type, document);
+            return {model: plugin};
         }
         catch(err) {
             throw new ErrorResponse(500, 'Unable to install plugin: ' + err);

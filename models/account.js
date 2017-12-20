@@ -24,6 +24,10 @@ module.exports = class AccountModelDefinition {
                 type: DataTypes.BOOLEAN,
                 allowNull: false,
                 defaultValue: false
+            },
+            pluginsOwnId: {
+                type: DataTypes.STRING,
+                allowNull: true
             }
         };
     }

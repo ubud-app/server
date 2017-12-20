@@ -10,7 +10,7 @@ module.exports = class TransactionModelDefinition {
                 type: DataTypes.DATE,
                 allowNull: false
             },
-            payeePluginId: {
+            pluginsOwnPayeeId: {
                 type: DataTypes.STRING,
                 allowNull: true
             },
@@ -41,6 +41,10 @@ module.exports = class TransactionModelDefinition {
             },
             locationAccuracy: {
                 type: DataTypes.INTEGER,
+                allowNull: true
+            },
+            pluginsOwnId: {
+                type: DataTypes.STRING,
                 allowNull: true
             }
         };

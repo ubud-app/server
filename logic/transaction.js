@@ -21,7 +21,7 @@ class TransactionLogic extends BaseLogic {
             amount: transaction.amount,
             memo: transaction.memo,
             payeeId: transaction.payeeId,
-            payeePluginId: transaction.payeePluginId,
+            pluginsOwnPayeeId: transaction.pluginsOwnPayeeId,
             units: transaction.units.map(unit => {
                 let budget = unit.budgetId;
                 if (unit.incomeMonth === 'this') {
@@ -279,7 +279,7 @@ class TransactionLogic extends BaseLogic {
             include: [
                 {
                     model: DatabaseHelper.get('account'),
-                    attributes: ['pluginId'],
+                    attributes: ['pluginInstanceId'],
                     include: [{
                         model: DatabaseHelper.get('document'),
                         attributes: ['id'],

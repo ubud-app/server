@@ -32,6 +32,12 @@ class PluginRunner {
         else if (job.method === 'validateConfig') {
             return this.validateConfig(job);
         }
+        else if (job.method === 'getAccounts') {
+            return this.getAccounts(job);
+        }
+        else if (job.method === 'getTransactions') {
+            return this.getTransactions(job);
+        }
         else {
             throw new Error('Unimplemented method: `' + job.method + '`');
         }
@@ -59,7 +65,16 @@ class PluginRunner {
      * @returns {Promise.<void>}
      */
     static async sendResponse(data) {
-        process.send({type: 'response', data});
+        if(!Array.isArray(data)) {
+            process.send({type: 'response', data});
+            return;
+        }
+
+        data.forEach(item => {
+            process.send({type: 'item', item});
+        });
+
+        process.send({type: 'response'});
     }
 
     /**
@@ -151,6 +166,45 @@ class PluginRunner {
             }
         }
     }
+
+    /**
+     * Get Accounts
+     *
+     * @param {object} job
+     * @returns {Promise.<void>}
+     */
+    static async getAccounts(job) {
+        const accounts = await job.plugin.getAccounts();
+        return accounts.map(account => {
+            if(!(account instanceof PluginTools.Account)) {
+                throw new Error('Account has to be instance of PluginTools.Account!');
+            }
+
+            return account.toJSON();
+        });
+    }
+
+    /**
+     * Get Transactions
+     *
+     * @param {object} job
+     * @returns {Promise.<void>}
+     */
+    static async getTransactions(job) {
+        const moment = require('moment');
+        const transactions = await job.plugin.getTransactions(
+            job.params.accountId,
+            moment(job.since)
+        );
+
+        return transactions.map(transaction => {
+            if(!(transaction instanceof PluginTools.Transaction)) {
+                throw new Error('Transaction has to be instance of PluginTools.Transaction!');
+            }
+
+            return transaction.toJSON();
+        });
+    }
 }
 
 PluginRunner.initialize()
@@ -161,6 +215,6 @@ PluginRunner.initialize()
         process.exit(0);
     })
     .catch(error => {
-        console.log(error);
+        console.log('Unexpected Error:', error);
         process.exit(1);
     });

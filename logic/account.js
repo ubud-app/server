@@ -20,7 +20,7 @@ class AccountLogic extends BaseLogic {
             type: account.type,
             number: account.number,
             documentId: account.documentId,
-            pluginId: account.pluginId
+            pluginInstanceId: account.pluginInstanceId
         };
     }
 
@@ -175,7 +175,7 @@ class AccountLogic extends BaseLogic {
                 });
         }
 
-        if (body.number !== undefined && !model.pluginId) {
+        if (body.number !== undefined && !model.pluginInstanceId) {
             model.number = body.number || null;
         }
 
