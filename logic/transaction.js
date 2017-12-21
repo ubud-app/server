@@ -151,7 +151,7 @@ class TransactionLogic extends BaseLogic {
                 if (!accountModel) {
                     throw new ErrorResponse(400, 'Not able to create transaction: linked account not found.');
                 }
-                if (accountModel.pluginId) {
+                if (accountModel.pluginInstanceId) {
                     throw new ErrorResponse(400, 'Not able to create transaction: linked account is managed by a plugin');
                 }
 
@@ -430,7 +430,7 @@ class TransactionLogic extends BaseLogic {
 
 
         // Amount
-        if (body.amount !== undefined && body.amount !== model.amount && model.account.pluginId) {
+        if (body.amount !== undefined && body.amount !== model.amount && model.account.pluginInstanceId) {
             throw new ErrorResponse(400, 'Not able to update transaction: amount can not be changed on a managed transaction!', {
                 attributes: {
                     amount: 'Not allowed to change, because this transaction\'s account is managed by a plugin'
@@ -450,7 +450,7 @@ class TransactionLogic extends BaseLogic {
 
 
         // Status
-        if (body.status !== undefined && body.status !== model.status && model.account.pluginId) {
+        if (body.status !== undefined && body.status !== model.status && model.account.pluginInstanceId) {
             throw new ErrorResponse(400, 'Not able to update transaction: status can not be changed on a managed transaction!', {
                 attributes: {
                     status: 'Not allowed to change, because this transaction\'s account is managed by a plugin'
@@ -472,7 +472,7 @@ class TransactionLogic extends BaseLogic {
 
 
         // Account
-        if (body.accountId !== undefined && body.accountId !== model.accountId && model.account.pluginId) {
+        if (body.accountId !== undefined && body.accountId !== model.accountId && model.account.pluginInstanceId) {
             throw new ErrorResponse(400, 'Not able to update transaction: account can not be changed on a managed transaction!', {
                 attributes: {
                     accountId: 'Not allowed to change, because this transaction\'s account is managed by a plugin'
@@ -484,10 +484,10 @@ class TransactionLogic extends BaseLogic {
                 DatabaseHelper.get('account')
                     .find({
                         where: {id: body.accountId},
-                        attributes: ['id', 'pluginId']
+                        attributes: ['id', 'pluginInstanceId']
                     })
                     .then(function (account) {
-                        if (account.pluginId) {
+                        if (account.pluginInstanceId) {
                             throw new ErrorResponse(400, 'Not able to update transaction: account can not be changed to a managed one!', {
                                 attributes: {
                                     accountId: 'Not allowed to change, because new account is managed by a plugin'
@@ -667,7 +667,7 @@ class TransactionLogic extends BaseLogic {
     }
 
     static delete(model) {
-        if (model.account.pluginId) {
+        if (model.account.pluginInstanceId) {
             throw new ErrorResponse(400, 'Not able to destroy transaction: managed by transaction');
         }
 
