@@ -155,10 +155,10 @@ class UserLogic extends BaseLogic {
                     });
             })
             .then(function () {
-                if (options.session.user.isAdmin && body.isAdmin !== undefined) {
+                if (options.session.user.isAdmin && body.isAdmin !== undefined && !!body.isAdmin !== model.isAdmin) {
                     model.isAdmin = !!body.isAdmin;
                 }
-                else if (body.isAdmin !== undefined) {
+                else if (body.isAdmin !== undefined && !!body.isAdmin !== model.isAdmin) {
                     throw new ErrorResponse(403, 'You are not allowed to update other people\'s admin privilege!');
                 }
 

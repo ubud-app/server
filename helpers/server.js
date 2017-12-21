@@ -212,15 +212,21 @@ class ServerHelper {
 
             Logic.get(typeof event.model.id === 'function' ? event.model.id() : event.model.id, {session: session.getSessionModel()})
                 .then(model => {
+                    if(!model) {
+                        return null;
+                    }
+
                     return Logic.format(model, {}, {session: session.getSessionModel()});
                 })
                 .then(function (json) {
-                    socket.emit('update', {
-                        action: event.action,
-                        name: Logic.getPluralModelName(),
-                        id: json.id,
-                        data: json
-                    });
+                    if(json) {
+                        socket.emit('update', {
+                            action: event.action,
+                            name: Logic.getPluralModelName(),
+                            id: json.id,
+                            data: json
+                        });
+                    }
                 })
                 .catch(err => {
                     log.error(err);
