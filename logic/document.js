@@ -5,15 +5,15 @@ const DatabaseHelper = require('../helpers/database');
 const ErrorResponse = require('../helpers/errorResponse');
 
 class DocumentLogic extends BaseLogic {
-    static getModelName() {
+    static getModelName () {
         return 'document';
     }
 
-    static getPluralModelName() {
+    static getPluralModelName () {
         return 'documents';
     }
 
-    static format(document, secrets, options) {
+    static format (document, secrets, options) {
         const r = {
             id: document.id,
             name: document.name,
@@ -34,7 +34,7 @@ class DocumentLogic extends BaseLogic {
         return r;
     }
 
-    static create(attributes, options) {
+    static create (attributes, options) {
         const _ = require('underscore');
         const model = this.getModel().build();
         let document;
@@ -56,11 +56,15 @@ class DocumentLogic extends BaseLogic {
                 // Settings
                 _.each(attributes.settings || {}, (v, k) => {
                     jobs.push(
-                        DatabaseHelper.get('setting').create({
-                            key: k,
-                            value: JSON.stringify(v),
-                            documentId: document.id
-                        })
+                        DatabaseHelper
+                            .get('setting')
+                            .create(
+                                {
+                                    key: k,
+                                    value: JSON.stringify(v),
+                                    documentId: document.id
+                                }
+                            )
                             .then(setting => {
                                 document.settings = document.settings || [];
                                 document.settings.push(setting);
@@ -81,27 +85,36 @@ class DocumentLogic extends BaseLogic {
             });
     }
 
-    static get(id, options) {
+    static get (id, options) {
         const sql = {
-            where: {id}
+            where: {id},
+            include: [
+                {
+                    model: DatabaseHelper.get('user'),
+                    attributes: ['id', 'email']
+                },
+                {
+                    model: DatabaseHelper.get('setting')
+                }
+            ]
         };
 
         if (!options.session.user.isAdmin) {
-            sql.include = [{
-                model: DatabaseHelper.get('user'),
-                attributes: [],
-                where: {
-                    id: options.session.userId
-                }
-            }];
+            sql.include[0].where = {
+                id: options.session.userId
+            };
         }
 
         return this.getModel().findOne(sql);
     }
 
-    static list(params, options) {
+    static list (params, options) {
         const sql = {
             include: [
+                {
+                    model: DatabaseHelper.get('user'),
+                    attributes: ['id', 'email']
+                },
                 {
                     model: DatabaseHelper.get('setting')
                 }
@@ -112,19 +125,15 @@ class DocumentLogic extends BaseLogic {
         };
 
         if (!options.session.user.isAdmin) {
-            sql.include.push({
-                model: DatabaseHelper.get('user'),
-                attributes: [],
-                where: {
-                    id: options.session.userId
-                }
-            });
+            sql.include[0].where = {
+                id: options.session.userId
+            };
         }
 
         return this.getModel().findAll(sql);
     }
 
-    static update(model, body) {
+    static async update (model, body, options) {
         if (body.name !== undefined && !body.name) {
             throw new ErrorResponse(400, 'Document name can\'t be empty…', {
                 attributes: {
@@ -136,10 +145,49 @@ class DocumentLogic extends BaseLogic {
             model.name = body.name;
         }
 
-        return model.save();
+        await model.save();
+
+        // all done for non-admins
+        if (!options.session.user.isAdmin) {
+            return model;
+        }
+
+
+        // add new users
+        await Promise.all((body.users || []).map(async function (user) {
+            const thisModel = model.users.find(u => u.id === user.id);
+            if (thisModel) {
+                return;
+            }
+
+            const userModel = await DatabaseHelper.get('user').findById(user.id);
+            if (!userModel) {
+                throw new ErrorResponse(400, 'Unable to add user to document: User not found', {
+                    attributes: {
+                        users: 'Unknown user specified…'
+                    }
+                });
+            }
+
+            model.users.push(userModel);
+            return model.addUser(userModel);
+        }));
+
+        // remove old users
+        await Promise.all((model.users || []).map(async function (userModel) {
+            const plainUser = body.users.find(u => u.id === userModel.id);
+            if (plainUser) {
+                return;
+            }
+
+            model.users.splice(model.users.indexOf(userModel), 1);
+            return model.removeUser(userModel);
+        }));
+
+        return model;
     }
 
-    static delete(model) {
+    static delete (model) {
         return model.destroy();
     }
 }
