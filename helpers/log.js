@@ -152,7 +152,7 @@ class LogHelper {
             const map = {fatal: 'error', error: 'error', warning: 'warn', info: 'info', debug: 'log'};
 
             if(s.module !== 'Database') {
-                console[map[s.level]](s.error);
+                console[map[s.level]](s.error); // eslint-disable-line no-console
             }
         }else {
             logger[s.level === 'warning' ? 'warn' : s.level](_.extend({}, s.extra, {
