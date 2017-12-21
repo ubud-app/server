@@ -217,7 +217,7 @@ class BudgetLogic extends BaseLogic {
     static delete() {
         throw new ErrorResponse(
             501,
-            'It\'s not allowed to delete accounts, try to hide them or remove the whole document.'
+            'It\'s not allowed to delete budgets, try to hide them or remove the whole document.'
         );
     }
 }
