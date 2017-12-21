@@ -13,12 +13,25 @@ class AccountLogic extends BaseLogic {
         return 'accounts';
     }
 
-    static format(account) {
+    static async format(account) {
+        const DatabaseHelper = require('../helpers/database');
+        const info = await DatabaseHelper.get('transaction').findOne({
+            attributes: [
+                [DatabaseHelper.sum('amount'), 'balance'],
+                [DatabaseHelper.count('id'), 'transactions']
+            ],
+            where: {
+                accountId: account.id
+            }
+        });
+
         return {
             id: account.id,
             name: account.name,
             type: account.type,
             number: account.number,
+            balance: info.dataValues.balance || 0,
+            transactions: info.dataValues.transactions || 0,
             documentId: account.documentId,
             pluginInstanceId: account.pluginInstanceId
         };
