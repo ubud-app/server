@@ -199,11 +199,36 @@ class AccountLogic extends BaseLogic {
         return model.save();
     }
 
-    static delete() {
-        throw new ErrorResponse(
-            501,
-            'It\'s not allowed to delete accounts, try to hide them or remove the whole document.'
-        );
+    static async delete (model) {
+        const DatabaseHelper = require('../helpers/database');
+        if(model.pluginInstanceId) {
+            throw new ErrorResponse(400, 'It\'s not allowed to destroy managed accounts.');
+        }
+
+        const firstTransaction = await DatabaseHelper.get('transaction').findOne({
+            attributes: ['time'],
+            where: {
+                accountId: model.id
+            },
+            order: [['time', 'ASC']],
+            limit: 1
+        });
+
+        await model.destroy();
+
+        // Account was empty -> no need to recalculate document
+        if(!firstTransaction) {
+            return;
+        }
+
+        const moment = require('moment');
+        const month = moment(firstTransaction.time).startOf('month');
+
+        const PortionsLogic = require('../logic/portion');
+        const SummaryLogic = require('../logic/summary');
+
+        await PortionsLogic.recalculatePortionsFrom({month, documentId: model.documentId});
+        await SummaryLogic.recalculateSummariesFrom(model.documentId, month);
     }
 }
 
