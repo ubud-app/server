@@ -16,10 +16,6 @@ module.exports = class AccountModelDefinition {
                 type: DataTypes.ENUM(AccountLogic.getValidTypeValues()),
                 allowNull: false
             },
-            number: {
-                type: DataTypes.STRING,
-                allowNull: true
-            },
             hidden: {
                 type: DataTypes.BOOLEAN,
                 allowNull: false,
