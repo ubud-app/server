@@ -476,17 +476,14 @@ class PluginInstance extends EventEmitter {
         // create new account model if not already there
         if(!accountModel) {
             accountIsNew = true;
-            accountModel = AccountLogic.getModel().build({
+            accountModel = await AccountLogic.getModel().create({
                 documentId: this.documentId(),
                 pluginInstanceId: this.id(),
-                pluginsOwnId: account.id
+                pluginsOwnId: account.id,
+                name: account.name,
+                type: account.type
             });
         }
-
-        // update account attributes
-        accountModel.name = account.name;
-        accountModel.type = account.type;
-        await accountModel.save();
 
         // get newest cleared transaction
         const newestClearedTransaction = await TransactionLogic.getModel().findOne({
