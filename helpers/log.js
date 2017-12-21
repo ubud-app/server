@@ -52,7 +52,7 @@ class LogHelper {
             error: null,
             time: null,
             level: 'log',
-            module: null,
+            module: this.module || null,
             param_message: null,
             report: false,
             request: null,
@@ -141,14 +141,29 @@ class LogHelper {
         }
 
         // json log
-        logger[s.level === 'warning' ? 'warn' : s.level](_.extend({}, s.extra, {
-            id: s.id,
-            module: s.module,
-            username: s.user,
-            machine: os.hostname() + ':' + ConfigHelper.getPort(),
-            pathname: s.pathname,
-            req: s.request
-        }), s.error);
+        if(
+            process.mainModule && process.mainModule.filename &&
+            (
+                process.mainModule.filename.substr(-13) === '/bin/database' ||
+                process.mainModule.filename.substr(-11) === '/bin/plugin' ||
+                process.mainModule.filename.substr(-9) === '/bin/user'
+            )
+        ) {
+            const map = {fatal: 'error', error: 'error', warning: 'warn', info: 'info', debug: 'log'};
+
+            if(s.module !== 'Database') {
+                console[map[s.level]](s.error);
+            }
+        }else {
+            logger[s.level === 'warning' ? 'warn' : s.level](_.extend({}, s.extra, {
+                id: s.id,
+                module: s.module,
+                username: s.user,
+                machine: os.hostname() + ':' + ConfigHelper.getPort(),
+                pathname: s.pathname,
+                req: s.request
+            }), s.error);
+        }
 
         // Exception
         if (ConfigHelper.isDev() && ['fatal', 'error'].indexOf(s.level) >= 0 && s.error instanceof Error) {
