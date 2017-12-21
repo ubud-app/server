@@ -1,0 +1,85 @@
+#!/usr/bin/env node
+'use strict';
+
+const commander = require('commander');
+const LogHelper = require('../helpers/log');
+const ConfigHelper = require('../helpers/config');
+const DatabaseHelper = require('../helpers/database');
+const ErrorResponse = require('../helpers/errorResponse');
+
+const log = new LogHelper('bin/user');
+
+async function run(action) {
+    try {
+        await action();
+        process.exit(0);
+    }
+    catch(error) {
+        if(error instanceof ErrorResponse) {
+            log.error(error.toString());
+        }else {
+            log.error(error);
+        }
+        process.exit(1);
+    }
+}
+
+commander.version(ConfigHelper.getVersion(), '-V, --version');
+
+commander
+    .command('list')
+    .alias('ls')
+    .description('List all users and their permissions')
+    .action(function () {
+        run(async function() {
+            const Table = require('cli-table');
+            const table = new Table({
+                head: ['User ID', 'Email', 'Is Admin', 'Document ID', 'Document Name']
+            });
+
+            const users = await DatabaseHelper.get('user').findAll({
+                include: [{
+                    model: DatabaseHelper.get('document')
+                }]
+            });
+            users.forEach(user => {
+                const documents = user.documents.map(d => [d.id.substr(0, 18), d.name]);
+                const firstDocument = documents.shift() || ['-', '-'];
+
+                table.push([
+                    user.id.substr(0, 18),
+                    user.email,
+                    user.isAdmin ? 'Yes' : 'No',
+                    firstDocument[0],
+                    firstDocument[1]
+                ]);
+
+                documents.forEach(d => {
+                    table.push([
+                        '',
+                        '',
+                        '',
+                        d[0],
+                        d[1]
+                    ]);
+                });
+            });
+
+            log.info(table.toString());
+        });
+    });
+
+
+commander
+    .command('add [email]')
+    .description('Adds a new user to the system with the given email address.')
+    .action(function (email) {
+        run(async function() {
+            const UserLogic = require('../logic/user');
+            const {model, secrets} = await UserLogic.create({email}, {session: {user: {isAdmin: true}}});
+
+            log.info('Created User:\nID: %s\nPassword: %s', model.id, secrets.password);
+        });
+    });
+
+commander.parse(process.argv);
