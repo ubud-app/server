@@ -615,6 +615,35 @@ class PluginInstance extends EventEmitter {
                 pluginsOwnId: transaction.id,
                 memo: transaction.memo
             });
+
+            // get transactions with matching payeeId
+            const payees = await DatabaseHelper.get('transaction').findAll({
+                attributes: [
+                    [DatabaseHelper.count('*'), 'count'],
+                    'payeeId'
+                ],
+                where: {
+                    pluginsOwnPayeeId: transaction.payeeId,
+                    payeeId: {
+                        [DatabaseHelper.op('not')]: null
+                    }
+                },
+                group: ['payeeId'],
+                order: [[DatabaseHelper.literal('count'), 'DESC']],
+                raw: true
+            });
+
+            // use most used payeeId for our new transaction
+            let best = {count: 0, id: null};
+            payees.forEach(payee => {
+                if(payee.count > best.count) {
+                    best.count = payee.count;
+                    best.id = payee.payeeId;
+                }
+            });
+            if(best.id && (best.count >= 3 || payees.length === 1)) {
+                transactionModel.payeeId = best.id;
+            }
         }
 
         // update transaction attributes
