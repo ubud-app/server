@@ -545,6 +545,19 @@ class PluginInstance extends EventEmitter {
             })
         );
 
+        // destroy lost transactions
+        await TransactionLogic.getModel().destroy({
+            where: {
+                time: {
+                    [DatabaseHelper.op('gt')]: moment(Math.min.apply(null, transactions.map(t => moment(t.time).valueOf()))).toJSON()
+                },
+                pluginsOwnId: {
+                    [DatabaseHelper.op('notIn')]: transactions.map(t => t.id)
+                },
+                accountId: accountModel.id
+            }
+        });
+
         if(!accountIsNew) {
 
             // update summaries
