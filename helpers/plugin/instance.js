@@ -541,7 +541,7 @@ class PluginInstance extends EventEmitter {
                     return null;
                 }
 
-                return this.syncTransaction(accountModel, transaction);
+                return this.syncTransaction(accountModel, transaction, transactions);
             })
         );
 
@@ -594,9 +594,16 @@ class PluginInstance extends EventEmitter {
      * @param {string} transaction.memo
      * @param {number} transaction.amount
      * @param {string} transaction.status
+     * @param {object[]} transactions
+     * @param {string} transactions.id
+     * @param {string} transactions.time
+     * @param {string} transactions.payeeId
+     * @param {string} transactions.memo
+     * @param {number} transactions.amount
+     * @param {string} transactions.status
      * @returns {Promise.<Model>} TransactionModel
      */
-    async syncTransaction(accountModel, transaction) {
+    async syncTransaction(accountModel, transaction, transactions) {
         const moment = require('moment');
         const TransactionLogic = require('../../logic/transaction');
 
@@ -607,6 +614,43 @@ class PluginInstance extends EventEmitter {
                 pluginsOwnId: transaction.id
             }
         });
+
+        /*  model not found: try to find matching TransactionModel which
+         *    - are newer than the oldest transaction in plugin's list
+         *    - are not in the plugin's list, but in our database (pluginsOwnId / accountId)
+         *    - has same pluginsOwnPayeeId
+         *    - amount is about tha same (+/- 10%)
+         *  if one found:
+         *    - use that model
+         *    - pluginsOwnPayeeId will be updated below
+         *  else:
+         *    - do nothing                                                   */
+        if(!transactionModel) {
+            const matchCandiates = await TransactionLogic.getModel().findAll({
+                where: {
+                    time: {
+                        [DatabaseHelper.op('gt')]: moment(Math.min.apply(null, transactions.map(t => moment(t.time).valueOf()))).toJSON()
+                    },
+                    pluginsOwnId: {
+                        [DatabaseHelper.op('notIn')]: transactions.map(t => t.id)
+                    },
+                    accountId: accountModel.id,
+                    pluginsOwnPayeeId: transaction.payeeId,
+                    amount: {
+                        [DatabaseHelper.op('between')]: [
+                            transaction.amount * (transaction.amount >= 0 ? 0.9 : 1.1),
+                            transaction.amount * (transaction.amount >= 0 ? 1.1 : 0.9)
+                        ]
+                    }
+                }
+            });
+
+            if(matchCandiates.length === 1) {
+                transactionModel = matchCandiates[0];
+                transactionModel.pluginsOwnPayeeId = transaction.id;
+            }
+        }
+
 
         // create new transaction model if not already there
         if(!transactionModel) {
@@ -649,10 +693,15 @@ class PluginInstance extends EventEmitter {
         // update transaction attributes
         transactionModel.time = moment(transaction.time).toJSON();
         transactionModel.pluginsOwnPayeeId = transaction.payeeId;
-        transactionModel.amount = transaction.amount;
         transactionModel.status = transaction.status;
-        await transactionModel.save();
 
+        // update transaction amount -> reset units if amount changes
+        if(transactionModel.amount !== transaction.amount) {
+            transactionModel.amount = transaction.amount;
+            await transactionModel.setUnits([]);
+        }
+
+        await transactionModel.save();
         return transactionModel;
     }
 
