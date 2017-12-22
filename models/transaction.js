@@ -23,6 +23,10 @@ module.exports = class TransactionModelDefinition {
                 type: DataTypes.STRING(512),
                 allowNull: true
             },
+            pluginsOwnMemo: {
+                type: DataTypes.STRING(512),
+                allowNull: true
+            },
             amount: {
                 type: DataTypes.INTEGER,
                 allowNull: false

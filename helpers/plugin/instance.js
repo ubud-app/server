@@ -707,6 +707,7 @@ class PluginInstance extends EventEmitter {
         transactionModel.time = moment(transaction.time).toJSON();
         transactionModel.pluginsOwnPayeeId = transaction.payeeId;
         transactionModel.status = transaction.status;
+        transactionModel.pluginsOwnMemo = transaction.memo;
 
         // update transaction amount -> reset units if amount changes
         if(transactionModel.amount !== transaction.amount) {

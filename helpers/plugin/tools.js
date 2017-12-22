@@ -226,7 +226,7 @@ PluginTools.Transaction = class {
             id: options.id,
             time: moment(options.time).toJSON(),
             payeeId: options.payeeId,
-            memo: options.memo ? options.memo.substr(0, 255) : null,
+            memo: options.memo ? options.memo.substr(0, 512) : null,
             amount: options.amount,
             status: options.status
         };
