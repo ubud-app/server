@@ -515,7 +515,7 @@ class PluginInstance extends EventEmitter {
         // find out sync begin
         let syncBeginningFrom = moment().startOf('month');
         if(newestClearedTransaction) {
-            syncBeginningFrom = moment(newestClearedTransaction.time).subtract(1, 'day').startOf('day');
+            syncBeginningFrom = moment(newestClearedTransaction.time).subtract(7, 'day').startOf('day');
         }
         if(oldestPendingTransaction && moment(oldestPendingTransaction.time).isBefore(syncBeginningFrom)) {
             syncBeginningFrom = moment(oldestPendingTransaction.time).startOf('day');
