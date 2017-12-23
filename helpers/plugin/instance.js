@@ -639,6 +639,11 @@ class PluginInstance extends EventEmitter {
          *  else:
          *    - do nothing                                                   */
         if(!transactionModel) {
+            log.info(
+                'Transaction with pluginsOwnId=%s and pluginsOwnPayeeId=%s seems to be new. Look for matching transactions…',
+                transaction.id,
+                transaction.payeeId
+            );
             const matchCandiates = await TransactionLogic.getModel().findAll({
                 where: {
                     time: {
@@ -659,8 +664,17 @@ class PluginInstance extends EventEmitter {
             });
 
             if(matchCandiates.length === 1) {
+                log.info(
+                    'Found one match where ours is: pluginsOwnId=%s and pluginsOwnPayeeId=%s',
+                    matchCandiates[0].pluginsOwnId,
+                    matchCandiates[0].pluginsOwnPayeeId
+                );
                 transactionModel = matchCandiates[0];
-                transactionModel.pluginsOwnPayeeId = transaction.id;
+                transactionModel.pluginsOwnId = transaction.id;
+            }else{
+                log.info('Found %s candidates, do nothing… %s', matchCandiates.length, matchCandiates.length > 0 ? (
+                    '(' + matchCandiates.map(c => c.pluginsOwnId + ' / ' + c.pluginsOwnPayeeId).join('; ') + ')'
+                ) : '');
             }
         }
 
