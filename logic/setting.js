@@ -65,7 +65,7 @@ class SettingLogic extends BaseLogic {
                 where: {
                     id: model.documentId
                 },
-                include: [{
+                include: options.session.user.isAdmin ? [] : [{
                     model: DatabaseHelper.get('user'),
                     attributes: [],
                     where: {
@@ -113,7 +113,7 @@ class SettingLogic extends BaseLogic {
             include: [{
                 model: DatabaseHelper.get('document'),
                 attributes: [],
-                include: [{
+                include: options.session.user.isAdmin ? [] : [{
                     model: DatabaseHelper.get('user'),
                     attributes: [],
                     where: {
@@ -129,7 +129,7 @@ class SettingLogic extends BaseLogic {
             include: [{
                 model: DatabaseHelper.get('document'),
                 required: true,
-                include: [{
+                include: options.session.user.isAdmin ? [] : [{
                     model: DatabaseHelper.get('user'),
                     attributes: [],
                     required: true,

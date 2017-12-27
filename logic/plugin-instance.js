@@ -89,7 +89,7 @@ class PluginInstanceLogic extends BaseLogic {
         if (!options.session.user.isAdmin) {
             const DatabaseHelper = require('../helpers/database');
             const document = await DatabaseHelper.get('document').findById(plugin.documentId(), {
-                include: [{
+                include: options.session.user.isAdmin ? [] : [{
                     model: DatabaseHelper.get('user'),
                     attributes: [],
                     where: {

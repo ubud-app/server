@@ -44,7 +44,7 @@ class PayeeLogic extends BaseLogic {
             .find({
                 where: {id: body.documentId},
                 attributes: ['id'],
-                include: [{
+                include: options.session.user.isAdmin ? [] : [{
                     model: DatabaseHelper.get('user'),
                     attributes: [],
                     where: {
@@ -77,7 +77,7 @@ class PayeeLogic extends BaseLogic {
             include: [{
                 model: DatabaseHelper.get('document'),
                 attributes: [],
-                include: [{
+                include: options.session.user.isAdmin ? [] : [{
                     model: DatabaseHelper.get('user'),
                     attributes: [],
                     where: {
@@ -96,7 +96,7 @@ class PayeeLogic extends BaseLogic {
                 model: DatabaseHelper.get('document'),
                 attributes: ['id'],
                 required: true,
-                include: [{
+                include: options.session.user.isAdmin ? [] : [{
                     model: DatabaseHelper.get('user'),
                     attributes: [],
                     required: true,

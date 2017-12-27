@@ -138,7 +138,7 @@ class TransactionLogic extends BaseLogic {
                 include: [{
                     model: DatabaseHelper.get('document'),
                     attributes: ['id'],
-                    include: [{
+                    include: options.session.user.isAdmin ? [] : [{
                         model: DatabaseHelper.get('user'),
                         attributes: [],
                         where: {
@@ -313,7 +313,7 @@ class TransactionLogic extends BaseLogic {
                         model: DatabaseHelper.get('document'),
                         attributes: [],
                         required: true,
-                        include: [{
+                        include: options.session.user.isAdmin ? [] : [{
                             model: DatabaseHelper.get('user'),
                             attributes: [],
                             where: {
