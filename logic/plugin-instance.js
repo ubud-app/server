@@ -6,24 +6,24 @@ const PluginHelper = require('../helpers/plugin');
 const DatabaseHelper = require('../helpers/database');
 
 class PluginInstanceLogic extends BaseLogic {
-    static getModelName() {
+    static getModelName () {
         return 'plugin-instance';
     }
 
-    static getPluralModelName() {
+    static getPluralModelName () {
         return 'plugin-instances';
     }
 
-    static async format(plugin) {
+    static async format (plugin) {
         return plugin.toJSON(true);
     }
 
-    static disableSequelizeSocketHooks() {
+    static disableSequelizeSocketHooks () {
         return true;
     }
 
-    static async create(attributes, options) {
-        if(!attributes.type) {
+    static async create (attributes, options) {
+        if (!attributes.type) {
             throw new ErrorResponse(400, 'PluginInstance requires attribute `type`…', {
                 attributes: {
                     type: 'Is required!'
@@ -32,7 +32,7 @@ class PluginInstanceLogic extends BaseLogic {
         }
 
         const PluginRepository = require('../helpers/repository');
-        if(!await PluginRepository.getPluginById(attributes.type)) {
+        if (!await PluginRepository.getPluginById(attributes.type)) {
             throw new ErrorResponse(400, 'You can only install plugins which are listed in the plugin repository!', {
                 attributes: {
                     type: 'Is not listed in plugin repository!'
@@ -40,7 +40,7 @@ class PluginInstanceLogic extends BaseLogic {
             });
         }
 
-        if(!attributes.documentId) {
+        if (!attributes.documentId) {
             throw new ErrorResponse(400, 'PluginInstance requires attribute `documentId`…', {
                 attributes: {
                     documentId: 'Is required!'
@@ -49,17 +49,19 @@ class PluginInstanceLogic extends BaseLogic {
         }
 
         const DatabaseHelper = require('../helpers/database');
-        const document = await DatabaseHelper.get('document').findById(attributes.documentId, {
-            attributes: ['id'],
-            include: [{
+        const sql = {attributes: ['id']};
+        if (!options.session.user.isAdmin) {
+            sql.include = [{
                 model: DatabaseHelper.get('user'),
                 attributes: [],
                 where: {
                     id: options.session.userId
                 }
-            }]
-        });
-        if(!document) {
+            }];
+        }
+
+        const document = await DatabaseHelper.get('document').findById(attributes.documentId, sql);
+        if (!document) {
             throw new ErrorResponse(404, 'Could not create PluginInstance: document not found…', {
                 attributes: {
                     documentId: 'Is not valid!'
@@ -72,15 +74,15 @@ class PluginInstanceLogic extends BaseLogic {
             const plugin = await PluginHelper.installPlugin(attributes.type, document);
             return {model: plugin};
         }
-        catch(err) {
+        catch (err) {
             throw new ErrorResponse(500, 'Unable to install plugin: ' + err);
         }
     }
 
-    static async get(id, options) {
+    static async get (id, options) {
         const plugins = await PluginHelper.listPlugins();
         const plugin = plugins.find(p => p.id() === id);
-        if(!plugin) {
+        if (!plugin) {
             return null;
         }
 
@@ -96,7 +98,7 @@ class PluginInstanceLogic extends BaseLogic {
                 }]
             });
 
-            if(!document) {
+            if (!document) {
                 return null;
             }
         }
@@ -104,34 +106,26 @@ class PluginInstanceLogic extends BaseLogic {
         return plugin;
     }
 
-    static async list(params, options) {
-        if(params.document) {
-            const document = await DatabaseHelper.get('document').findById(params.document, {
-                include: [{
-                    model: DatabaseHelper.get('user'),
-                    attributes: [],
-                    where: {
-                        id: options.session.userId
-                    }
-                }]
-            });
+    static async list (params, options) {
+        if (!options.session.user.isAdmin) {
+            throw new ErrorResponse(403, 'Only admins are allowed to list all plugins…');
+        }
+        if (params.document) {
+            const document = await DatabaseHelper.get('document').findById(params.document);
 
-            if(!document) {
+            if (!document) {
                 return [];
-            }else{
+            } else {
                 const plugins = await PluginHelper.listPlugins();
                 return plugins.filter(p => p.documentId() === document.id);
             }
-        }
-        if (!options.session.user.isAdmin) {
-            throw new ErrorResponse(403, 'Only admins are allowed to list all plugins…');
         }
 
         return PluginHelper.listPlugins();
     }
 
-    static async update(model, body) {
-        if(body && body.config && body.config.length > 0) {
+    static async update (model, body) {
+        if (body && body.config && body.config.length > 0) {
             const values = {};
 
             body.config.forEach(field => {
@@ -139,13 +133,13 @@ class PluginInstanceLogic extends BaseLogic {
             });
 
             const errors = await model.checkAndSaveConfig(values);
-            if(errors.length > 0) {
+            if (errors.length > 0) {
                 const attributes = {};
                 errors.forEach(error => {
-                    if(error.code === 'empty') {
+                    if (error.code === 'empty') {
                         attributes[error.field] = 'Field `' + error.field + '` is required, but empty.';
                     }
-                    else if(error.code === 'wrong') {
+                    else if (error.code === 'wrong') {
                         attributes[error.field] = 'Field `' + error.field + '` is not valid.';
                     }
                     else {
@@ -160,12 +154,12 @@ class PluginInstanceLogic extends BaseLogic {
         return model;
     }
 
-    static async delete(instance) {
+    static async delete (instance) {
         const PluginHelper = require('../helpers/plugin');
         try {
             await PluginHelper.removePlugin(instance);
         }
-        catch(err) {
+        catch (err) {
             throw new ErrorResponse(500, 'Unable to remove plugin: ' + err);
         }
     }
