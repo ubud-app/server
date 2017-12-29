@@ -150,7 +150,7 @@ class BudgetLogic extends BaseLogic {
         return this.getModel().findAll(sql);
     }
 
-    static update(model, body, options) {
+    static async update(model, body, options) {
         const DatabaseHelper = require('../helpers/database');
 
         if (body.name !== undefined) {

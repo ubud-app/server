@@ -158,36 +158,29 @@ class PortionLogic extends BaseLogic {
             });
     }
 
-    static update(model, body) {
+    static async update(model, body) {
         const moment = require('moment');
         const SummaryLogic = require('../logic/summary');
 
         if (body.budgeted !== undefined && body.budgeted !== model.budgeted) {
             model.budgeted = parseInt(body.budgeted) || null;
 
-            return PortionLogic.recalculatePortion(model)
-                .then(() => {
+            await PortionLogic.recalculatePortion(model);
 
-                    // update portions
-                    PortionLogic.recalculatePortionsFrom({
-                        month: moment(model.month, 'YYYY-MM').add(1, 'month').startOf('month'),
-                        budgetId: model.budgetId
-                    });
+            // update portions
+            PortionLogic.recalculatePortionsFrom({
+                month: moment(model.month, 'YYYY-MM').add(1, 'month').startOf('month'),
+                budgetId: model.budgetId
+            });
 
-                    // update summaries
-                    SummaryLogic.recalculateSummariesFrom(
-                        model.budget.category.documentId,
-                        moment(model.month, 'YYYY-MM').startOf('month')
-                    );
-
-                    return model;
-                })
-                .catch(e => {
-                    throw e;
-                });
+            // update summaries
+            SummaryLogic.recalculateSummariesFrom(
+                model.budget.category.documentId,
+                moment(model.month, 'YYYY-MM').startOf('month')
+            );
         }
 
-        return Promise.resolve(model);
+        return {model};
     }
 
     static recalculatePortionsFrom(options) {

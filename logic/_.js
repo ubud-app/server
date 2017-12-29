@@ -105,8 +105,8 @@ class BaseLogic {
 
                 return l.update(model, options.body, options);
             })
-            .then(function (model) {
-                return l.format(model, {}, options);
+            .then(({model, secrets}) => {
+                return l.format(model, secrets || {}, options);
             })
             .catch(function (err) {
                 throw err;

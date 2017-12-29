@@ -372,7 +372,7 @@ class TransactionLogic extends BaseLogic {
         return this.getModel().findAll(sql);
     }
 
-    static update(model, body) {
+    static async update(model, body) {
         const moment = require('moment');
         const DatabaseHelper = require('../helpers/database');
 
@@ -639,31 +639,26 @@ class TransactionLogic extends BaseLogic {
 
 
         if (checks.length === 0) {
-            return model.save();
+            await model.save();
+            return {model}
         }
 
-        return Promise.all(checks)
-            .then(() => {
-                return model.save();
-            })
-            .then(() => {
-                const PortionLogic = require('../logic/portion');
-                const SummaryLogic = require('../logic/summary');
+        await Promise.all(checks);
+        await model.save();
 
-                // update portions
-                PortionLogic.recalculatePortionsFrom({
-                    month: recalculateFrom,
-                    documentId: model.account.document.id
-                });
+        const PortionLogic = require('../logic/portion');
+        const SummaryLogic = require('../logic/summary');
 
-                // update summaries
-                SummaryLogic.recalculateSummariesFrom(model.account.document.id, recalculateFrom);
+        // update portions
+        PortionLogic.recalculatePortionsFrom({
+            month: recalculateFrom,
+            documentId: model.account.document.id
+        });
 
-                return model;
-            })
-            .catch(e => {
-                throw e;
-            });
+        // update summaries
+        SummaryLogic.recalculateSummariesFrom(model.account.document.id, recalculateFrom);
+
+        return {model};
     }
 
     static delete(model) {

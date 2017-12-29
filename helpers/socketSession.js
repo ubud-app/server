@@ -48,6 +48,9 @@ class SocketSession {
                 if (!session) {
                     throw new ErrorResponse(401, 'Not able to authorize: Is session id and secret correct?');
                 }
+                if (session.mobilePairing) {
+                    throw new ErrorResponse(401, 'Not able to authorize: mobile auth flow not implemented for sockets');
+                }
 
                 return bcrypt.compare(data.secret, session.secret);
             })

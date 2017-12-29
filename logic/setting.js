@@ -141,7 +141,7 @@ class SettingLogic extends BaseLogic {
         });
     }
 
-    static update(model, body) {
+    static async update(model, body) {
         if (body.key !== undefined && body.key !== model.key) {
             throw new ErrorResponse(400, 'It\'s not allowed to change the Setting key…', {
                 attributes: {
@@ -158,7 +158,9 @@ class SettingLogic extends BaseLogic {
         }
 
         model.value = JSON.stringify(body.value);
-        return model.save();
+        await model.save();
+
+        return {model};
     }
 }
 

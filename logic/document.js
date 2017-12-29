@@ -184,7 +184,7 @@ class DocumentLogic extends BaseLogic {
             return model.removeUser(userModel);
         }));
 
-        return model;
+        return {model};
     }
 
     static delete (model) {

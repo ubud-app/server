@@ -156,7 +156,7 @@ class AccountLogic extends BaseLogic {
         return this.getModel().findAll(sql);
     }
 
-    static update(model, body) {
+    static async update(model, body) {
         if (body.name !== undefined) {
             model.name = body.name;
         }
@@ -196,7 +196,8 @@ class AccountLogic extends BaseLogic {
             model.hidden = !!body.hidden;
         }
 
-        return model.save();
+        await model.save();
+        return {model};
     }
 
     static async delete (model) {

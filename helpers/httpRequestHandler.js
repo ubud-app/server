@@ -85,7 +85,7 @@ class HTTPRequestHandler {
             throw new ErrorResponse(401, 'Error in `Authorization` header: password / session secret empty…');
         }
 
-        if (Logic.getModelName() === 'session' && route === 'create') {
+        if (Logic.getModelName() === 'session' && route === 'create' && credentials.name.length !== 36) {
             return new Promise(function (cb) {
                 cb(credentials);
             });
@@ -111,6 +111,18 @@ class HTTPRequestHandler {
             .then(function (isSessionCorrect) {
                 if (!isSessionCorrect) {
                     throw new ErrorResponse(401, 'Not able to authorize: Is session id and secret correct?');
+                }
+
+                return session;
+            })
+            .then(function (session) {
+                if (
+                    session.mobilePairing && (
+                        Logic.getModelName() !== 'session' ||
+                        req.params[0] !== session.id
+                    )
+                ) {
+                    throw new ErrorResponse(401, 'Not able to authorize: This is only a session for the mobile auth flow.');
                 }
 
                 return session;

@@ -151,7 +151,7 @@ class PluginInstanceLogic extends BaseLogic {
             }
         }
 
-        return model;
+        return {model};
     }
 
     static async delete (instance) {

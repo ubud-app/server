@@ -17,6 +17,11 @@ module.exports = class SessionModelDefinition {
             secret: {
                 type: DataTypes.STRING,
                 allowNull: false
+            },
+            mobilePairing: {
+                type: DataTypes.BOOLEAN,
+                allowNull: false,
+                defaultValue: false
             }
         };
     }

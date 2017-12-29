@@ -164,6 +164,9 @@ class UserLogic extends BaseLogic {
 
                 return model.save();
             })
+            .then(model => {
+                return {model};
+            })
             .catch(err => {
                 throw err;
             });

@@ -3,20 +3,21 @@
 const BaseLogic = require('./_');
 
 class SessionLogic extends BaseLogic {
-    static getModelName() {
+    static getModelName () {
         return 'session';
     }
 
-    static getPluralModelName() {
+    static getPluralModelName () {
         return 'sessions';
     }
 
-    static format(session, secrets) {
+    static format (session, secrets) {
         const j = {
             id: session.id,
             userId: session.userId,
             name: session.name,
-            url: session.url
+            url: session.url,
+            accepted: !session.mobilePairing
         };
 
         if (secrets && secrets.token) {
@@ -26,7 +27,7 @@ class SessionLogic extends BaseLogic {
         return j;
     }
 
-    static create(attributes, options) {
+    static create (attributes, options) {
         const ErrorResponse = require('../helpers/errorResponse');
         const DatabaseHelper = require('../helpers/database');
         const bcrypt = require('bcrypt');
@@ -65,6 +66,41 @@ class SessionLogic extends BaseLogic {
             }
         }
 
+
+        // logged in user: create mobile pairing sessions for me
+        if (options.session.user) {
+            model.userId = options.session.user.id;
+            model.user = options.session.user;
+            model.mobilePairing = true;
+
+            const crypto = require('crypto');
+            return new Promise((resolve, reject) => {
+                crypto.randomBytes(32, (err, buffer) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(buffer.toString('hex'));
+                    }
+                });
+            })
+                .then(function (random) {
+                    secrets.token = random;
+                    return bcrypt.hash(random, 10);
+                })
+                .then(function (hash) {
+                    model.secret = hash;
+                    return model.save();
+                })
+                .then(function (model) {
+                    return {model, secrets};
+                })
+                .catch(e => {
+                    throw e;
+                });
+        }
+
+
+        // logged out user: login
         return DatabaseHelper.get('user')
             .find({
                 where: {
@@ -113,7 +149,7 @@ class SessionLogic extends BaseLogic {
             });
     }
 
-    static get(id, options) {
+    static get (id, options) {
         return this.getModel().findOne({
             where: {
                 id: id,
@@ -122,7 +158,7 @@ class SessionLogic extends BaseLogic {
         });
     }
 
-    static list(params, options) {
+    static list (params, options) {
         return this.getModel().findAll({
             where: {
                 userId: options.session.userId
@@ -130,12 +166,31 @@ class SessionLogic extends BaseLogic {
         });
     }
 
-    static update(model, body) {
+    static async update (model, body, options) {
         const {URL} = require('url');
         const ErrorResponse = require('../helpers/errorResponse');
 
+        const secrets = {};
+
         if (body.name !== undefined) {
             model.name = body.name;
+
+            // neues secret generieren
+            if(model.mobilePairing) {
+                const crypto = require('crypto');
+                secrets.token = await new Promise((resolve, reject) => {
+                    crypto.randomBytes(32, (err, buffer) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve(buffer.toString('hex'));
+                        }
+                    });
+                });
+
+                const bcrypt = require('bcrypt');
+                model.secret = await bcrypt.hash(secrets.token, 10);
+            }
         }
         if (!model.name) {
             throw new ErrorResponse(400, 'Session requires attribute `name`…', {
@@ -169,10 +224,15 @@ class SessionLogic extends BaseLogic {
             }
         }
 
-        return model.save();
+        if(body.accepted !== undefined && !options.session.mobilePairing) {
+            model.mobilePairing = !body.accepted;
+        }
+
+        await model.save();
+        return {model, secrets};
     }
 
-    static delete(model) {
+    static delete (model) {
         return model.destroy();
     }
 }

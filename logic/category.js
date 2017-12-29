@@ -123,7 +123,7 @@ class CategoryLogic extends BaseLogic {
         return this.getModel().findAll(sql);
     }
 
-    static update(model, body) {
+    static async update(model, body) {
         if (body.name !== undefined) {
             model.name = body.name;
         }
@@ -142,7 +142,8 @@ class CategoryLogic extends BaseLogic {
             });
         }
 
-        return model.save();
+        await model.save();
+        return {model};
     }
 
     static delete(model) {

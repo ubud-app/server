@@ -95,7 +95,7 @@ class SocketRequestHandler {
         const data = this.data;
         const session = this.session;
 
-        if (Logic.getModelName() === 'session' && route === 'create') {
+        if (!session.isAuthenticated() && Logic.getModelName() === 'session' && route === 'create') {
             return Promise.resolve({
                 name: data.email,
                 pass: data.password
