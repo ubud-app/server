@@ -30,8 +30,8 @@ class AccountLogic extends BaseLogic {
             name: account.name,
             type: account.type,
             number: account.number,
-            balance: info.dataValues.balance || 0,
-            transactions: info.dataValues.transactions || 0,
+            balance: parseInt(info.dataValues.balance, 10) || 0,
+            transactions: parseInt(info.dataValues.transactions, 10) || 0,
             documentId: account.documentId,
             pluginInstanceId: account.pluginInstanceId
         };
