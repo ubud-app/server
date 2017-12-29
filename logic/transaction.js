@@ -640,7 +640,7 @@ class TransactionLogic extends BaseLogic {
 
         if (checks.length === 0) {
             await model.save();
-            return {model}
+            return {model};
         }
 
         await Promise.all(checks);
