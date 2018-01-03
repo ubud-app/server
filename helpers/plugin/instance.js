@@ -548,10 +548,6 @@ class PluginInstance extends EventEmitter {
 
         const transactionModels = await Promise.all(
             transactions.map(transaction => {
-                if (moment(transaction.time).isBefore(syncBeginningFrom)) {
-                    return null;
-                }
-
                 return this.syncTransaction(accountModel, transaction, transactions);
             })
         );
