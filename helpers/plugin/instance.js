@@ -515,7 +515,7 @@ class PluginInstance extends EventEmitter {
         // find out sync begin
         let syncBeginningFrom = moment().startOf('month');
         if (newestClearedTransaction) {
-            syncBeginningFrom = moment(newestClearedTransaction.time).subtract(7, 'day').startOf('day');
+            syncBeginningFrom = moment(newestClearedTransaction.time).subtract(14, 'day').startOf('day');
         }
         if (oldestPendingTransaction && moment(oldestPendingTransaction.time).isBefore(syncBeginningFrom)) {
             syncBeginningFrom = moment(oldestPendingTransaction.time).startOf('day');
@@ -548,6 +548,10 @@ class PluginInstance extends EventEmitter {
 
         const transactionModels = await Promise.all(
             transactions.map(transaction => {
+                if (moment(transaction.time).isBefore(syncBeginningFrom)) {
+                    return null;
+                }
+
                 return this.syncTransaction(accountModel, transaction, transactions);
             })
         );
