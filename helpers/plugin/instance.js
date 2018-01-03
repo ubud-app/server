@@ -13,7 +13,7 @@ const status = ['initializing', 'configuration', 'ready', 'shutdown', 'error'];
  * @class PluginInstance
  */
 class PluginInstance extends EventEmitter {
-    constructor(model, events) {
+    constructor (model, events) {
         super();
 
         this._model = model;
@@ -35,10 +35,10 @@ class PluginInstance extends EventEmitter {
 
         this.on('change:errors', e => {
             const n = Object.entries(e).filter(e => e[1]).length;
-            if(this._status === 2 && n > 0) {
+            if (this._status === 2 && n > 0) {
                 this._status = 4;
             }
-            else if(this._status === 4 && n === 0) {
+            else if (this._status === 4 && n === 0) {
                 this._status = 2;
             }
         });
@@ -58,7 +58,7 @@ class PluginInstance extends EventEmitter {
      * @returns {Promise.<void>}
      * @private
      */
-    async _initialize() {
+    async _initialize () {
         log.debug('Initialize Plugin %s', this._model.id);
 
         try {
@@ -74,7 +74,7 @@ class PluginInstance extends EventEmitter {
             try {
                 await PluginHelper._runPackageInstall(this.type());
             }
-            catch(err) {
+            catch (err) {
                 log.warn('Unable to install plugin %s: %s', this.type(), err);
                 log.fatal(err);
                 process.exit(1);
@@ -103,7 +103,7 @@ class PluginInstance extends EventEmitter {
         try {
             this._supported = await PluginInstance.request(this, this.type(), 'getSupported', {});
         }
-        catch(err) {
+        catch (err) {
             log.warn('Unable to load supported methods of plugin `%s`, skip it…', this._model.type);
             throw err;
         }
@@ -113,7 +113,7 @@ class PluginInstance extends EventEmitter {
         try {
             config = await PluginInstance.request(this, this.type(), 'getConfig', {});
         }
-        catch(err) {
+        catch (err) {
             log.warn('Unable to load configuration of plugin `%s`, skip it…', this._model.type);
             throw err;
         }
@@ -177,7 +177,7 @@ class PluginInstance extends EventEmitter {
      * Get the instance id of this plugin
      * @returns {string}
      */
-    id() {
+    id () {
         return this._model.id;
     }
 
@@ -188,7 +188,7 @@ class PluginInstance extends EventEmitter {
      * @example "@dwimm/package-dummy"
      * @returns {string}
      */
-    type() {
+    type () {
         return this._model.type;
     }
 
@@ -197,7 +197,7 @@ class PluginInstance extends EventEmitter {
      * plugin is associated to.
      * @returns {string}
      */
-    documentId() {
+    documentId () {
         return this._model.documentId;
     }
 
@@ -214,7 +214,7 @@ class PluginInstance extends EventEmitter {
      * @param {boolean} [numeric]
      * @returns {string|number}
      */
-    status(numeric) {
+    status (numeric) {
         if (numeric) {
             return this._status;
         }
@@ -228,7 +228,7 @@ class PluginInstance extends EventEmitter {
      *
      * @returns {number}
      */
-    forks() {
+    forks () {
         return this._forks || 0;
     }
 
@@ -236,7 +236,7 @@ class PluginInstance extends EventEmitter {
      * Returns the sequelize model for this instance.
      * @returns {Sequelize.Model}
      */
-    model() {
+    model () {
         return this._model;
     }
 
@@ -244,7 +244,7 @@ class PluginInstance extends EventEmitter {
      * Returns list of supported methods…
      * @returns {Array<string>}
      */
-    supported() {
+    supported () {
         return this._supported;
     }
 
@@ -257,7 +257,7 @@ class PluginInstance extends EventEmitter {
      * @param {boolean} [instant]
      * @returns {object[]|Promise<object[]>}
      */
-    config(instant) {
+    config (instant) {
         if (this._config === null && !instant) {
             return new Promise(resolve => {
                 this.once('change:config', () => {
@@ -274,7 +274,7 @@ class PluginInstance extends EventEmitter {
             return field;
         });
 
-        if(instant) {
+        if (instant) {
             return config;
         }
 
@@ -287,7 +287,7 @@ class PluginInstance extends EventEmitter {
      *
      * @returns {string|null}
      */
-    version() {
+    version () {
         return this._version;
     }
 
@@ -296,7 +296,7 @@ class PluginInstance extends EventEmitter {
      *
      * @returns {object<string>}
      */
-    errors() {
+    errors () {
         return this._errors;
     }
 
@@ -306,7 +306,7 @@ class PluginInstance extends EventEmitter {
      * @param {boolean} [instant]
      * @returns {object|Promise.<object>}
      */
-    async toJSON(instant) {
+    async toJSON (instant) {
         const config = instant ? (this.config(true) || []) : await this.config();
         return {
             id: this.id(),
@@ -342,7 +342,7 @@ class PluginInstance extends EventEmitter {
      * @param {object} [values]
      * @returns {Promise.<object[]>}
      */
-    async checkAndSaveConfig(values) {
+    async checkAndSaveConfig (values) {
 
         // build temporary getConfig
         const config = this.generateConfig(values);
@@ -352,10 +352,10 @@ class PluginInstance extends EventEmitter {
         try {
             validation = await PluginInstance.request(this, this.type(), 'validateConfig', JSON.parse(JSON.stringify(config || {})));
         }
-        catch(err) {
+        catch (err) {
 
             // stop cron
-            if(this._cron) {
+            if (this._cron) {
                 clearInterval(this._cron);
                 this._cron = null;
             }
@@ -389,7 +389,7 @@ class PluginInstance extends EventEmitter {
 
 
         // start / stop cron
-        if(validation.valid && !this._cron) {
+        if (validation.valid && !this._cron) {
             await this.cron();
             this._cron = setInterval(() => {
                 this.cron().catch(err => {
@@ -398,10 +398,10 @@ class PluginInstance extends EventEmitter {
                 });
             }, 1000 * 60 * 60 * 3);
         }
-        else if(validation.valid && this._cron) {
+        else if (validation.valid && this._cron) {
             await this.cron();
         }
-        else if(!validation.valid && this._cron) {
+        else if (!validation.valid && this._cron) {
             clearInterval(this._cron);
             this._cron = null;
         }
@@ -427,8 +427,8 @@ class PluginInstance extends EventEmitter {
      *
      * @returns {Promise.<void>}
      */
-    async cron() {
-        if(this._supported.indexOf('getAccounts') > -1 && this._supported.indexOf('getTransactions') > -1) {
+    async cron () {
+        if (this._supported.indexOf('getAccounts') > -1 && this._supported.indexOf('getTransactions') > -1) {
             this.syncAccounts().catch(err => {
                 log.warn('Unable to sync transactions with plugin %s: %s', this.type(), err);
                 log.error(err);
@@ -441,7 +441,7 @@ class PluginInstance extends EventEmitter {
      *
      * @returns {Promise.<void>}
      */
-    async syncAccounts() {
+    async syncAccounts () {
         const accounts = await PluginInstance.request(this, this.type(), 'getAccounts', this.generateConfig());
         await Promise.all(accounts.map(account => this.syncAccount(account)));
     }
@@ -456,7 +456,7 @@ class PluginInstance extends EventEmitter {
      * @param {number} account.balance
      * @returns {Promise.<void>}
      */
-    async syncAccount(account) {
+    async syncAccount (account) {
         const AccountLogic = require('../../logic/account');
         const TransactionLogic = require('../../logic/transaction');
         const SummaryLogic = require('../../logic/summary');
@@ -474,7 +474,7 @@ class PluginInstance extends EventEmitter {
         });
 
         // create new account model if not already there
-        if(!accountModel) {
+        if (!accountModel) {
             accountIsNew = true;
             accountModel = await AccountLogic.getModel().create({
                 documentId: this.documentId(),
@@ -514,12 +514,18 @@ class PluginInstance extends EventEmitter {
 
         // find out sync begin
         let syncBeginningFrom = moment().startOf('month');
-        if(newestClearedTransaction) {
+        if (newestClearedTransaction) {
             syncBeginningFrom = moment(newestClearedTransaction.time).subtract(7, 'day').startOf('day');
         }
-        if(oldestPendingTransaction && moment(oldestPendingTransaction.time).isBefore(syncBeginningFrom)) {
+        if (oldestPendingTransaction && moment(oldestPendingTransaction.time).isBefore(syncBeginningFrom)) {
             syncBeginningFrom = moment(oldestPendingTransaction.time).startOf('day');
         }
+
+
+        log.info(
+            'Plugin %s: Sync Transactions for %s beginning from %s',
+            this.id().substr(0, 5), account.id.substr(0, 5), syncBeginningFrom
+        );
 
 
         // get transactions
@@ -534,15 +540,25 @@ class PluginInstance extends EventEmitter {
             }
         );
 
+        log.info(
+            'Plugin %s: Got %s transaction from plugin',
+            this.id().substr(0, 5), transactions.length
+        );
+
 
         const transactionModels = await Promise.all(
             transactions.map(transaction => {
-                if(moment(transaction.time).isBefore(syncBeginningFrom)) {
+                if (moment(transaction.time).isBefore(syncBeginningFrom)) {
                     return null;
                 }
 
                 return this.syncTransaction(accountModel, transaction, transactions);
             })
+        );
+
+        log.info(
+            'Plugin %s: Transactions synced, destroy lost transactions…',
+            this.id().substr(0, 5)
         );
 
         // destroy lost transactions
@@ -558,7 +574,7 @@ class PluginInstance extends EventEmitter {
             }
         });
 
-        if(!accountIsNew) {
+        if (!accountIsNew) {
 
             // update summaries
             await SummaryLogic.recalculateSummariesFrom(account.documentId, syncBeginningFrom);
@@ -566,8 +582,8 @@ class PluginInstance extends EventEmitter {
             return;
         }
 
-        const sum = transactionModels.reduce(function(acc, transactionModel) {
-            if(!transactionModel) {
+        const sum = transactionModels.reduce(function (acc, transactionModel) {
+            if (!transactionModel) {
                 return acc;
             }
 
@@ -575,7 +591,7 @@ class PluginInstance extends EventEmitter {
         }, 0);
 
         const startingBalance = account.balance - sum;
-        if(startingBalance === 0) {
+        if (startingBalance === 0) {
             return;
         }
 
@@ -589,7 +605,6 @@ class PluginInstance extends EventEmitter {
                 incomeMonth: 'this'
             }]
         }, {include: [DatabaseHelper.get('unit')]});
-
 
 
         // update summaries
@@ -616,7 +631,7 @@ class PluginInstance extends EventEmitter {
      * @param {string} transactions.status
      * @returns {Promise.<Model>} TransactionModel
      */
-    async syncTransaction(accountModel, transaction, transactions) {
+    async syncTransaction (accountModel, transaction, transactions) {
         const moment = require('moment');
         const TransactionLogic = require('../../logic/transaction');
 
@@ -638,9 +653,10 @@ class PluginInstance extends EventEmitter {
          *    - pluginsOwnPayeeId will be updated below
          *  else:
          *    - do nothing                                                   */
-        if(!transactionModel) {
+        if (!transactionModel) {
             log.info(
-                'Transaction with pluginsOwnId=%s and pluginsOwnPayeeId=%s seems to be new. Look for matching transactions…',
+                'Plugin %s: Transaction with pluginsOwnId=%s and pluginsOwnPayeeId=%s seems to be new. Look for matching transactions…',
+                this.id().substr(0, 5),
                 transaction.id,
                 transaction.payeeId
             );
@@ -663,24 +679,35 @@ class PluginInstance extends EventEmitter {
                 }
             });
 
-            if(matchCandiates.length === 1) {
+            if (matchCandiates.length === 1) {
                 log.info(
-                    'Found one match where ours is: pluginsOwnId=%s and pluginsOwnPayeeId=%s',
+                    'Plugin %s: Found one match where ours is: pluginsOwnId=%s and pluginsOwnPayeeId=%s',
+                    this.id().substr(0, 5),
                     matchCandiates[0].pluginsOwnId,
                     matchCandiates[0].pluginsOwnPayeeId
                 );
                 transactionModel = matchCandiates[0];
                 transactionModel.pluginsOwnId = transaction.id;
-            }else{
-                log.info('Found %s candidates, do nothing… %s', matchCandiates.length, matchCandiates.length > 0 ? (
-                    '(' + matchCandiates.map(c => c.pluginsOwnId + ' / ' + c.pluginsOwnPayeeId).join('; ') + ')'
-                ) : '');
+            } else {
+                log.info(
+                    'Plugin %s: Found %s candidates, do nothing… %s',
+                    this.id().substr(0, 5),
+                    matchCandiates.length,
+                    matchCandiates.length > 0 ?
+                        ('(' + matchCandiates.map(c => c.pluginsOwnId + ' / ' + c.pluginsOwnPayeeId).join('; ') + ')') :
+                        ''
+                );
             }
         }
 
 
         // create new transaction model if not already there
-        if(!transactionModel) {
+        if (!transactionModel) {
+            log.info(
+                'Plugin %s: Create new transaction model',
+                this.id().substr(0, 5)
+            );
+
             transactionModel = TransactionLogic.getModel().build({
                 accountId: accountModel.id,
                 pluginsOwnId: transaction.id,
@@ -707,12 +734,26 @@ class PluginInstance extends EventEmitter {
             // use most used payeeId for our new transaction
             let best = {count: 0, id: null};
             payees.forEach(payee => {
-                if(payee.count > best.count) {
+                if (payee.count > best.count) {
                     best.count = payee.count;
                     best.id = payee.payeeId;
                 }
             });
-            if(best.id && (best.count >= 3 || payees.length === 1)) {
+            log.info(
+                'Plugin %s: Best Payee: %s (%s out of %s)',
+                this.id().substr(0, 5),
+                best.id,
+                best.count,
+                payees.length
+            );
+
+            if (best.id && (best.count >= 3 || payees.length === 1)) {
+                log.info(
+                    'Plugin %s: Use %s as payee',
+                    this.id().substr(0, 5),
+                    best.id
+                );
+
                 transactionModel.payeeId = best.id;
             }
         }
@@ -724,7 +765,7 @@ class PluginInstance extends EventEmitter {
         transactionModel.pluginsOwnMemo = transaction.memo;
 
         // update transaction amount -> reset units if amount changes
-        if(transactionModel.amount !== transaction.amount) {
+        if (transactionModel.amount !== transaction.amount) {
             transactionModel.amount = transaction.amount;
             await transactionModel.setUnits([]);
         }
@@ -738,14 +779,14 @@ class PluginInstance extends EventEmitter {
      * @param {object} [values]
      * @returns {object}
      */
-    generateConfig(values) {
+    generateConfig (values) {
         // build temporary getConfig
         const config = {};
         values = values || {};
 
         this._config.forEach(c => {
             config[c.id] = values[c.id] || c.value || c.defaultValue;
-            if(config[c.id] === '{{email}}') {
+            if (config[c.id] === '{{email}}') {
                 config[c.id] = null;
             }
         });
@@ -758,7 +799,7 @@ class PluginInstance extends EventEmitter {
      * Destroys the pluginn instance
      * @returns {Promise.<void>}
      */
-    async destroy() {
+    async destroy () {
 
         // update status
         this._status = 3;
@@ -770,14 +811,14 @@ class PluginInstance extends EventEmitter {
         });
 
         // stop cron
-        if(this._cron) {
+        if (this._cron) {
             clearInterval(this._cron);
             this._cron = null;
         }
 
         // wait till all plugin threads stopped
         await new Promise(resolve => {
-            if(this.forks() === 0) {
+            if (this.forks() === 0) {
                 resolve();
             }
 
@@ -808,12 +849,12 @@ class PluginInstance extends EventEmitter {
      * @param {object} [params]
      * @returns {Promise<object|void>}
      */
-    static async request(instance, type, method, config, params) {
+    static async request (instance, type, method, config, params) {
         /* eslint-disable security/detect-child-process */
         const fork = require('child_process').fork;
         /* eslint-enable security/detect-child-process */
 
-        if(instance && instance._shutdown) {
+        if (instance && instance._shutdown) {
             throw new Error('Instance is shutting down…');
         }
         if (instance) {
@@ -860,8 +901,8 @@ class PluginInstance extends EventEmitter {
 
                 isRunning = false;
 
-                if(gotResponse) {
-                    if(instance) {
+                if (gotResponse) {
+                    if (instance) {
                         instance._events.emit('update', {
                             action: 'updated',
                             name: 'plugin-instance',
@@ -878,7 +919,7 @@ class PluginInstance extends EventEmitter {
                     .trim()
                     .split('\n')[0];
 
-                if(instance) {
+                if (instance) {
                     instance._errors[method] = text;
                     instance.emit('change:errors', instance._errors);
                     instance._events.emit('update', {
@@ -917,7 +958,7 @@ class PluginInstance extends EventEmitter {
                         }
                     }, 1000 * 5);
 
-                    if(instance) {
+                    if (instance) {
                         instance._errors[method] = null;
                         instance.emit('change:errors', instance._errors);
                         instance._events.emit('update', {
@@ -936,7 +977,7 @@ class PluginInstance extends EventEmitter {
                     log.error('%s: confirm timeout, kill it', type);
                     process.kill();
 
-                    if(instance) {
+                    if (instance) {
                         instance._errors[method] = 'Confirmation Timeout: Unable to communicate with plugin';
                         instance.emit('change:errors', instance._errors);
                         instance._events.emit('update', {
@@ -955,7 +996,7 @@ class PluginInstance extends EventEmitter {
                     log.error('%s: response timeout, kill it', type);
                     process.kill();
 
-                    if(instance) {
+                    if (instance) {
                         instance._errors[method] = 'Response Timeout: Unable to communicate with plugin';
                         instance.emit('change:errors', instance._errors);
                         instance._events.emit('update', {
@@ -977,7 +1018,7 @@ class PluginInstance extends EventEmitter {
      * @param {string} type plugin to use, for example `@dwimm/plugin-dummy`
      * @returns {Promise.<void>}
      */
-    static async check(type) {
+    static async check (type) {
         const response = await this.request(null, type, 'check');
         if (!response || !response.success) {
             throw new Error('Unexpected result: ' + JSON.stringify(response));
