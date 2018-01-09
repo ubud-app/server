@@ -90,6 +90,7 @@ class PayeeLogic extends BaseLogic {
 
     static list(params, options) {
         const DatabaseHelper = require('../helpers/database');
+        const moment = require('moment');
 
         const sql = {
             include: [{
@@ -121,6 +122,21 @@ class PayeeLogic extends BaseLogic {
             }
             else if (k === 'limit') {
                 sql.limit = parseInt(id, 10) || null;
+            }
+            else if (k === 'updatedSince') {
+                sql.where = sql.where || {};
+
+                const m = moment(id);
+                if(!m.isValid()) {
+                    throw new ErrorResponse(400, 'Attribute `updated-since` has to be a valid datetime, sorry…', {
+                        attributes: {
+                            updatedSince: 'Is not valid'
+                        }
+                    });
+                }
+                sql.where.updatedAt = {
+                    [DatabaseHelper.op('gte')]: m.toJSON()
+                };
             }
             else {
                 throw new ErrorResponse(400, 'Unknown filter `' + k + '`!');
