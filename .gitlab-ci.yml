@@ -57,7 +57,7 @@ check_lint:
 #     - docker run --rm -v "./code-visualization" "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" npm run visualize
 
 
-publish_dockerhub_next:
+publish_dockerhub_beta_next:
   stage: publish
   tags:
     - matt.sebbo.net
@@ -71,7 +71,7 @@ publish_dockerhub_next:
   only:
     - develop
 
-publish_dockerhub:
+publish_dockerhub_beta:
   stage: publish
   tags:
     - matt.sebbo.net
@@ -84,15 +84,3 @@ publish_dockerhub:
     - docker push "sebbo2002/dwimm-server-beta"
   only:
     - master
-
-
-# trigger_dockerhub:
-#   stage: publish
-#   tags:
-#     - matt.sebbo.net
-#     - ssh
-#   script:
-#     - curl -X "POST" "https://registry.hub.docker.com/u/dwimm/server/trigger/${DOCKERHUB_TRIGGER}/"
-#   only:
-#     - master
-#     - develop

@@ -4,6 +4,7 @@
   "description": "",
   "bin": {
     "dwimm-db": "./bin/database",
+    "dwimm-plugin": "./bin/plugin",
     "dwimm-server": "./server.js"
   },
   "scripts": {
