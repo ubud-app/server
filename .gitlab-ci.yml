@@ -84,3 +84,28 @@ publish_dockerhub_beta:
     - docker push "sebbo2002/dwimm-server-beta"
   only:
     - master
+
+private-deployment:
+  stage: deployment
+  tags:
+    - matt.sebbo.net
+    - ssh
+  environment:
+    name: dwimm.sebbo.net
+    url: https://dwimm.sebbo.net/
+  script:
+    - docker login -u "gitlab-ci-token" -p "${CI_BUILD_TOKEN}" docker.sebbo.net
+    - docker pull "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
+    - docker stop "dwimm" || true
+    - docker rm "dwimm" || true
+    - docker create --restart "always" --name="dwimm"
+        --link mariadb:db
+        -v "/etc/timezone:/etc/timezone:ro" -v "/etc/localtime:/etc/localtime:ro"
+        -e "DATABASE=${DEPLOYMENT_DATABASE}"
+        -p 127.0.0.1:10060:8080
+        "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
+    - docker start dwimm
+  when: manual
+  only:
+    - develop
+    - master
