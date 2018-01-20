@@ -1,4 +1,4 @@
-module.exports = class UnitModelDefinition {
+module.exports = class SummaryModelDefinition {
     static getDefinition(DataTypes) {
         return {
             id: {

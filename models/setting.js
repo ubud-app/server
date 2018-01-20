@@ -1,4 +1,4 @@
-module.exports = class TransactionModelDefinition {
+module.exports = class SettingModelDefinition {
     static getDefinition(DataTypes) {
         return {
             id: {

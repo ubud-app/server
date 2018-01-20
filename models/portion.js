@@ -1,4 +1,4 @@
-module.exports = class TransactionModelDefinition {
+module.exports = class PortionModelDefinition {
     static getDefinition(DataTypes) {
         return {
             id: {
