@@ -86,7 +86,7 @@ publish_dockerhub_beta:
     - master
 
 private-deployment:
-  stage: deployment
+  stage: publish
   tags:
     - matt.sebbo.net
     - ssh
