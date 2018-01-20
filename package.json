@@ -9,8 +9,9 @@
   },
   "scripts": {
     "check": "npm run check:eslint",
-    "check:all": "npm run check:eslint",
+    "check:all": "npm run check:eslint && npm run check:nsp",
     "check:eslint": "eslint ./",
+    "check:nsp": "nsp check",
     "visualize": "plato -rt dwimm-server -d ./code-visualization -e \".eslintrc.json\" -x 'code-visualization|node_modules' ./**/*.js",
     "bump:reset": "export MODULEVERSION=$(npm view @dwimm/server version) && npm run bump:reset:save",
     "bump:reset:next": "export MODULEVERSION=$(npm view @dwimm/server@next version) && npm run bump:reset:save",
@@ -30,6 +31,7 @@
     "express": "^4.16.2",
     "moment": "^2.19.4",
     "mysql2": "^1.5.1",
+    "nsp": "^3.1.0",
     "promised-exec": "^1.0.1",
     "raven": "^2.3.0",
     "request": "^2.83.0",
