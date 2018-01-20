@@ -14,7 +14,7 @@
     "visualize": "plato -rt dwimm-server -d ./code-visualization -e \".eslintrc.json\" -x 'code-visualization|node_modules' ./**/*.js",
     "bump:reset": "export MODULEVERSION=$(npm view @dwimm/server version) && npm run bump:reset:save",
     "bump:reset:next": "export MODULEVERSION=$(npm view @dwimm/server@next version) && npm run bump:reset:save",
-    "bump:reset:save": "node ./.travis-update-version",
+    "bump:reset:save": "node ./.ci-update-version",
     "bump:develop": "npm run bump:reset:next && npm --no-git-tag-version version prerelease",
     "bump:production": "npm run bump:reset && npm --no-git-tag-version version from-git"
   },
