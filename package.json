@@ -8,6 +8,7 @@
   },
   "scripts": {
     "check": "npm run check:eslint",
+    "check:all": "npm run check:eslint",
     "check:eslint": "eslint ./",
     "visualize": "plato -rt dwimm-server -d ./code-visualization -e \".eslintrc.json\" -x 'code-visualization|node_modules' ./**/*.js",
     "bump:reset": "export MODULEVERSION=$(npm view @dwimm/server version) && npm run bump:reset:save",

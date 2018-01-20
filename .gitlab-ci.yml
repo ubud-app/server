@@ -1,0 +1,97 @@
+stages:
+  - build
+  - check
+  - publish
+
+build_image_next:
+  stage: build
+  tags:
+    - matt.sebbo.net
+    - ssh
+  script:
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN docker.sebbo.net
+    - docker build --nocache --build-arg CLIENT_TAG="next" -t "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" .
+    - docker push "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
+  except:
+    - master
+
+build_image:
+  stage: build
+  tags:
+    - matt.sebbo.net
+    - ssh
+  script:
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN docker.sebbo.net
+    - docker build --nocache -t "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" .
+    - docker push "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
+  only:
+    - master
+
+publish_github:
+  stage: build
+  tags:
+    - matt.sebbo.net
+    - ssh
+  script:
+    - git push "https://${GITHUB_AUTH}@github.com/sebbo2002/dwimm-server.git" --all
+    - git push "https://${GITHUB_AUTH}@github.com/sebbo2002/dwimm-server.git" --tags
+
+
+check_lint:
+  stage: check
+  tags:
+    - matt.sebbo.net
+    - ssh
+  script:
+    - docker pull "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
+    - docker run --rm "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" npm run check:all
+
+# visualize:
+#   stage: check
+#   tags:
+#     - matt.sebbo.net
+#     - ssh
+#   script:
+#     - docker pull "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
+#     - docker run --rm -v "./code-visualization" "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" npm run visualize
+
+
+publish_dockerhub_next:
+  stage: build
+  tags:
+    - matt.sebbo.net
+    - ssh
+  script:
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN docker.sebbo.net
+    - docker login -u ${DOCKERHUB_USER} -p ${DOCKERHUB_PASSWORD}
+    - docker pull "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
+    - docker tag "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" "sebbo2002/dwimm-server-beta:next"
+    - docker push "sebbo2002/dwimm-server-beta:next"
+  only:
+    - develop
+
+publish_dockerhub:
+  stage: build
+  tags:
+    - matt.sebbo.net
+    - ssh
+  script:
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN docker.sebbo.net
+    - docker login -u $DOCKERHUB_USER -p $DOCKERHUB_PASSWORD
+    - docker pull "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
+    - docker tag "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" "sebbo2002/dwimm-server-beta"
+    - docker push "sebbo2002/dwimm-server-beta"
+  only:
+    - master
+
+
+# trigger_dockerhub:
+#   stage: publish
+#   tags:
+#     - matt.sebbo.net
+#     - ssh
+#   script:
+#     - curl -X "POST" "https://registry.hub.docker.com/u/dwimm/server/trigger/${DOCKERHUB_TRIGGER}/"
+#   only:
+#     - master
+#     - develop
