@@ -12,23 +12,4 @@ install:
   - yarn install
 
 script:
-  - npm run check
-
-jobs:
-  include:
-  - stage: deploy@next
-    script: skip
-    node_js: lts/*
-    before_deploy:
-      - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
-      - npm run bump:develop
-    deploy:
-      provider: npm
-      skip_cleanup: true
-      email: mail@sebbo.net
-      api_key:
-        secure: n/7DSJ9byC3jCsWfuHOapvJFjckErA1GWn/poF9SiRyVeac+HgB0R3YotWamKVuiSDPtYNnfEYTvKAotg1QFaVL8E78Dws5IcPGn4A3fhMk0IxjP5Y6M22vg5ILkcW/iUcE4dEYtynf6fweC9BCWxxGub0QiaDEUQz6zlJPqdpR0XbqXC1lCGm79+ta2gw3Qfyxp+I4IkL2NmIFXZFeA/0oLiX7ZpgOunmvxkR0Ux3s4yNj6S/46i9Ho5kw8DgkM0HzsEnMz7W0n+aOJY5uu3WRiU2VWPjZIXpaNGM0TDqOXZaQxKGy7fzKOoEV0CuEasYQte9m4Wyd+ZACudmpZs3TwZXaz/8t5Jwe/lJ3Srz4FJYrpDEARwlwjvBc/N0b0Sx9hSfYZm5/mSmreMwdbPq6EGyYLuMuUh6A9Ilj/DhR8AzysEVB6e7Fg6wSScI04Auw+TFQ77Mj3c83fP3Y/A7/tjOo4TQRwpznJJx0P5HlxWz7B4cMTX5LsPCLWsGOe9R4LIdjBtikOkdyA16P0dAc1BHPq3djZ0NqwhK4L9vHCX3artFJrKU+nrFpXnK8BXsz/0sN6dpcbG1brjpmBZy389qKE+K2YyUXXiCzJP//f6btKRFgE8T/fTKTxkZh7rBusL2sxksl3boeah/ntq7LjM0xA2ycLNUmiXLFTu9Q=
-      on:
-        repo: sebbo2002/dwimm-server
-        branch: develop
-      tag: next
+  - npm run check:quick

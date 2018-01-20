@@ -8,8 +8,8 @@
     "dwimm-server": "./server.js"
   },
   "scripts": {
-    "check": "npm run check:eslint",
-    "check:all": "npm run check:eslint && npm run check:nsp",
+    "check": "npm run check:eslint && npm run check:nsp",
+    "check:quick": "npm run check:eslint",
     "check:eslint": "eslint ./",
     "check:nsp": "nsp check",
     "visualize": "plato -rt dwimm-server -d ./code-visualization -e \".eslintrc.json\" -x 'code-visualization|node_modules' ./**/*.js",

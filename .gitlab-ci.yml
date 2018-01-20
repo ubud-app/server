@@ -10,6 +10,7 @@ build_image_next:
     - ssh
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN docker.sebbo.net
+    - npm run bump:develop
     - docker build --no-cache --build-arg CLIENT_TAG="next" -t "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" .
     - docker push "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
   except:
@@ -22,6 +23,7 @@ build_image:
     - ssh
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN docker.sebbo.net
+    - npm run bump:production
     - docker build --no-cache -t "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" .
     - docker push "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
   only:
@@ -55,6 +57,27 @@ check_lint:
 #   script:
 #     - docker pull "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
 #     - docker run --rm -v "./code-visualization" "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" npm run visualize
+
+
+publish_npm_next:
+  stage: publish
+  tags:
+    - matt.sebbo.net
+    - ssh
+  script:
+    - node -v
+    - yarn -v
+    - yarn install
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN docker.sebbo.net
+    - docker pull "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
+    - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
+    - npm run bump:develop
+    - npm run build
+    - echo $(docker run --rm "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" cat ./package.json | jq '.version' -rce)
+    - npm publish --tag "next"
+  only:
+    - develop
+
 
 
 publish_dockerhub_beta_next:
