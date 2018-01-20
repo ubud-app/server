@@ -10,7 +10,7 @@ build_image_next:
     - ssh
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN docker.sebbo.net
-    - docker build --nocache --build-arg CLIENT_TAG="next" -t "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" .
+    - docker build --no-cache --build-arg CLIENT_TAG="next" -t "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" .
     - docker push "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
   except:
     - master
@@ -22,7 +22,7 @@ build_image:
     - ssh
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN docker.sebbo.net
-    - docker build --nocache -t "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" .
+    - docker build --no-cache -t "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" .
     - docker push "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
   only:
     - master
@@ -57,13 +57,13 @@ check_lint:
 
 
 publish_dockerhub_next:
-  stage: build
+  stage: publish
   tags:
     - matt.sebbo.net
     - ssh
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN docker.sebbo.net
-    - docker login -u ${DOCKERHUB_USER} -p ${DOCKERHUB_PASSWORD}
+    - docker login -u ${DOCKERHUB_USERNAME} -p ${DOCKERHUB_PASSWORD}
     - docker pull "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
     - docker tag "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" "sebbo2002/dwimm-server-beta:next"
     - docker push "sebbo2002/dwimm-server-beta:next"
@@ -71,13 +71,13 @@ publish_dockerhub_next:
     - develop
 
 publish_dockerhub:
-  stage: build
+  stage: publish
   tags:
     - matt.sebbo.net
     - ssh
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN docker.sebbo.net
-    - docker login -u $DOCKERHUB_USER -p $DOCKERHUB_PASSWORD
+    - docker login -u ${DOCKERHUB_USERNAME} -p ${DOCKERHUB_PASSWORD}
     - docker pull "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
     - docker tag "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" "sebbo2002/dwimm-server-beta"
     - docker push "sebbo2002/dwimm-server-beta"
