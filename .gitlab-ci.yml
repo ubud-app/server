@@ -72,7 +72,6 @@ publish_npm_next:
     - docker pull "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
     - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
     - npm run bump:develop
-    - npm run build
     - echo $(docker run --rm "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" cat ./package.json | jq '.version' -rce)
     - npm publish --tag "next"
   only:
