@@ -9,7 +9,7 @@ RUN apt-get clean && \
     chown -R dwimm:nogroup /usr/local/bin
 
 USER dwimm
-WORKDIR /usr/local/lib/node_modules
+WORKDIR "/usr/local/lib/node_modules/@dwimm/server"
 
 RUN cd "/usr/local/lib/node_modules/@dwimm/server" && \
     npm install && \

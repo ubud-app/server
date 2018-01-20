@@ -43,6 +43,7 @@ check_lint:
     - matt.sebbo.net
     - ssh
   script:
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN docker.sebbo.net
     - docker pull "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
     - docker run --rm "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" npm run check:all
 
