@@ -238,23 +238,71 @@ PluginTools.Transaction = class {
 };
 
 PluginTools.Memo = class {
+    constructor (memo) {
+        this._memo = memo;
+    }
 
+    toJSON() {
+        return {
+            type: 'memo',
+            memo: this._memo
+        };
+    }
 };
 
 PluginTools.Split = class {
+    constructor (units) {
+        this._units = units.map(unit => {
+            if(!(unit instanceof PluginTools.Unit)) {
+                throw new Error('All units are required to be instance of PluginTools.Unit');
+            }
 
+            return unit.toJSON();
+        });
+    }
+
+    toJSON() {
+        return {
+            type: 'split',
+            units: this._units
+        };
+    }
 };
 
 PluginTools.Unit = class {
+    constructor (options) {
+        // amount
+        if(!options.amount && options.amount !== 0) {
+            throw new Error('`amount` is required!');
+        }
+        if(!Number.isInteger(options.amount)) {
+            throw new Error('`amount` has to be an integer');
+        }
 
-};
+        // memo
+        if(!options.memo) {
+            throw new Error('`memo` is required!');
+        }
+        if(typeof options.memo !== 'string') {
+            throw new Error('`memo` has to be a string');
+        }
+        if(options.memo.length > 255) {
+            throw new Error('`memo` has a max length of 255');
+        }
 
-PluginTools.Link = class {
+        this._values = {
+            amount: options.amount,
+            memo: options.memo
+        };
+    }
 
+    toJSON() {
+        return this._values;
+    }
 };
 
 PluginTools.Goal = class {
-
+    // @todo
 };
 
 PluginTools.ConfigurationError = class {

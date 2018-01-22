@@ -92,6 +92,17 @@ class PluginInstance extends EventEmitter {
             }
         }
 
+        try {
+            /* eslint-disable security/detect-non-literal-require */
+            this._metainfo = require(this._model.type + '/.dwimm-plugin.json');
+            /* eslint-enable security/detect-non-literal-require */
+        }
+        catch (err) {
+            log.warn('Unable to get metadata of plugin %s…', this._model.type);
+            log.fatal(err);
+            process.exit(1);
+        }
+
         // get configuration from database
         const dbConfigs = await DatabaseHelper.get('plugin-config').findAll({
             where: {
@@ -711,7 +722,12 @@ class PluginInstance extends EventEmitter {
             transactionModel = TransactionLogic.getModel().build({
                 accountId: accountModel.id,
                 pluginsOwnId: transaction.id,
-                memo: transaction.memo
+                memo: transaction.memo,
+                amount: transaction.amount,
+                time: moment(transaction.time).toJSON(),
+                pluginsOwnPayeeId: transaction.payeeId,
+                status: transaction.status,
+                pluginsOwnMemo: transaction.memo
             });
 
             // get transactions with matching payeeId
@@ -756,6 +772,16 @@ class PluginInstance extends EventEmitter {
 
                 transactionModel.payeeId = best.id;
             }
+
+
+            // Ask plugins to add metadata
+            const PluginHelper = require('./index');
+            const allPlugins = await PluginHelper.listPlugins();
+            await Promise.all(
+                allPlugins
+                    .filter(p => p.supported().includes('getMetadata'))
+                    .map(p => p.getMetadata(transactionModel))
+            )
         }
 
         // update transaction attributes
@@ -771,6 +797,72 @@ class PluginInstance extends EventEmitter {
         }
 
         await transactionModel.save();
+        return transactionModel;
+    }
+
+    /**
+     * Ask the plugin to add any metadata it may finds
+     *
+     * @param {Model} transactionModel
+     * @returns {Promise.<Model>}
+     */
+    async getMetadata (transactionModel) {
+        if (!this._metainfo || !this._metainfo.responsibilities || !this._metainfo.responsibilities.length) {
+            return transactionModel;
+        }
+
+        /* only ask plugin when payee matches */
+        const match = this._metainfo.responsibilities.find(r => r.metadata && (
+            transactionModel.pluginsOwnPayeeId.includes(r.name) ||
+            (r.iban || []).find(i => transactionModel.pluginsOwnPayeeId.includes(i)) ||
+            (r.payee || []).find(i => transactionModel.pluginsOwnPayeeId.includes(i))
+        ));
+        if (!match) {
+            return transactionModel;
+        }
+
+        log.info(
+            'Plugin %s: Get metadata for transaction where pluginsOwnPayeeID = %s',
+            this.id().substr(0, 5), transactionModel.pluginsOwnPayeeId
+        );
+
+
+        // get metadata
+        const metadata = await PluginInstance.request(this, this.type(), 'getMetadata', this.generateConfig(),
+            {
+                time: transactionModel.time,
+                payeeId: transactionModel.pluginsOwnPayeeId,
+                memo: transactionModel.pluginsOwnMemo,
+                amount: transactionModel.amount
+            }
+        );
+        log.info(
+            'Plugin %s: Got %s metadata objects from plugin',
+            this.id().substr(0, 5), metadata.length
+        );
+
+        // persist transaction to get it's id
+        if(metadata.find(m => m.type === 'split')) {
+            await transactionModel.save();
+        }
+
+        metadata.forEach(m => {
+            if (m.type === 'split' && !transactionModel.units) {
+                transactionModel.units = Promise.all(
+                    m.units.map(unit => DatabaseHelper.get('unit').create({
+                        amount: unit.amount,
+                        memo: unit.memo,
+                        budgetId: null,
+                        transactionId: transactionModel.id,
+                        incomeMonth: null
+                    }))
+                );
+            }
+            else if (m.type === 'memo' && !transactionModel.memo) {
+                transactionModel.memo = m.memo;
+            }
+        });
+
         return transactionModel;
     }
 
@@ -871,14 +963,16 @@ class PluginInstance extends EventEmitter {
             console.log(new Error());
         }
 
-        const process = fork(__dirname + '/runner.js', {
+        const childProcess = fork(__dirname + '/runner.js', {
             cwd: require('os').tmpdir(),
             stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
-            env: {},
+            env: {
+                PATH: process.env.PATH
+            },
             execArgv: ''
         });
 
-        process.send({
+        childProcess.send({
             type,
             method,
             config: _.extend(config || {}),
@@ -893,7 +987,7 @@ class PluginInstance extends EventEmitter {
                 gotConfirm,
                 gotResponse;
 
-            process.on('exit', () => {
+            childProcess.on('exit', () => {
                 if (instance) {
                     instance._forks -= 1;
                     instance.emit('change:forks', instance._forks);
@@ -931,15 +1025,15 @@ class PluginInstance extends EventEmitter {
 
                 reject(new Error(text));
             });
-            process.stdout.on('data', buffer => {
+            childProcess.stdout.on('data', buffer => {
                 log.debug('%s: stdout-> %s', type, buffer.toString().trim());
                 stdout.push(buffer.toString());
             });
-            process.stderr.on('data', buffer => {
+            childProcess.stderr.on('data', buffer => {
                 log.debug('%s: stderr-> %s', type, buffer.toString().trim());
                 stderr.push(buffer.toString());
             });
-            process.on('message', message => {
+            childProcess.on('message', message => {
                 if (!gotConfirm && message && message.type === 'confirm') {
                     gotConfirm = true;
                 }
@@ -954,7 +1048,7 @@ class PluginInstance extends EventEmitter {
                     setTimeout(() => {
                         if (isRunning) {
                             log.warn('%s: still alive, kill it', type);
-                            process.kill();
+                            childProcess.kill();
                         }
                     }, 1000 * 5);
 
@@ -975,7 +1069,7 @@ class PluginInstance extends EventEmitter {
             setTimeout(() => {
                 if (!gotConfirm) {
                     log.error('%s: confirm timeout, kill it', type);
-                    process.kill();
+                    childProcess.kill();
 
                     if (instance) {
                         instance._errors[method] = 'Confirmation Timeout: Unable to communicate with plugin';
@@ -994,7 +1088,7 @@ class PluginInstance extends EventEmitter {
             setTimeout(() => {
                 if (!gotResponse) {
                     log.error('%s: response timeout, kill it', type);
-                    process.kill();
+                    childProcess.kill();
 
                     if (instance) {
                         instance._errors[method] = 'Response Timeout: Unable to communicate with plugin';
@@ -1019,6 +1113,24 @@ class PluginInstance extends EventEmitter {
      * @returns {Promise.<void>}
      */
     static async check (type) {
+        try {
+            /* eslint-disable security/detect-non-literal-require */
+            require(type + '/package.json');
+            /* eslint-enable security/detect-non-literal-require */
+        }
+        catch (err) {
+            throw new Error('Unable to parse plugin\'s package.json');
+        }
+
+        try {
+            /* eslint-disable security/detect-non-literal-require */
+            require(type + '/.dwimm-plugin.json');
+            /* eslint-enable security/detect-non-literal-require */
+        }
+        catch (err) {
+            throw new Error('Unable to parse plugin\'s .dwimm-plugin.json');
+        }
+
         const response = await this.request(null, type, 'check');
         if (!response || !response.success) {
             throw new Error('Unexpected result: ' + JSON.stringify(response));

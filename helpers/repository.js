@@ -56,8 +56,8 @@ class RepositoryHelper {
                 setTimeout(() => {this.run();}, 1000 * 60 * 60 * 6);
             })
             .catch(err => {
-                log.error(err);
-                setTimeout(() => {this.run();}, 1000 * 60 * 30);
+                log.error(err.toString());
+                setTimeout(() => {this.run();}, 1000 * 60 * 5);
             });
     }
 

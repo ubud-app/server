@@ -38,6 +38,9 @@ class PluginRunner {
         else if (job.method === 'getTransactions') {
             return this.getTransactions(job);
         }
+        else if (job.method === 'getMetadata') {
+            return this.getMetadata(job);
+        }
         else {
             throw new Error('Unimplemented method: `' + job.method + '`');
         }
@@ -74,6 +77,10 @@ class PluginRunner {
             process.send({type: 'item', item});
         });
 
+        if(Array.isArray(data)) {
+            process.send({type: 'response', data: []});
+            return;
+        }
         process.send({type: 'response'});
     }
 
@@ -203,6 +210,27 @@ class PluginRunner {
             }
 
             return transaction.toJSON();
+        });
+    }
+
+    /**
+     * Get Metadata
+     *
+     * @param {object} job
+     * @returns {Promise.<void>}
+     */
+    static async getMetadata(job) {
+        let metadata = await job.plugin.getMetadata(job.params);
+        if(!Array.isArray(metadata)) {
+            metadata = [metadata];
+        }
+
+        return metadata.map(m => {
+            if(!(m instanceof PluginTools.Split || m instanceof PluginTools.Memo)) {
+                throw new Error('Objects in metadata has to be instance of PluginTools.Split or PluginTools.Memo');
+            }
+
+            return m.toJSON();
         });
     }
 }
