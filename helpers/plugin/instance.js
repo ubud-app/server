@@ -781,7 +781,7 @@ class PluginInstance extends EventEmitter {
                 allPlugins
                     .filter(p => p.supported().includes('getMetadata'))
                     .map(p => p.getMetadata(transactionModel))
-            )
+            );
         }
 
         // update transaction attributes
