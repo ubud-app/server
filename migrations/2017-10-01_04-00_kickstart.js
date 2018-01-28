@@ -11,7 +11,7 @@ module.exports = {
             '  `createdAt` datetime NOT NULL,\n' +
             '  `updatedAt` datetime NOT NULL,\n' +
             '  PRIMARY KEY (`id`)\n' +
-            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+            ') ENGINE=InnoDB;'
         );
 
         // categories
@@ -25,7 +25,7 @@ module.exports = {
             '  PRIMARY KEY (`id`),\n' +
             '  KEY `documentId` (`documentId`),\n' +
             '  CONSTRAINT `categories_ibfk_1` FOREIGN KEY (`documentId`) REFERENCES `documents` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n' +
-            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+            ') ENGINE=InnoDB;'
         );
 
         // learnings
@@ -43,7 +43,7 @@ module.exports = {
             '  KEY `categoryId` (`categoryId`),\n' +
             '  CONSTRAINT `learnings_ibfk_1` FOREIGN KEY (`documentId`) REFERENCES `documents` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,\n' +
             '  CONSTRAINT `learnings_ibfk_2` FOREIGN KEY (`categoryId`) REFERENCES `categories` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n' +
-            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+            ') ENGINE=InnoDB;'
         );
 
         // payees
@@ -57,7 +57,7 @@ module.exports = {
             '  PRIMARY KEY (`id`),\n' +
             '  KEY `documentId` (`documentId`),\n' +
             '  CONSTRAINT `payees_ibfk_1` FOREIGN KEY (`documentId`) REFERENCES `documents` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n' +
-            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+            ') ENGINE=InnoDB;'
         );
 
         // plugins
@@ -71,7 +71,7 @@ module.exports = {
             '  PRIMARY KEY (`id`),\n' +
             '  KEY `documentId` (`documentId`),\n' +
             '  CONSTRAINT `plugins_ibfk_1` FOREIGN KEY (`documentId`) REFERENCES `documents` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n' +
-            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+            ') ENGINE=InnoDB;'
         );
 
         // accounts
@@ -91,7 +91,7 @@ module.exports = {
             '  KEY `pluginId` (`pluginId`),\n' +
             '  CONSTRAINT `accounts_ibfk_1` FOREIGN KEY (`documentId`) REFERENCES `documents` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,\n' +
             '  CONSTRAINT `accounts_ibfk_2` FOREIGN KEY (`pluginId`) REFERENCES `plugins` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n' +
-            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+            ') ENGINE=InnoDB;'
         );
 
         // budgets
@@ -110,7 +110,7 @@ module.exports = {
             '  KEY `categoryId` (`categoryId`),\n' +
             '  CONSTRAINT `budgets_ibfk_1` FOREIGN KEY (`pluginId`) REFERENCES `plugins` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,\n' +
             '  CONSTRAINT `budgets_ibfk_2` FOREIGN KEY (`categoryId`) REFERENCES `categories` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n' +
-            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+            ') ENGINE=InnoDB;'
         );
 
         // portions
@@ -127,7 +127,7 @@ module.exports = {
             '  PRIMARY KEY (`id`),\n' +
             '  KEY `budgetId` (`budgetId`),\n' +
             '  CONSTRAINT `portions_ibfk_1` FOREIGN KEY (`budgetId`) REFERENCES `budgets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n' +
-            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+            ') ENGINE=InnoDB;'
         );
 
         // settings
@@ -142,7 +142,7 @@ module.exports = {
             '  PRIMARY KEY (`id`),\n' +
             '  UNIQUE KEY `settings_document_id_key` (`documentId`,`key`),\n' +
             '  CONSTRAINT `settings_ibfk_1` FOREIGN KEY (`documentId`) REFERENCES `documents` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n' +
-            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+            ') ENGINE=InnoDB;'
         );
 
         // summaries
@@ -162,7 +162,7 @@ module.exports = {
             '  PRIMARY KEY (`id`),\n' +
             '  KEY `documentId` (`documentId`),\n' +
             '  CONSTRAINT `summaries_ibfk_1` FOREIGN KEY (`documentId`) REFERENCES `documents` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n' +
-            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+            ') ENGINE=InnoDB;'
         );
 
         // transactions
@@ -187,7 +187,7 @@ module.exports = {
             '  KEY `payeeId` (`payeeId`),\n' +
             '  CONSTRAINT `transactions_ibfk_1` FOREIGN KEY (`accountId`) REFERENCES `accounts` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,\n' +
             '  CONSTRAINT `transactions_ibfk_2` FOREIGN KEY (`payeeId`) REFERENCES `payees` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n' +
-            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+            ') ENGINE=InnoDB;'
         );
 
         // units
@@ -206,7 +206,7 @@ module.exports = {
             '  KEY `budgetId` (`budgetId`),\n' +
             '  CONSTRAINT `units_ibfk_1` FOREIGN KEY (`transactionId`) REFERENCES `transactions` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,\n' +
             '  CONSTRAINT `units_ibfk_2` FOREIGN KEY (`budgetId`) REFERENCES `budgets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n' +
-            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+            ') ENGINE=InnoDB;'
         );
 
         // users
@@ -224,7 +224,7 @@ module.exports = {
             '  PRIMARY KEY (`id`),\n' +
             '  UNIQUE KEY `email` (`email`),\n' +
             '  UNIQUE KEY `users_email_unique` (`email`)\n' +
-            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+            ') ENGINE=InnoDB;'
         );
 
         // sessions
@@ -240,7 +240,7 @@ module.exports = {
             '  PRIMARY KEY (`id`),\n' +
             '  KEY `userId` (`userId`),\n' +
             '  CONSTRAINT `sessions_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n' +
-            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+            ') ENGINE=InnoDB;'
         );
 
         // shares
@@ -256,7 +256,7 @@ module.exports = {
             '  KEY `documentId` (`documentId`),\n' +
             '  CONSTRAINT `shares_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,\n' +
             '  CONSTRAINT `shares_ibfk_2` FOREIGN KEY (`documentId`) REFERENCES `documents` (`id`) ON DELETE CASCADE ON UPDATE CASCADE\n' +
-            ') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+            ') ENGINE=InnoDB;'
         );
     },
     async down (q) {
