@@ -203,7 +203,8 @@ class SummaryLogic extends BaseLogic {
                             documentId: summary.documentId
                         }
                     }]
-                }]
+                }],
+                raw: true
             }),
 
             /*
@@ -229,7 +230,8 @@ class SummaryLogic extends BaseLogic {
                             documentId: summary.documentId
                         }
                     }]
-                }]
+                }],
+                raw: true
             }),
 
             /*
@@ -258,7 +260,8 @@ class SummaryLogic extends BaseLogic {
                             documentId: summary.documentId
                         }
                     }]
-                }]
+                }],
+                raw: true
             }),
 
             /*
@@ -309,7 +312,8 @@ class SummaryLogic extends BaseLogic {
                             documentId: summary.documentId
                         }
                     }]
-                }]
+                }],
+                raw: true
             }),
 
             /*
@@ -336,7 +340,8 @@ class SummaryLogic extends BaseLogic {
                             documentId: summary.documentId
                         }
                     }]
-                }]
+                }],
+                raw: true
             }),
 
             /*
@@ -366,7 +371,8 @@ class SummaryLogic extends BaseLogic {
                             documentId: summary.documentId
                         }
                     }]
-                }]
+                }],
+                raw: true
             }),
 
             /*
@@ -407,7 +413,8 @@ class SummaryLogic extends BaseLogic {
                             documentId: summary.documentId
                         }
                     }]
-                }]
+                }],
+                raw: true
             }),
 
             /*
@@ -433,30 +440,31 @@ class SummaryLogic extends BaseLogic {
                             documentId: summary.documentId
                         }
                     }]
-                }]
+                }],
+                raw: true
             })
         ])
             .then(calculated => {
 
                 // till last month
-                const incomeTillLastMonth = parseInt(calculated[0].dataValues.incomeTillLastMonth) || 0;
-                const budgetedTillLastMonth = parseInt(calculated[1].dataValues.budgetedTillLastMonth) || 0;
-                const unbudgetedUnitsTillLastMonth = parseInt(calculated[2].dataValues.unbudgetedUnitsTillLastMonth) || 0;
+                const incomeTillLastMonth = parseInt(calculated[0].incomeTillLastMonth) || 0;
+                const budgetedTillLastMonth = parseInt(calculated[1].budgetedTillLastMonth) || 0;
+                const unbudgetedUnitsTillLastMonth = parseInt(calculated[2].unbudgetedUnitsTillLastMonth) || 0;
                 const unbudgetedTransactionsTillLastMonth = parseInt(calculated[3][0].unbudgetedTransactionsTillLastMonth) || 0;
 
                 // this month
-                const incomeThisMonth = parseInt(calculated[4].dataValues.incomeThisMonth) || 0;
-                const budgetedThisMonth = parseInt(calculated[5].dataValues.budgetedThisMonth) || 0;
-                const unbudgetedUnitsThisMonth = parseInt(calculated[6].dataValues.unbudgetedUnitsThisMonth) || 0;
+                const incomeThisMonth = parseInt(calculated[4].incomeThisMonth) || 0;
+                const budgetedThisMonth = parseInt(calculated[5].budgetedThisMonth) || 0;
+                const unbudgetedUnitsThisMonth = parseInt(calculated[6].unbudgetedUnitsThisMonth) || 0;
                 const unbudgetedTransactionsThisMonth = parseInt(calculated[7][0].unbudgetedTransactionsThisMonth) || 0;
-                const outflowUnitsThisMonth = parseInt(calculated[8].dataValues.outflowUnitsThisMonth) || 0;
+                const outflowUnitsThisMonth = parseInt(calculated[8].outflowUnitsThisMonth) || 0;
 
                 // till this month
                 const incomeTillThisMonth = incomeTillLastMonth + incomeThisMonth;
                 const budgetedTillThisMonth = budgetedTillLastMonth + budgetedThisMonth;
                 const unbudgetedUnitsTillThisMonth = unbudgetedUnitsTillLastMonth + unbudgetedUnitsThisMonth;
                 const unbudgetedTransactionsTillThisMonth = unbudgetedTransactionsTillLastMonth + unbudgetedTransactionsThisMonth;
-                const balanceUnitsTillThisMonth = parseInt(calculated[9].dataValues.balanceUnitsTillThisMonth) || 0;
+                const balanceUnitsTillThisMonth = parseInt(calculated[9].balanceUnitsTillThisMonth) || 0;
 
                 summary.available = incomeTillThisMonth - budgetedTillThisMonth +
                     unbudgetedUnitsTillThisMonth + unbudgetedTransactionsTillThisMonth;

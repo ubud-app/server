@@ -253,7 +253,8 @@ class PortionLogic extends BaseLogic {
                             [DatabaseHelper.op('lte')]: moment(monthMoment).endOf('month').toJSON()
                         }
                     }
-                }]
+                }],
+                raw: true
             }),
 
             /*
@@ -274,7 +275,8 @@ class PortionLogic extends BaseLogic {
                             [DatabaseHelper.op('lte')]: moment(monthMoment).endOf('month').toJSON()
                         }
                     }
-                }]
+                }],
+                raw: true
             }),
 
             /*
@@ -289,13 +291,14 @@ class PortionLogic extends BaseLogic {
                         [DatabaseHelper.op('lte')]: moment(monthMoment).subtract(1, 'month').endOf('month').toJSON()
                     },
                     budgetId: portion.budgetId
-                }
+                },
+                raw: true
             }),
         ])
             .then(calculated => {
-                portion.outflow = parseInt(calculated[0].dataValues.outflow) || 0;
-                portion.balance = (parseInt(calculated[2].dataValues.budgetedTillLastMonth) || 0) +
-                    (parseInt(calculated[1].dataValues.transactions) || 0) +
+                portion.outflow = parseInt(calculated[0].outflow) || 0;
+                portion.balance = (parseInt(calculated[2].budgetedTillLastMonth) || 0) +
+                    (parseInt(calculated[1].transactions) || 0) +
                     (portion.budgeted || 0);
 
                 portion.outflow *= -1;
