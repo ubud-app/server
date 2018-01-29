@@ -176,7 +176,7 @@ class SessionLogic extends BaseLogic {
             model.name = body.name;
 
             // neues secret generieren
-            if(model.mobilePairing) {
+            if(model.mobilePairing && model.id === options.session.id) {
                 const crypto = require('crypto');
                 secrets.token = await new Promise((resolve, reject) => {
                     crypto.randomBytes(32, (err, buffer) => {
