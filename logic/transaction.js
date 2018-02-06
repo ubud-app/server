@@ -134,7 +134,7 @@ class TransactionLogic extends BaseLogic {
         return DatabaseHelper.get('account')
             .find({
                 where: {id: body.accountId},
-                attributes: ['id'],
+                attributes: ['id', 'pluginInstanceId'],
                 include: [{
                     model: DatabaseHelper.get('document'),
                     attributes: ['id'],
