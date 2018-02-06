@@ -596,9 +596,10 @@ class PluginInstance extends EventEmitter {
         });
 
         if (!accountIsNew) {
+            // @todo update summaries
 
             // update summaries
-            await SummaryLogic.recalculateSummariesFrom(account.documentId, syncBeginningFrom);
+            await SummaryLogic.recalculateSummariesFrom(this.documentId(), syncBeginningFrom);
 
             return;
         }
@@ -627,6 +628,8 @@ class PluginInstance extends EventEmitter {
             }]
         }, {include: [DatabaseHelper.get('unit')]});
 
+
+        // @todo update summaries
 
         // update summaries
         await SummaryLogic.recalculateSummariesFrom(this.documentId(), syncBeginningFrom);
