@@ -216,7 +216,7 @@ class SummaryLogic extends BaseLogic {
                 ],
                 where: {
                     month: {
-                        [DatabaseHelper.op('lte')]: moment(monthMoment).subtract(1, 'month').endOf('month').toJSON()
+                        [DatabaseHelper.op('lte')]: moment(monthMoment).subtract(1, 'month').format('YYYY-MM')
                     }
                 },
                 include: [{
@@ -325,8 +325,8 @@ class SummaryLogic extends BaseLogic {
                 ],
                 where: {
                     month: {
-                        [DatabaseHelper.op('lte')]: moment(monthMoment).endOf('month').toJSON(),
-                        [DatabaseHelper.op('gte')]: moment(monthMoment).startOf('month').toJSON()
+                        [DatabaseHelper.op('lte')]: moment(monthMoment).format('YYYY-MM'),
+                        [DatabaseHelper.op('gte')]: moment(monthMoment).format('YYYY-MM')
                     }
                 },
                 include: [{
