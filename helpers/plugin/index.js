@@ -174,7 +174,8 @@ class PluginHelper {
         const exec = require('promised-exec');
         const escape = require('shell-escape');
 
-        return exec(escape(['npm', 'install', type, '--no-save']))
+        // use --save because of https://github.com/npm/npm/issues/17379
+        return exec(escape(['npm', 'install', type, '--save']))
             .then(res => {
                 const id = res.split('\n').find(l => l.trim().substr(0, 1) === '+');
 
@@ -194,7 +195,7 @@ class PluginHelper {
         const exec = require('promised-exec');
         const escape = require('shell-escape');
 
-        return exec(escape(['npm', 'remove', type]))
+        return exec(escape(['npm', 'remove', type, '--save']))
             .then(() => {
                 return Promise.resolve();
             })
