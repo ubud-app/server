@@ -401,7 +401,17 @@ class PluginInstance extends EventEmitter {
 
         // start / stop cron
         if (validation.valid && !this._cron) {
-            await this.cron();
+            (async () => {
+                // wait 15 seconds to give other plugins a chance to start up
+                await new Promise(cb => {
+                    setTimeout(cb, 15000);
+                });
+
+                // run cron()
+                await this.cron();
+            })().catch(err => {
+                log.error(err);
+            });
             this._cron = setInterval(() => {
                 this.cron().catch(err => {
                     log.warn('Unable to execute plugin `%s` cron: %s', this.type(), err);
