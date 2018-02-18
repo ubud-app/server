@@ -26,25 +26,24 @@
     "body-parser": "^1.18.2",
     "bunyan": "^1.8.12",
     "cli-table": "^0.3.1",
-    "commander": "^2.12.2",
+    "commander": "^2.14.1",
     "email-validator": "^1.1.1",
     "express": "^4.16.2",
-    "moment": "^2.19.4",
-    "mysql2": "^1.5.1",
-    "nsp": "^3.1.0",
+    "moment": "^2.20.1",
+    "mysql2": "^1.5.2",
+    "nsp": "^3.2.1",
     "promised-exec": "^1.0.1",
-    "raven": "^2.3.0",
-    "request": "^2.83.0",
+    "raven": "^2.4.1",
     "request-promise-native": "^1.0.5",
-    "sequelize": "^4.28.0",
+    "sequelize": "^4.33.4",
     "shell-escape": "^0.2.0",
     "socket.io": "^2.0.4",
     "umzug": "^2.1.0",
     "underscore": "^1.8.3",
-    "uuid": "^3.1.0"
+    "uuid": "^3.2.1"
   },
   "devDependencies": {
-    "eslint": "^4.13.1",
+    "eslint": "^4.18.0",
     "eslint-plugin-security": "^1.4.0",
     "plato": "^1.7.0"
   }
