@@ -72,7 +72,7 @@ visualize:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
     - docker pull "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-dev"
     - mkdir ./code-visualization
-    - docker run --rm "$(pwd)/code-visualization:/usr/local/lib/node_modules/@dwimm/server/code-visualization"
+    - docker run --rm -v "$(pwd)/code-visualization:/usr/local/lib/node_modules/@dwimm/server/code-visualization"
         -u "$UID:$GID" "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-dev" npm run visualize
     - rm -rf /var/docker/static/dwimm/server/plato/*
     - mv ./code-visualization/* /var/docker/static/dwimm/server/plato/
