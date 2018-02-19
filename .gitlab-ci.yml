@@ -10,7 +10,6 @@ build_dev_image_next:
     - ssh
   script:
     - env
-    - echo "$CI_REGISTRY_PASSWORD" > test.txt
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
     - npm run bump:develop
     - docker build --no-cache
