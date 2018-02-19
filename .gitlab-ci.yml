@@ -95,8 +95,8 @@ visualize:
     - docker pull "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-dev"
     - docker run --rm -v "./code-visualization" -u "$UID:$GID"
         "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-dev" npm run visualize
-    - rm -rf /var/docker/static/d.sebbo.net/dwimm/server/plato/*
-    - mv ./code-visualization/* /var/docker/static/d.sebbo.net/dwimm/server/plato/
+    - rm -rf /var/docker/static/dwimm/server/plato/*
+    - mv ./code-visualization/* /var/docker/static/dwimm/server/plato/
 
 
 publish_npm_next:
