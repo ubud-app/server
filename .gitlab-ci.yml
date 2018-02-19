@@ -9,6 +9,8 @@ build_dev_image_next:
     - matt.sebbo.net
     - ssh
   script:
+    - env
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN docker.sebbo.net
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
     - npm run bump:develop
     - docker build --no-cache
