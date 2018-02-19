@@ -3,23 +3,6 @@ stages:
   - check
   - publish
 
-build_dev_image_next:
-  stage: build
-  tags:
-    - matt.sebbo.net
-    - ssh
-  script:
-    - env
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
-    - npm run bump:develop
-    - docker build --no-cache
-        --build-arg NODE_ENV="develop"
-        --build-arg CLIENT_TAG="next"
-        -t "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-dev" .
-    - docker push "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-dev"
-  except:
-    - master
-
 build_image_next:
   stage: build
   tags:
@@ -29,26 +12,16 @@ build_image_next:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
     - npm run bump:develop
     - docker build --no-cache
+        --build-arg NODE_ENV="develop"
+        --build-arg CLIENT_TAG="next"
+        -t "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-dev" .
+    - docker push "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-dev"
+    - docker build --no-cache
         --build-arg NODE_ENV="production"
         --build-arg CLIENT_TAG="next"
         -t "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" .
     - docker push "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
   except:
-    - master
-
-build_dev_image:
-  stage: build
-  tags:
-    - matt.sebbo.net
-    - ssh
-  script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
-    - npm run bump:production
-    - docker build --no-cache
-        --build-arg NODE_ENV="develop"
-        -t "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-dev" .
-    - docker push "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-dev"
-  only:
     - master
 
 build_image:
@@ -59,6 +32,10 @@ build_image:
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
     - npm run bump:production
+    - docker build --no-cache
+        --build-arg NODE_ENV="develop"
+        -t "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-dev" .
+    - docker push "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-dev"
     - docker build --no-cache
         --build-arg NODE_ENV="production"
         -t "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" .
