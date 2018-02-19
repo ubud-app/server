@@ -1,5 +1,6 @@
 FROM node
 ARG CLIENT_TAG=latest
+ARG NODE_ENV=production
 
 ADD "." "/usr/local/lib/node_modules/@dwimm/server"
 
