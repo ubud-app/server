@@ -138,13 +138,7 @@ class TransactionLogic extends BaseLogic {
                 include: [{
                     model: DatabaseHelper.get('document'),
                     attributes: ['id'],
-                    include: options.session.user.isAdmin ? [] : [{
-                        model: DatabaseHelper.get('user'),
-                        attributes: [],
-                        where: {
-                            id: options.session.userId
-                        }
-                    }]
+                    include: DatabaseHelper.includeUserIfNotAdmin(options.session)
                 }]
             })
             .then(function (accountModel) {
@@ -313,13 +307,7 @@ class TransactionLogic extends BaseLogic {
                         model: DatabaseHelper.get('document'),
                         attributes: [],
                         required: true,
-                        include: options.session.user.isAdmin ? [] : [{
-                            model: DatabaseHelper.get('user'),
-                            attributes: [],
-                            where: {
-                                id: options.session.userId
-                            }
-                        }]
+                        include: DatabaseHelper.includeUserIfNotAdmin(options.session)
                     }]
                 },
                 {

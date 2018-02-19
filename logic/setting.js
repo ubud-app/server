@@ -65,16 +65,7 @@ class SettingLogic extends BaseLogic {
                 where: {
                     id: model.documentId
                 },
-                include: options.session.user.isAdmin ? [] : [{
-                    model: DatabaseHelper.get('user'),
-                    attributes: [],
-                    where: {
-                        id: options.session.userId
-                    },
-                    through: {
-                        attributes: []
-                    }
-                }]
+                include: DatabaseHelper.includeUserIfNotAdmin(options.session, {through: true})
             })
             .then(function (document) {
                 if (!document) {
@@ -113,13 +104,7 @@ class SettingLogic extends BaseLogic {
             include: [{
                 model: DatabaseHelper.get('document'),
                 attributes: [],
-                include: options.session.user.isAdmin ? [] : [{
-                    model: DatabaseHelper.get('user'),
-                    attributes: [],
-                    where: {
-                        id: options.session.userId
-                    }
-                }]
+                include: DatabaseHelper.includeUserIfNotAdmin(options.session)
             }]
         });
     }
@@ -129,14 +114,7 @@ class SettingLogic extends BaseLogic {
             include: [{
                 model: DatabaseHelper.get('document'),
                 required: true,
-                include: options.session.user.isAdmin ? [] : [{
-                    model: DatabaseHelper.get('user'),
-                    attributes: [],
-                    required: true,
-                    where: {
-                        id: options.session.userId
-                    }
-                }]
+                include: DatabaseHelper.includeUserIfNotAdmin(options.session)
             }]
         });
     }

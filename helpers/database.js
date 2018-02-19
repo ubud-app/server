@@ -240,6 +240,40 @@ class DatabaseHelper {
     }
 
     /**
+     * Small helper for checking permissions via database.
+     * Adds an include for the user if it's not an admin, which
+     * can generally see everything…
+     *
+     * @param {Session} session
+     * @param {Object} [options]
+     * @param {Boolean} [options.through]
+     * @returns {*}
+     */
+    static includeUserIfNotAdmin(session, options) {
+        if(!session || !session.user) {
+            throw new Error('includeUserIfNotAdmin: Session is not valid!');
+        }
+        if(session.user.isAdmin) {
+            return [];
+        }
+
+        options = options || {};
+
+        const result = [{
+            model: this.get('user'),
+            attributes: [],
+            where: {
+                id: session.userId
+            }
+        }];
+
+        if(options.through) {
+            result[0].through = {attributes: []};
+        }
+    }
+
+
+    /**
      * Returns the Sequelize Op Object…
      * @param {String} [operator]
      * @returns {Sequelize.Op}

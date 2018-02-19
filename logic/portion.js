@@ -38,13 +38,7 @@ class PortionLogic extends BaseLogic {
                     include: [{
                         model: DatabaseHelper.get('document'),
                         attributes: [],
-                        include: options.session.user.isAdmin ? [] : [{
-                            model: DatabaseHelper.get('user'),
-                            attributes: [],
-                            where: {
-                                id: options.session.userId
-                            }
-                        }]
+                        include: DatabaseHelper.includeUserIfNotAdmin(options.session)
                     }]
                 }]
             }]
@@ -87,14 +81,7 @@ class PortionLogic extends BaseLogic {
                     where: {
                         id: params.document
                     },
-
-                    include: options.session.user.isAdmin ? [] : [{
-                        model: DatabaseHelper.get('user'),
-                        attributes: [],
-                        where: {
-                            id: options.session.userId
-                        }
-                    }]
+                    include: DatabaseHelper.includeUserIfNotAdmin(options.session)
                 }]
             }]
         })
