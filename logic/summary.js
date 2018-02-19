@@ -73,7 +73,9 @@ class SummaryLogic extends BaseLogic {
         /*
          *   1. Fetch Summary
          */
-        return SummaryLogic.getModel().findOne({
+        return SummaryLogic
+            .getModel()
+            .findOne({
                 where: {
                     month
                 },
@@ -102,7 +104,9 @@ class SummaryLogic extends BaseLogic {
                     return Promise.resolve([summary]);
                 }
 
-                return DatabaseHelper.get('document').findOne({
+                return DatabaseHelper
+                    .get('document')
+                    .findOne({
                         where: {
                             id: params.document
                         },
@@ -162,101 +166,105 @@ class SummaryLogic extends BaseLogic {
         const DatabaseHelper = require('../helpers/database');
         const monthMoment = moment(summary.month);
 
-        return Promise.all([
+        return Promise
+            .all([
                 /*
                  *   0: incomeTillLastMonth
                  */
-                DatabaseHelper.get('unit').findOne({
-                    attributes: [
-                        [DatabaseHelper.sum('unit.amount'), 'incomeTillLastMonth']
-                    ],
-                    where: {
-                        [DatabaseHelper.op('or')]: [
-                            {
-                                incomeMonth: 'this',
-                                '$transaction.time$': {
-                                    [DatabaseHelper.op('lte')]: moment(monthMoment).subtract(1, 'month').endOf('month').toJSON()
+                DatabaseHelper.get('unit')
+                    .findOne({
+                        attributes: [
+                            [DatabaseHelper.sum('unit.amount'), 'incomeTillLastMonth']
+                        ],
+                        where: {
+                            [DatabaseHelper.op('or')]: [
+                                {
+                                    incomeMonth: 'this',
+                                    '$transaction.time$': {
+                                        [DatabaseHelper.op('lte')]: moment(monthMoment).subtract(1, 'month').endOf('month').toJSON()
+                                    }
+                                },
+                                {
+                                    incomeMonth: 'next',
+                                    '$transaction.time$': {
+                                        [DatabaseHelper.op('lte')]: moment(monthMoment).subtract(2, 'month').endOf('month').toJSON()
+                                    }
                                 }
-                            },
-                            {
-                                incomeMonth: 'next',
-                                '$transaction.time$': {
-                                    [DatabaseHelper.op('lte')]: moment(monthMoment).subtract(2, 'month').endOf('month').toJSON()
-                                }
-                            }
-                        ]
-                    },
-                    include: [{
-                        model: DatabaseHelper.get('transaction'),
-                        attributes: [],
-                        required: true,
+                            ]
+                        },
                         include: [{
-                            model: DatabaseHelper.get('account'),
+                            model: DatabaseHelper.get('transaction'),
                             attributes: [],
-                            where: {
-                                documentId: summary.documentId
-                            }
-                        }]
-                    }],
-                    raw: true
-                }),
+                            required: true,
+                            include: [{
+                                model: DatabaseHelper.get('account'),
+                                attributes: [],
+                                where: {
+                                    documentId: summary.documentId
+                                }
+                            }]
+                        }],
+                        raw: true
+                    }),
 
                 /*
                  *   1: budgetedTillLastMonth
                  */
-                DatabaseHelper.get('portion').findOne({
-                    attributes: [
-                        [DatabaseHelper.sum('budgeted'), 'budgetedTillLastMonth']
-                    ],
-                    where: {
-                        month: {
-                            [DatabaseHelper.op('lte')]: moment(monthMoment).subtract(1, 'month').format('YYYY-MM')
-                        }
-                    },
-                    include: [{
-                        model: DatabaseHelper.get('budget'),
-                        attributes: [],
-                        required: true,
-                        include: [{
-                            model: DatabaseHelper.get('category'),
-                            attributes: [],
-                            where: {
-                                documentId: summary.documentId
+                DatabaseHelper.get('portion')
+                    .findOne({
+                        attributes: [
+                            [DatabaseHelper.sum('budgeted'), 'budgetedTillLastMonth']
+                        ],
+                        where: {
+                            month: {
+                                [DatabaseHelper.op('lte')]: moment(monthMoment).subtract(1, 'month').format('YYYY-MM')
                             }
-                        }]
-                    }],
-                    raw: true
-                }),
+                        },
+                        include: [{
+                            model: DatabaseHelper.get('budget'),
+                            attributes: [],
+                            required: true,
+                            include: [{
+                                model: DatabaseHelper.get('category'),
+                                attributes: [],
+                                where: {
+                                    documentId: summary.documentId
+                                }
+                            }]
+                        }],
+                        raw: true
+                    }),
 
                 /*
                  *   2: unbudgetedUnitsTillLastMonth
                  */
-                DatabaseHelper.get('unit').findOne({
-                    attributes: [
-                        [DatabaseHelper.sum('unit.amount'), 'unbudgetedUnitsTillLastMonth']
-                    ],
-                    where: {
-                        incomeMonth: null,
-                        budgetId: null
-                    },
-                    include: [{
-                        model: DatabaseHelper.get('transaction'),
-                        attributes: [],
+                DatabaseHelper.get('unit')
+                    .findOne({
+                        attributes: [
+                            [DatabaseHelper.sum('unit.amount'), 'unbudgetedUnitsTillLastMonth']
+                        ],
                         where: {
-                            time: {
-                                [DatabaseHelper.op('lte')]: moment(monthMoment).subtract(1, 'month').endOf('month').toJSON()
-                            }
+                            incomeMonth: null,
+                            budgetId: null
                         },
                         include: [{
-                            model: DatabaseHelper.get('account'),
+                            model: DatabaseHelper.get('transaction'),
                             attributes: [],
                             where: {
-                                documentId: summary.documentId
-                            }
-                        }]
-                    }],
-                    raw: true
-                }),
+                                time: {
+                                    [DatabaseHelper.op('lte')]: moment(monthMoment).subtract(1, 'month').endOf('month').toJSON()
+                                }
+                            },
+                            include: [{
+                                model: DatabaseHelper.get('account'),
+                                attributes: [],
+                                where: {
+                                    documentId: summary.documentId
+                                }
+                            }]
+                        }],
+                        raw: true
+                    }),
 
                 /*
                  *   3: unbudgetedTransactionsTillLastMonth

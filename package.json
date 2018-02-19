@@ -1,50 +1,51 @@
 {
-  "name": "@dwimm/server",
-  "version": null,
-  "description": "",
-  "bin": {
-    "dwimm-db": "./bin/database",
-    "dwimm-plugin": "./bin/plugin",
-    "dwimm-server": "./server.js"
-  },
-  "scripts": {
-    "check": "npm run check:eslint && npm run check:nsp",
-    "check:quick": "npm run check:eslint",
-    "check:eslint": "eslint ./",
-    "check:nsp": "nsp check || true",
-    "visualize": "plato -rt dwimm-server -d ./code-visualization -e \".eslintrc.json\" -x 'code-visualization|node_modules' ./**/*.js",
-    "bump:reset": "export MODULEVERSION=$(npm view @dwimm/server version) && npm run bump:reset:save",
-    "bump:reset:next": "export MODULEVERSION=$(npm view @dwimm/server@next version) && npm run bump:reset:save",
-    "bump:reset:save": "node ./.ci-update-version",
-    "bump:develop": "npm run bump:reset:next && npm --no-git-tag-version version prerelease",
-    "bump:production": "npm run bump:reset && npm --no-git-tag-version version from-git"
-  },
-  "author": "Sebastian Pekarek <mail@sebbo.net>",
-  "dependencies": {
-    "basic-auth": "^2.0.0",
-    "bcrypt": "^1.0.3",
-    "body-parser": "^1.18.2",
-    "bunyan": "^1.8.12",
-    "cli-table": "^0.3.1",
-    "commander": "^2.14.1",
-    "email-validator": "^1.1.1",
-    "express": "^4.16.2",
-    "moment": "^2.20.1",
-    "mysql2": "^1.5.2",
-    "nsp": "^3.2.1",
-    "promised-exec": "^1.0.1",
-    "raven": "^2.4.1",
-    "request-promise-native": "^1.0.5",
-    "sequelize": "^4.33.4",
-    "shell-escape": "^0.2.0",
-    "socket.io": "^2.0.4",
-    "umzug": "^2.1.0",
-    "underscore": "^1.8.3",
-    "uuid": "^3.2.1"
-  },
-  "devDependencies": {
-    "eslint": "^4.18.0",
-    "eslint-plugin-security": "^1.4.0",
-    "plato": "^1.7.0"
-  }
+	"name": "@dwimm/server",
+	"description": "",
+	"bin": {
+		"dwimm-db": "./bin/database",
+		"dwimm-plugin": "./bin/plugin",
+		"dwimm-server": "./server.js"
+	},
+	"scripts": {
+		"check": "npm run check:eslint && npm run check:npm && npm run check:nsp",
+		"check:quick": "npm run check:eslint",
+		"check:eslint": "eslint ./",
+		"check:nsp": "nsp check || true",
+		"check:npm": "npm-check -s",
+		"visualize": "plato -rt dwimm-server -d ./code-visualization -e \".eslintrc.json\" -x 'code-visualization|node_modules' ./**/*.js",
+		"bump:reset": "export MODULEVERSION=$(npm view @dwimm/server version) && npm run bump:reset:save",
+		"bump:reset:next": "export MODULEVERSION=$(npm view @dwimm/server@next version) && npm run bump:reset:save",
+		"bump:reset:save": "node ./.ci-update-version",
+		"bump:develop": "npm run bump:reset:next && npm --no-git-tag-version version prerelease",
+		"bump:production": "npm run bump:reset && npm --no-git-tag-version version from-git"
+	},
+	"author": "Sebastian Pekarek <mail@sebbo.net>",
+	"dependencies": {
+		"basic-auth": "^2.0.0",
+		"bcrypt": "^1.0.3",
+		"body-parser": "^1.18.2",
+		"bunyan": "^1.8.12",
+		"cli-table": "^0.3.1",
+		"commander": "^2.14.1",
+		"email-validator": "^1.1.1",
+		"express": "^4.16.2",
+		"moment": "^2.20.1",
+		"mysql2": "^1.5.2",
+		"promised-exec": "^1.0.1",
+		"raven": "^2.4.1",
+		"request-promise-native": "^1.0.5",
+		"sequelize": "^4.33.4",
+		"shell-escape": "^0.2.0",
+		"socket.io": "^2.0.4",
+		"umzug": "^2.1.0",
+		"underscore": "^1.8.3",
+		"uuid": "^3.2.1"
+	},
+	"devDependencies": {
+		"check-npm": "^1.0.0",
+		"eslint": "^4.18.0",
+		"eslint-plugin-security": "^1.4.0",
+		"nsp": "^3.2.1",
+		"plato": "^1.7.0"
+	}
 }
