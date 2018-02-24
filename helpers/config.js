@@ -21,7 +21,7 @@ if (!database) {
 }
 
 // Sentry DSN
-sentryDSN = process.env['SENTRY'];
+sentryDSN = process.env['SENTRY_DSN'];
 
 // Client / UI
 try {
