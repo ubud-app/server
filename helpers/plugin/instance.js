@@ -843,7 +843,7 @@ class PluginInstance extends EventEmitter {
                 log.info('Plugin %s: Add unit to match transaction %s\'s amount', this.id().substr(0, 5), transactionModel.id);
 
                 const unit = await DatabaseHelper.get('unit').create({
-                    amount: transaction.amount,
+                    amount: diff,
                     budgetId: null,
                     transactionId: transactionModel.id,
                     incomeMonth: null
