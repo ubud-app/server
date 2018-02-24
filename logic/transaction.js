@@ -369,7 +369,7 @@ class TransactionLogic extends BaseLogic {
         let recalculateFrom = moment(timeMoment).startOf('month');
 
         // Time
-        if (body.time && moment(body.time).isSame(timeMoment)) {
+        if (body.time && !moment(body.time).isSame(timeMoment)) {
             model.time = body.time;
             timeMoment = moment(body.time);
 

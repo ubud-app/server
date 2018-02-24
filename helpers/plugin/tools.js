@@ -30,6 +30,19 @@ class PluginTools {
 }
 
 PluginTools.Config = class {
+
+    /**
+     * Use this Constructor to add a configuration this plugin
+     * requires to do it's work…
+     *
+     * @param {Object} options
+     * @param {String} options.id ID
+     * @param {Object} [options.value] Value
+     * @param {Object} [options.defaultValue] Default Value
+     * @param {String} options.type One of text, email, number, password or tel
+     * @param {String} options.label Label key
+     * @param {String} [options.placeholder] Placeholder
+     */
     constructor(options) {
 
         // id
@@ -92,14 +105,28 @@ PluginTools.Config = class {
         config.push(this);
     }
 
+    /**
+     * Returns the id of this configuration
+     * @returns {String}
+     */
     id() {
         return this._values.id;
     }
 
+    /**
+     * Returns the value of this configuration
+     * @returns {Object}
+     */
     value() {
         return this._values.value;
     }
 
+    /**
+     * Returns a JSON representation of the
+     * configuration data
+     *
+     * @returns {{id: String, value: Object, defaultValue: Object|null, type: String, label: String, placeholder: String|null}}
+     */
     toJSON() {
         return this._values;
     }
