@@ -451,7 +451,7 @@ class PluginInstance extends EventEmitter {
     async cron () {
         if (this._supported.indexOf('getAccounts') > -1 && this._supported.indexOf('getTransactions') > -1) {
             this.syncAccounts().catch(err => {
-                log.warn('Unable to sync transactions with plugin %s: %s', this.type(), err);
+                log.error('Unable to sync transactions with plugin %s: %s', this.type(), err);
                 log.error(err);
             });
         }
@@ -464,7 +464,12 @@ class PluginInstance extends EventEmitter {
      */
     async syncAccounts () {
         const accounts = await PluginInstance.request(this, this.type(), 'getAccounts', this.generateConfig());
-        await Promise.all(accounts.map(account => this.syncAccount(account)));
+        await Promise.all(
+            accounts.map(account => this.syncAccount(account).catch(err => {
+                log.error('Unable to sync account `%s` with plugin %s: %s', account.id, this.type(), err);
+                log.error(err);
+            }))
+        );
     }
 
     /**
@@ -511,7 +516,7 @@ class PluginInstance extends EventEmitter {
             attributes: ['time'],
             where: {
                 status: 'cleared',
-                accountId: account.id
+                accountId: accountModel.id
             },
             order: [
                 ['time', 'DESC']
@@ -524,7 +529,7 @@ class PluginInstance extends EventEmitter {
             attributes: ['time'],
             where: {
                 status: 'pending',
-                accountId: account.id
+                accountId: accountModel.id
             },
             order: [
                 ['time', 'ASC']
@@ -535,10 +540,16 @@ class PluginInstance extends EventEmitter {
 
         // find out sync begin
         let syncBeginningFrom = moment().startOf('month');
+        if(moment().date() < 15) {
+            syncBeginningFrom = moment().subtract(1, 'month').startOf('month');
+        }
+
         if (newestClearedTransaction) {
-            syncBeginningFrom = moment(newestClearedTransaction.time).subtract(14, 'day').startOf('day');
+            log.info('Plugin %s: Newest cleared one: %s', this.id().substr(0, 5), newestClearedTransaction.time);
+            syncBeginningFrom = moment(newestClearedTransaction.time).subtract(1, 'month').startOf('day');
         }
         if (oldestPendingTransaction && moment(oldestPendingTransaction.time).isBefore(syncBeginningFrom)) {
+            log.info('Plugin %s: Oldest pending one: %s', this.id().substr(0, 5), oldestPendingTransaction.time);
             syncBeginningFrom = moment(oldestPendingTransaction.time).startOf('day');
         }
 
@@ -573,7 +584,10 @@ class PluginInstance extends EventEmitter {
                     return null;
                 }
 
-                return this.syncTransaction(accountModel, transaction, transactions);
+                return this.syncTransaction(accountModel, transaction, transactions).catch(err => {
+                    log.error('Unable to sync transaction with plugin:\n', transaction);
+                    throw err;
+                });
             })
         );
 
@@ -761,11 +775,12 @@ class PluginInstance extends EventEmitter {
             });
 
             // use most used payeeId for our new transaction
-            let best = {count: 0, id: null};
+            let best = {count: 0, id: null, sum: 0};
             payees.forEach(payee => {
                 if (payee.count > best.count) {
                     best.count = payee.count;
                     best.id = payee.payeeId;
+                    best.sum += payee.count;
                 }
             });
             log.info(
@@ -773,7 +788,7 @@ class PluginInstance extends EventEmitter {
                 this.id().substr(0, 5),
                 best.id,
                 best.count,
-                payees.length
+                best.sum
             );
 
             if (best.id && (best.count >= 3 || payees.length === 1)) {
@@ -790,11 +805,21 @@ class PluginInstance extends EventEmitter {
             // Ask plugins to add metadata
             const PluginHelper = require('./index');
             const allPlugins = await PluginHelper.listPlugins();
-            await Promise.all(
-                allPlugins
-                    .filter(p => p.supported().includes('getMetadata'))
-                    .map(p => p.getMetadata(transactionModel))
-            );
+            const allMetadataPlugins = allPlugins.filter(p => p.supported().includes('getMetadata'));
+
+            if(allMetadataPlugins.length > 0) {
+                log.info(
+                    'Plugin %s: Ask %s metadata plugins for information about this transaction…',
+                    this.id().substr(0, 5),
+                    allMetadataPlugins.length
+                );
+
+                await Promise.all(
+                    allMetadataPlugins.map(p => p.getMetadata(transactionModel))
+                );
+
+                log.info('Plugin %s: Metadata complete.', this.id().substr(0, 5));
+            }
         }
 
         // update transaction attributes
@@ -803,13 +828,39 @@ class PluginInstance extends EventEmitter {
         transactionModel.status = transaction.status;
         transactionModel.pluginsOwnMemo = transaction.memo;
 
-        // update transaction amount -> reset units if amount changes
+        // update transaction amount -> add unit with difference
         if (transactionModel.amount !== transaction.amount) {
+            const diff = transaction.amount - transactionModel.amount;
             transactionModel.amount = transaction.amount;
-            await transactionModel.setUnits([]);
+
+            const units = await transactionModel.getUnits();
+            if(units.length === 1) {
+                log.info('Plugin %s: Update unit %s to match transaction', this.id().substr(0, 5), units[0].id);
+
+                units[0].amount = transaction.amount;
+                await units[0].save();
+            }else{
+                log.info('Plugin %s: Add unit to match transaction %s\'s amount', this.id().substr(0, 5), transactionModel.id);
+
+                const unit = await DatabaseHelper.get('unit').create({
+                    amount: transaction.amount,
+                    budgetId: null,
+                    transactionId: transactionModel.id,
+                    incomeMonth: null
+                });
+
+                await transactionModel.addUnit(unit);
+            }
         }
 
-        await transactionModel.save();
+        try {
+            await transactionModel.save();
+        }
+        catch(err) {
+            log.error('Unable to sync transaction: saving transaction failed.\n\n' + JSON.stringify(transactionModel.dataValues));
+            throw err;
+        }
+
         return transactionModel;
     }
 
@@ -856,7 +907,13 @@ class PluginInstance extends EventEmitter {
 
         // persist transaction to get it's id
         if(metadata.find(m => m.type === 'split')) {
-            await transactionModel.save();
+            try {
+                await transactionModel.save();
+            }
+            catch(err) {
+                log.error('Unable to sync metadata: saving transaction failed.\n\n' + JSON.stringify(transactionModel.dataValues));
+                throw err;
+            }
         }
 
         metadata.forEach(m => {
