@@ -968,7 +968,6 @@ class PluginInstance extends EventEmitter {
      * @returns {Promise<void>}
      */
     async syncGoal(goal) {
-        const moment = require('moment');
         const BudgetLogic = require('../../logic/budgets');
 
         // find transaction model

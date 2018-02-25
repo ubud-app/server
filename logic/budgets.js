@@ -20,7 +20,7 @@ class BudgetLogic extends BaseLogic {
             goal: budget.goal,
             hidden: budget.hidden,
             overspending: budget.overspending,
-            pluginId: budget.pluginId,
+            pluginInstanceId: budget.pluginInstanceId,
             categoryId: budget.categoryId
         };
     }
