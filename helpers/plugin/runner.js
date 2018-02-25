@@ -41,6 +41,9 @@ class PluginRunner {
         else if (job.method === 'getMetadata') {
             return this.getMetadata(job);
         }
+        else if (job.method === 'getGoals') {
+            return this.getGoals(job);
+        }
         else {
             throw new Error('Unimplemented method: `' + job.method + '`');
         }
@@ -231,6 +234,23 @@ class PluginRunner {
             }
 
             return m.toJSON();
+        });
+    }
+
+    /**
+     * Get Goals
+     *
+     * @param {object} job
+     * @returns {Promise.<void>}
+     */
+    static async getGoals(job) {
+        const goals = await job.plugin.getGoals();
+        return goals.map(goal => {
+            if(!(goal instanceof PluginTools.Goal)) {
+                throw new Error('Goal has to be instance of PluginTools.Goal!');
+            }
+
+            return goal.toJSON();
         });
     }
 }

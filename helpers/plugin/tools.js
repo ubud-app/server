@@ -329,7 +329,47 @@ PluginTools.Unit = class {
 };
 
 PluginTools.Goal = class {
-    // @todo
+    constructor (options) {
+        // id
+        if(!options.id) {
+            throw new Error('`id` is required!');
+        }
+        if(typeof options.id !== 'string') {
+            throw new Error('`id` has to be a string');
+        }
+        if(options.id.length > 255) {
+            throw new Error('`id` has a max length of 255');
+        }
+
+        // title
+        if(!options.title) {
+            throw new Error('`title` is required!');
+        }
+        if(typeof options.title !== 'string') {
+            throw new Error('`title` has to be a string');
+        }
+        if(options.title.length > 255) {
+            throw new Error('`title` has a max length of 255');
+        }
+
+        // price
+        if(!options.price && options.price !== 0) {
+            throw new Error('`price` is required!');
+        }
+        if(!Number.isInteger(options.price)) {
+            throw new Error('`price` has to be an integer');
+        }
+
+        this._values = {
+            id: options.id,
+            title: options.title,
+            price: options.price
+        };
+    }
+
+    toJSON() {
+        return this._values;
+    }
 };
 
 PluginTools.ConfigurationError = class {

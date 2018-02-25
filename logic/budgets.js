@@ -159,8 +159,15 @@ class BudgetLogic extends BaseLogic {
             });
         }
 
-        if (body.goal !== undefined) {
+        if (body.goal !== undefined && !model.pluginInstanceId) {
             model.goal = parseInt(body.goal, 10) || null;
+        }
+        else if (body.goal !== undefined) {
+            throw new ErrorResponse(400, 'Attribute `Budget.goal` is managed by a plugin, you are not allowed to update it…', {
+                attributes: {
+                    name: 'Managed by a plugin, not allowed to be changed…'
+                }
+            });
         }
         if (body.hidden !== undefined) {
             model.hidden = !!body.hidden;

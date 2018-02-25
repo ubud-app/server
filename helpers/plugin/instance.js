@@ -113,6 +113,7 @@ class PluginInstance extends EventEmitter {
         // ask plugin for supported methods
         try {
             this._supported = await PluginInstance.request(this, this.type(), 'getSupported', {});
+            log.info('Plugin %s supports: %s', this.type(), this._supported.join(', '));
         }
         catch (err) {
             log.warn('Unable to load supported methods of plugin `%s`, skip it…', this._model.type);
@@ -452,6 +453,12 @@ class PluginInstance extends EventEmitter {
         if (this._supported.indexOf('getAccounts') > -1 && this._supported.indexOf('getTransactions') > -1) {
             this.syncAccounts().catch(err => {
                 log.error('Unable to sync transactions with plugin %s: %s', this.type(), err);
+                log.error(err);
+            });
+        }
+        if (this._supported.indexOf('getGoals') > -1) {
+            this.syncGoals().catch(err => {
+                log.error('Unable to sync goals with plugin %s: %s', this.type(), err);
                 log.error(err);
             });
         }
@@ -934,6 +941,129 @@ class PluginInstance extends EventEmitter {
         });
 
         return transactionModel;
+    }
+
+    /**
+     * Synchronizes the goals this plugin provides…
+     *
+     * @returns {Promise<void>}
+     */
+    async syncGoals() {
+        const goals = await PluginInstance.request(this, this.type(), 'getGoals', this.generateConfig());
+        await Promise.all(
+            goals.map(goal => this.syncGoal(goal).catch(err => {
+                log.error('Unable to sync goal `%s` with plugin %s: %s', goal.id, this.type(), err);
+                log.error(err);
+            }))
+        );
+    }
+
+    /**
+     * Synchronizes a single goal with the database
+     *
+     * @param {Object} goal
+     * @param {String} goal.id
+     * @param {String} goal.title
+     * @param {Number} goal.price
+     * @returns {Promise<void>}
+     */
+    async syncGoal(goal) {
+        const moment = require('moment');
+        const BudgetLogic = require('../../logic/budgets');
+
+        // find transaction model
+        let budgetModel = await BudgetLogic.getModel().findOne({
+            where: {
+                pluginInstanceId: this.id(),
+                pluginsOwnId: goal.id
+            }
+        });
+
+        // create new budget model if not already there
+        if (!budgetModel) {
+            budgetModel = await BudgetLogic.getModel().build({
+                pluginInstanceId: this.id(),
+                pluginsOwnId: goal.id
+            });
+        }
+
+        // if category not set: use the one other goals are already in
+        if(!budgetModel.categoryId) {
+            const bestMatch = await BudgetLogic.getModel().findOne({
+                attributes: [
+                    'categoryId',
+                    [DatabaseHelper.count('*'), 'sum']
+                ],
+                where: {
+                    pluginInstanceId: this.id()
+                },
+                group: 'categoryId',
+                order: [[DatabaseHelper.literal('sum'), 'DESC']],
+                raw: true
+            });
+            if(bestMatch) {
+                budgetModel.categoryId = bestMatch.categoryId;
+            }
+        }
+
+        // if category still not set: use the one other plugins used to save goals in
+        if(!budgetModel.categoryId) {
+            const bestMatch = await BudgetLogic.getModel().findOne({
+                attributes: [
+                    'categoryId',
+                    [DatabaseHelper.count('*'), 'sum']
+                ],
+                include: [{
+                    model: DatabaseHelper.get('category'),
+                    attributes: [],
+                    where: {
+                        documentId: this.documentId()
+                    }
+                }],
+                group: 'categoryId',
+                order: [[DatabaseHelper.literal('sum'), 'DESC']],
+                raw: true
+            });
+            if(bestMatch) {
+                budgetModel.categoryId = bestMatch.categoryId;
+            }
+        }
+
+        // if category still not set: use last category in document
+        if(!budgetModel.categoryId) {
+            const bestMatch = await DatabaseHelper.get('category').findOne({
+                attributes: ['categoryId'],
+                where: {
+                    documentId: this.documentId()
+                },
+                order: [['name', 'DESC']],
+                raw: true
+            });
+            if(bestMatch) {
+                budgetModel.categoryId = bestMatch.categoryId;
+            }
+        }
+
+        // if category still not set: create one
+        if(!budgetModel.categoryId) {
+            const newCategory = await DatabaseHelper.get('category').create({
+                name: this.type(),
+                documentId: this.documentId()
+            });
+
+            budgetModel.categoryId = newCategory.id;
+        }
+
+        budgetModel.name = goal.title;
+        budgetModel.goal = goal.price;
+
+        try {
+            await budgetModel.save();
+        }
+        catch(err) {
+            log.error('Unable to sync goal: saving budget failed.\n\n' + JSON.stringify(budgetModel.dataValues));
+            throw err;
+        }
     }
 
     /**
