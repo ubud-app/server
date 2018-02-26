@@ -982,7 +982,8 @@ class PluginInstance extends EventEmitter {
         if (!budgetModel) {
             budgetModel = await BudgetLogic.getModel().build({
                 pluginInstanceId: this.id(),
-                pluginsOwnId: goal.id
+                pluginsOwnId: goal.id,
+                name: goal.title
             });
         }
 
@@ -1053,7 +1054,6 @@ class PluginInstance extends EventEmitter {
             budgetModel.categoryId = newCategory.id;
         }
 
-        budgetModel.name = goal.title;
         budgetModel.goal = goal.price;
 
         try {
