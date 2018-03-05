@@ -22,7 +22,7 @@ class TransactionLogic extends BaseLogic {
             memo: transaction.memo,
             payeeId: transaction.payeeId,
             pluginsOwnPayeeId: transaction.pluginsOwnPayeeId,
-            units: transaction.units.map(unit => {
+            units: (transaction.units || []).map(unit => {
                 let budget = unit.budgetId;
                 if (unit.incomeMonth === 'this') {
                     budget = 'income-0';
