@@ -270,6 +270,8 @@ class DatabaseHelper {
         if(options.through) {
             result[0].through = {attributes: []};
         }
+
+        return result;
     }
 
 

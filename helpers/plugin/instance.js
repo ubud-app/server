@@ -1032,7 +1032,7 @@ class PluginInstance extends EventEmitter {
         // if category still not set: use last category in document
         if(!budgetModel.categoryId) {
             const bestMatch = await DatabaseHelper.get('category').findOne({
-                attributes: ['categoryId'],
+                attributes: ['name', 'categoryId'],
                 where: {
                     documentId: this.documentId()
                 },

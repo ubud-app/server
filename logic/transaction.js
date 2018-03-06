@@ -138,6 +138,7 @@ class TransactionLogic extends BaseLogic {
                 include: [{
                     model: DatabaseHelper.get('document'),
                     attributes: ['id'],
+                    required: true,
                     include: DatabaseHelper.includeUserIfNotAdmin(options.session)
                 }]
             })
