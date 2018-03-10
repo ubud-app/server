@@ -22,6 +22,9 @@ if (!database) {
 
 // Sentry DSN
 sentryDSN = process.env['SENTRY_DSN'];
+if(sentryDSN === undefined) {
+    sentryDSN = 'https://aeb063cd52664d62bcb7d3324e6e9e89:d3655f9062844f43944ff508822cb58f@sentry.sebbo.net/5';
+}
 
 // Client / UI
 try {
