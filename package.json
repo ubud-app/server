@@ -34,7 +34,7 @@
 		"promised-exec": "^1.0.1",
 		"raven": "^2.4.2",
 		"request-promise-native": "^1.0.5",
-		"sequelize": "^4.36.1",
+		"sequelize": "^4.37.0",
 		"shell-escape": "^0.2.0",
 		"socket.io": "^2.0.4",
 		"umzug": "^2.1.0",
