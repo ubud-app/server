@@ -3,6 +3,8 @@
 const _ = require('underscore');
 const BaseLogic = require('./_');
 const ErrorResponse = require('../helpers/errorResponse');
+const LogHelper = require('../helpers/log');
+const log = new LogHelper('ServerHelper');
 
 class TransactionLogic extends BaseLogic {
     static getModelName() {
@@ -60,6 +62,8 @@ class TransactionLogic extends BaseLogic {
         const DatabaseHelper = require('../helpers/database');
         const model = this.getModel().build();
         let documentId;
+
+        log.debug('CreateTransactionBody:', body);
 
         // date & time
         model.time = body.time;
