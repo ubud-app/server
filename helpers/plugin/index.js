@@ -173,22 +173,23 @@ class PluginHelper {
     static async _runPackageInstall(type) {
         const exec = require('promised-exec');
         const escape = require('shell-escape');
+        let res;
 
-        // use --save because of https://github.com/npm/npm/issues/17379
-        return exec(escape(['npm', 'install', type, '--save']))
-            .then(res => {
-                const id = res.split('\n').find(l => l.trim().substr(0, 1) === '+');
+        try {
+            // use --save because of https://github.com/npm/npm/issues/17379
+            res = await exec(escape(['npm', 'install', type, '--save']));
+        }
+        catch(err) {
+            log.error(err.string);
+            throw new Error('Unable to install required package via npm`: ' + err.string);
+        }
 
-                if (!id) {
-                    throw new Error('Plugin installed, but unable to get plugin name. Output was `%s`', res);
-                }
+        const id = res.split('\n').find(l => l.trim().substr(0, 1) === '+');
+        if (!id) {
+            throw new Error('Plugin installed, but unable to get plugin name. Output was `' + res + '`');
+        }
 
-                return id.substr(2, id.lastIndexOf('@') - 2).trim();
-            })
-            .catch(e => {
-                log.error(e.string);
-                throw new Error('Unable to install required package via npm`: ' + e.string);
-            });
+        return id.substr(2, id.lastIndexOf('@') - 2).trim();
     }
 
     static async _runPackageRemove(type) {

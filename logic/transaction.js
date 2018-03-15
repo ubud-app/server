@@ -3,8 +3,6 @@
 const _ = require('underscore');
 const BaseLogic = require('./_');
 const ErrorResponse = require('../helpers/errorResponse');
-const LogHelper = require('../helpers/log');
-const log = new LogHelper('ServerHelper');
 
 class TransactionLogic extends BaseLogic {
     static getModelName() {
@@ -63,8 +61,6 @@ class TransactionLogic extends BaseLogic {
         const model = this.getModel().build();
         let documentId;
 
-        log.debug('CreateTransactionBody:', body);
-
         // date & time
         model.time = body.time;
         if (!model.time) {
@@ -98,7 +94,7 @@ class TransactionLogic extends BaseLogic {
 
         // amount
         model.amount = parseInt(body.amount, 10) || null;
-        if (isNaN(model.amount)) {
+        if (isNaN(model.amount) || model.amount === 0) {
             throw new ErrorResponse(400, 'Transaction requires attribute `amount`…', {
                 attributes: {
                     amount: 'Is required!'
