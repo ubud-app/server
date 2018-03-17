@@ -34,7 +34,7 @@
 		"promised-exec": "^1.0.1",
 		"raven": "^2.4.2",
 		"request-promise-native": "^1.0.5",
-		"sequelize": "^4.37.0",
+		"sequelize": "^4.37.1",
 		"shell-escape": "^0.2.0",
 		"socket.io": "^2.0.4",
 		"umzug": "^2.1.0",
@@ -42,7 +42,7 @@
 		"uuid": "^3.2.1"
 	},
 	"devDependencies": {
-		"eslint": "^4.18.2",
+		"eslint": "^4.19.0",
 		"eslint-plugin-security": "^1.4.0",
 		"npm-check": "^5.5.2",
 		"nsp": "^3.2.1",
