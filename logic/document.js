@@ -147,9 +147,45 @@ class DocumentLogic extends BaseLogic {
 
         await model.save();
 
+        // settings
+        if (body.settings !== undefined) {
+
+            // delete old and unused settings
+            await Promise.all(model.settings.map(setting => {
+                if(Object.keys(body.settings).indexOf(setting.key) === -1) {
+                    return setting.destroy();
+                }
+
+                return Promise.resolve();
+            }));
+
+            // compare new vs old
+            model.settings = await Promise.all(Object.entries(body.settings).map(([key, value]) => {
+                const oldSetting = model.settings.find(s => s.key === key);
+                const newValue = JSON.stringify(value);
+
+                if (oldSetting && oldSetting.value === newValue) {
+                    return Promise.resolve(oldSetting);
+                }
+                else if (oldSetting) {
+                    oldSetting.value = newValue;
+                    return oldSetting.save();
+                }
+                else {
+                    return DatabaseHelper
+                        .get('setting')
+                        .create({
+                            key: key,
+                            value: newValue,
+                            documentId: model.id
+                        });
+                }
+            }));
+        }
+
         // all done for non-admins
-        if (!options.session.user.isAdmin) {
-            return model;
+        if (!options.session.user.isAdmin || !body.users) {
+            return {model};
         }
 
 
