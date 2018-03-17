@@ -239,7 +239,7 @@ class TransactionLogic extends BaseLogic {
                 }
             });
 
-            if (sum !== model.amount) {
+            if (body.units.length > 0 && sum !== model.amount) {
                 throw new ErrorResponse(400, 'Not able to update transaction: sum of units is not same as amount!', {
                     attributes: {
                         units: 'Does not match with amount',
