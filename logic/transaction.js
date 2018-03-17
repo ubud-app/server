@@ -361,6 +361,10 @@ class TransactionLogic extends BaseLogic {
             else if (k === 'document') {
                 sql.include[0].include[0].where = {id};
             }
+            else if (k === 'status') {
+                sql.where = sql.where || {};
+                sql.where.status = id;
+            }
             else {
                 throw new ErrorResponse(400, 'Unknown filter `' + k + '`!');
             }
@@ -375,7 +379,7 @@ class TransactionLogic extends BaseLogic {
 
         const checks = [];
         let timeMoment = moment(model.time);
-        let recalculateFrom = moment(timeMoment).startOf('month');
+        let recalculateFrom = null;
 
         // Time
         if (body.time && !moment(body.time).isSame(timeMoment)) {
@@ -383,6 +387,8 @@ class TransactionLogic extends BaseLogic {
             timeMoment = moment(body.time);
 
             if (timeMoment.isBefore(recalculateFrom)) {
+                recalculateFrom = moment(timeMoment).startOf('month');
+            }else{
                 recalculateFrom = moment(timeMoment).startOf('month');
             }
         }
@@ -436,6 +442,10 @@ class TransactionLogic extends BaseLogic {
         }
         if (body.amount !== undefined) {
             model.amount = parseInt(body.amount, 10) || null;
+
+            if(!recalculateFrom) {
+                recalculateFrom = moment(timeMoment).startOf('month');
+            }
         }
         if (isNaN(model.amount)) {
             throw new ErrorResponse(400, 'Transaction requires attribute `amount`…', {
@@ -530,6 +540,10 @@ class TransactionLogic extends BaseLogic {
                         throw e;
                     })
             );
+
+            if(!recalculateFrom) {
+                recalculateFrom = moment(timeMoment).startOf('month');
+            }
         }
 
         // Units / Budget
@@ -669,6 +683,10 @@ class TransactionLogic extends BaseLogic {
                         throw e;
                     })
             );
+
+            if(!recalculateFrom) {
+                recalculateFrom = moment(timeMoment).startOf('month');
+            }
         }
 
 
@@ -679,6 +697,11 @@ class TransactionLogic extends BaseLogic {
 
         await Promise.all(checks);
         await model.save();
+
+
+        if (recalculateFrom === null) {
+            return {model};
+        }
 
         const PortionLogic = require('../logic/portion');
         const SummaryLogic = require('../logic/summary');
