@@ -440,7 +440,7 @@ class TransactionLogic extends BaseLogic {
                 }
             });
         }
-        if (body.amount !== undefined) {
+        if (body.amount !== undefined && model.amount !== (parseInt(body.amount, 10) || null)) {
             model.amount = parseInt(body.amount, 10) || null;
 
             if(!recalculateFrom) {
@@ -602,15 +602,37 @@ class TransactionLogic extends BaseLogic {
                                     });
                                 }
 
-                                unitModel.amount = unit.amount;
+                                if(unit.amount !== unitModel.amount) {
+                                    unitModel.amount = unit.amount;
+
+                                    if(!recalculateFrom) {
+                                        recalculateFrom = moment(timeMoment).startOf('month');
+                                    }
+                                }
+
                                 unitModel.memo = unit.memo;
 
-                                if (unit.budgetId === 'income-0' || unit.budgetId === 'income-1') {
-                                    unitModel.incomeMonth = unit.budgetId === 'income-0' ? 'this' : 'next';
-                                    unitModel.budgetId = null;
-                                } else {
+                                if (unit.budgetId === 'income-0' && unitModel.incomeMonth !== 'this') {
+                                    unitModel.incomeMonth = 'this';
+
+                                    if(!recalculateFrom) {
+                                        recalculateFrom = moment(timeMoment).startOf('month');
+                                    }
+                                }
+                                else if (unit.budgetId === 'income-1' && unitModel.incomeMonth !== 'next') {
+                                    unitModel.incomeMonth = 'next';
+
+                                    if(!recalculateFrom) {
+                                        recalculateFrom = moment(timeMoment).startOf('month');
+                                    }
+                                }
+                                else if (unit.budgetId !== unit.budgetId) {
                                     unitModel.incomeMonth = null;
                                     unitModel.budgetId = unit.budgetId;
+
+                                    if(!recalculateFrom) {
+                                        recalculateFrom = moment(timeMoment).startOf('month');
+                                    }
                                 }
 
                                 units.push(unitModel);
@@ -633,6 +655,10 @@ class TransactionLogic extends BaseLogic {
                             })
                             .then(unit => {
                                 units.push(unit);
+
+                                if(!recalculateFrom) {
+                                    recalculateFrom = moment(timeMoment).startOf('month');
+                                }
                             })
                             .catch(e => {
                                 throw e;
@@ -651,6 +677,10 @@ class TransactionLogic extends BaseLogic {
                             })
                             .then(unit => {
                                 units.push(unit);
+
+                                if(!recalculateFrom) {
+                                    recalculateFrom = moment(timeMoment).startOf('month');
+                                }
                             })
                             .catch(e => {
                                 throw e;
@@ -683,10 +713,6 @@ class TransactionLogic extends BaseLogic {
                         throw e;
                     })
             );
-
-            if(!recalculateFrom) {
-                recalculateFrom = moment(timeMoment).startOf('month');
-            }
         }
 
 
