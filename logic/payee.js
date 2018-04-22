@@ -16,7 +16,8 @@ class PayeeLogic extends BaseLogic {
     static format(payee) {
         return {
             id: payee.id,
-            name: payee.name
+            name: payee.name,
+            documentId: payee.documentId
         };
     }
 
