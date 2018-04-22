@@ -822,7 +822,15 @@ class PluginInstance extends EventEmitter {
                 );
 
                 await Promise.all(
-                    allMetadataPlugins.map(p => p.getMetadata(transactionModel))
+                    allMetadataPlugins.map(async p => {
+                        try {
+                            return p.getMetadata(transactionModel);
+                        }
+                        catch(err) {
+                            log.info('Plugin %s: Unable to load metadata: %s', this.id().substr(0, 5), err.toString());
+                            log.error(err);
+                        }
+                    })
                 );
 
                 log.info('Plugin %s: Metadata complete.', this.id().substr(0, 5));
@@ -1075,7 +1083,7 @@ class PluginInstance extends EventEmitter {
         const config = {};
         values = values || {};
 
-        this._config.forEach(c => {
+        (this._config || []).forEach(c => {
             config[c.id] = values[c.id] || c.value || c.defaultValue;
             if (config[c.id] === '{{email}}') {
                 config[c.id] = null;
