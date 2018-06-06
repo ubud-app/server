@@ -24,7 +24,7 @@ build_image_next:
   except:
     - master
 
-build_image_arm:
+build_image_next_arm:
   stage: build
   tags:
     - docker-host
