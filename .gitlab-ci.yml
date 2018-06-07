@@ -135,7 +135,7 @@ build_image_arm:
 # PUBLISH
 #
 publish_github:
-  stage: build
+  stage: pre-build
   tags:
     - matt.sebbo.net
     - ssh
