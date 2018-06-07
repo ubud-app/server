@@ -140,8 +140,8 @@ publish_github:
     - matt.sebbo.net
     - ssh
   script:
-    - git push "https://${GITHUB_AUTH}@github.com/sebbo2002/dwimm-server.git" --all
-    - git push "https://${GITHUB_AUTH}@github.com/sebbo2002/dwimm-server.git" --tags
+    - git push -f "https://${GITHUB_AUTH}@github.com/sebbo2002/dwimm-server.git" --all
+    - git push -f "https://${GITHUB_AUTH}@github.com/sebbo2002/dwimm-server.git" --tags
 
 
 publish_npm_next:
