@@ -151,6 +151,8 @@ class ServerHelper {
         const session = new SocketSession();
         this.setupSocketRoutes(socket, session);
         this.setupSocketUpdateEvents(socket, session);
+
+        setTimeout(() => { socket.emit('hello'); });
     }
 
     /**
