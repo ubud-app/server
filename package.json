@@ -32,10 +32,10 @@
 		"moment": "^2.22.2",
 		"mysql2": "^1.5.3",
 		"promised-exec": "^1.0.1",
-		"raven": "^2.6.2",
+		"raven": "^2.6.3",
 		"request": "^2.87.0",
 		"request-promise-native": "^1.0.5",
-		"sequelize": "^4.37.10",
+		"sequelize": "^4.38.0",
 		"shell-escape": "^0.2.0",
 		"socket.io": "^2.1.1",
 		"umzug": "^2.1.0",
@@ -43,7 +43,7 @@
 		"uuid": "^3.2.1"
 	},
 	"devDependencies": {
-		"eslint": "^4.19.1",
+		"eslint": "^5.0.0",
 		"eslint-plugin-security": "^1.4.0",
 		"npm-check": "^5.7.1",
 		"nsp": "^3.2.1",
