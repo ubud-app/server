@@ -9,11 +9,12 @@ module.exports = PluginTools;
  * @class PluginRunner
  */
 class PluginRunner {
-    static async initialize() {
+    static async initialize () {
         process.title = 'dwimm-plugin';
 
         const job = await this.getJobDescription();
         process.title = 'dwimm-plugin (' + job.type + ')';
+        PluginTools._runner = this;
         PluginTools._config = job.config;
 
         /* eslint-disable security/detect-non-literal-require */
@@ -55,12 +56,15 @@ class PluginRunner {
      *
      * @returns {Promise.<object>}
      */
-    static async getJobDescription() {
+    static async getJobDescription () {
         return new Promise(cb => {
-            process.on('message', job => {
+            const callback = job => {
                 process.send({type: 'confirm'});
+                process.removeListener('message', callback);
                 cb(job);
-            });
+            };
+
+            process.on('message', callback);
         });
     }
 
@@ -70,8 +74,8 @@ class PluginRunner {
      * @param {object} data
      * @returns {Promise.<void>}
      */
-    static async sendResponse(data) {
-        if(!Array.isArray(data)) {
+    static async sendResponse (data) {
+        if (!Array.isArray(data)) {
             process.send({type: 'response', data});
             return;
         }
@@ -80,7 +84,7 @@ class PluginRunner {
             process.send({type: 'item', item});
         });
 
-        if(Array.isArray(data)) {
+        if (Array.isArray(data)) {
             process.send({type: 'response', data: []});
             return;
         }
@@ -96,14 +100,14 @@ class PluginRunner {
      * @param {object} job
      * @returns {Promise.<object>}
      */
-    static async check(job) {
+    static async check (job) {
         if (PluginTools._getConfig().length > 0 && typeof job.plugin.validateConfig !== 'function') {
             throw new Error('Plugin has getConfig, but validateConfig() is not a function!');
         }
 
         let methods = 0;
         ['getAccounts', 'getTransactions', 'getMetadata', 'getGoals'].forEach(method => {
-            if(job.plugin[method] && typeof job.plugin[method] === 'function') {
+            if (job.plugin[method] && typeof job.plugin[method] === 'function') {
                 methods += 1;
             }
             else if (job.plugin[method] && typeof job.plugin[method] !== 'function') {
@@ -129,11 +133,11 @@ class PluginRunner {
      *
      * @returns {Promise.<string[]>}
      */
-    static async getSupported(job) {
+    static async getSupported (job) {
         const supported = [];
 
         ['validateConfig', 'getAccounts', 'getTransactions', 'getMetadata', 'getGoals'].forEach(method => {
-            if(job.plugin[method] && typeof job.plugin[method] === 'function') {
+            if (job.plugin[method] && typeof job.plugin[method] === 'function') {
                 supported.push(method);
             }
         });
@@ -146,8 +150,56 @@ class PluginRunner {
      *
      * @returns {Promise.<object>}
      */
-    static async getConfig() {
+    static async getConfig () {
         return PluginTools._getConfig();
+    }
+
+    /**
+     * Returns the store object for this key.
+     *
+     * @returns {Promise.<object>}
+     */
+    static async getStoreValue (key) {
+        return new Promise((resolve, reject) => {
+            const callback = job => {
+                if (job.method === 'get' && job.key === key) {
+                    process.removeListener('message', callback);
+
+                    if (job.value !== undefined) {
+                        resolve(job.value);
+                    } else {
+                        reject(job.error);
+                    }
+                }
+            };
+
+            process.on('message', callback);
+            process.send({type: 'get', key});
+        });
+    }
+
+    /**
+     * Sets the store value for this key.
+     *
+     * @returns {Promise.<object>}
+     */
+    static async setStoreValue (key, value) {
+        return new Promise((resolve, reject) => {
+            const callback = job => {
+                if (job.method === 'set' && job.key === key) {
+                    process.removeListener('message', callback);
+
+                    if (!job.error) {
+                        resolve();
+                    } else {
+                        reject(job.error);
+                    }
+                }
+            };
+
+            process.on('message', callback);
+            process.send({type: 'set', key, value});
+        });
     }
 
     /**
@@ -155,8 +207,8 @@ class PluginRunner {
      *
      * @returns {Promise.<object[]>}
      */
-    static async validateConfig(job) {
-        if(!job.plugin.validateConfig) {
+    static async validateConfig (job) {
+        if (!job.plugin.validateConfig) {
             return {valid: true};
         }
 
@@ -183,10 +235,10 @@ class PluginRunner {
      * @param {object} job
      * @returns {Promise.<void>}
      */
-    static async getAccounts(job) {
+    static async getAccounts (job) {
         const accounts = await job.plugin.getAccounts();
         return accounts.map(account => {
-            if(!(account instanceof PluginTools.Account)) {
+            if (!(account instanceof PluginTools.Account)) {
                 throw new Error('Account has to be instance of PluginTools.Account!');
             }
 
@@ -200,7 +252,7 @@ class PluginRunner {
      * @param {object} job
      * @returns {Promise.<void>}
      */
-    static async getTransactions(job) {
+    static async getTransactions (job) {
         const moment = require('moment');
         const transactions = await job.plugin.getTransactions(
             job.params.accountId,
@@ -208,7 +260,7 @@ class PluginRunner {
         );
 
         return transactions.map(transaction => {
-            if(!(transaction instanceof PluginTools.Transaction)) {
+            if (!(transaction instanceof PluginTools.Transaction)) {
                 throw new Error('Transaction has to be instance of PluginTools.Transaction!');
             }
 
@@ -222,14 +274,14 @@ class PluginRunner {
      * @param {object} job
      * @returns {Promise.<void>}
      */
-    static async getMetadata(job) {
+    static async getMetadata (job) {
         let metadata = await job.plugin.getMetadata(job.params);
-        if(!Array.isArray(metadata)) {
+        if (!Array.isArray(metadata)) {
             metadata = [metadata];
         }
 
         return metadata.map(m => {
-            if(!(m instanceof PluginTools.Split || m instanceof PluginTools.Memo)) {
+            if (!(m instanceof PluginTools.Split || m instanceof PluginTools.Memo)) {
                 throw new Error('Objects in metadata has to be instance of PluginTools.Split or PluginTools.Memo');
             }
 
@@ -243,10 +295,10 @@ class PluginRunner {
      * @param {object} job
      * @returns {Promise.<void>}
      */
-    static async getGoals(job) {
+    static async getGoals (job) {
         const goals = await job.plugin.getGoals();
         return goals.map(goal => {
-            if(!(goal instanceof PluginTools.Goal)) {
+            if (!(goal instanceof PluginTools.Goal)) {
                 throw new Error('Goal has to be instance of PluginTools.Goal!');
             }
 

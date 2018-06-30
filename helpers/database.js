@@ -160,6 +160,9 @@ models.summary.belongsTo(models.document, {foreignKey: {allowNull: false}, onDel
 models['plugin-instance'].hasMany(models['plugin-config'], {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 models['plugin-config'].belongsTo(models['plugin-instance'], {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 
+models['plugin-instance'].hasMany(models['plugin-store'], {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+models['plugin-store'].belongsTo(models['plugin-instance'], {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+
 
 /**
  * DatabaseHelper

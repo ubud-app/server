@@ -1244,11 +1244,45 @@ class PluginInstance extends EventEmitter {
                 if (!gotConfirm && message && message.type === 'confirm') {
                     gotConfirm = true;
                 }
-                if (!gotResponse && message && message.type === 'item') {
+                else if (!gotResponse && message && message.type === 'item') {
                     responseArray = responseArray || [];
                     responseArray.push(message.item);
                 }
-                if (!gotResponse && message && message.type === 'response') {
+                else if (!gotResponse && message && message.type === 'get' && message.key) {
+                    this.requestHandlePluginGet(instance, childProcess, message.key).catch(err => {
+                        childProcess.send({
+                            method: 'get',
+                            key: message.key,
+                            error: err.stack || err.toString()
+                        });
+
+                        instance._errors[method] = 'Unable to get key `' + message.key + '`';
+                        instance.emit('change:errors', instance._errors);
+                        instance._events.emit('update', {
+                            action: 'updated',
+                            name: 'plugin-instance',
+                            model: instance
+                        });
+                    });
+                }
+                else if (!gotResponse && message && message.type === 'set' && message.key) {
+                    this.requestHandlePluginSet(instance, childProcess, message.key, message.value).catch(err => {
+                        childProcess.send({
+                            method: 'set',
+                            key: message.key,
+                            error: err.stack || err.toString()
+                        });
+
+                        instance._errors[method] = 'Unable to set key `' + message.key + '`';
+                        instance.emit('change:errors', instance._errors);
+                        instance._events.emit('update', {
+                            action: 'updated',
+                            name: 'plugin-instance',
+                            model: instance
+                        });
+                    });
+                }
+                else if (!gotResponse && message && message.type === 'response') {
                     gotResponse = true;
 
 
@@ -1311,6 +1345,87 @@ class PluginInstance extends EventEmitter {
                 }
             }, 1000 * 60 * 5);
         });
+    }
+
+
+    /**
+     * Method which handles a store get request from the plugin
+     *
+     * @param {PluginInstance} [instance] Plugin Instance
+     * @param {ChildProcess} childProcess Child Process of plugin
+     * @param {string} key Requested key
+     * @returns {Promise<object|null>}
+     */
+    static async requestHandlePluginGet (instance, childProcess, key) {
+        if(!instance || !instance._model || !instance._model.id) {
+            throw new Error('Unable to serve request: Plugin not called as plugin instance!');
+        }
+
+        const store = await DatabaseHelper.get('plugin-store').findOne({
+            where: {
+                pluginInstanceId: instance._model.id,
+                key
+            }
+        });
+
+        let value = null;
+        try {
+            value = JSON.parse(store.value);
+        }
+        catch(err) {
+            // ignore
+        }
+
+        childProcess.send({
+            method: 'get',
+            key,
+            value
+        });
+    }
+
+    /**
+     * Method which handles a store get request from the plugin
+     *
+     * @param {PluginInstance} [instance] Plugin Instance
+     * @param {ChildProcess} childProcess Child Process of plugin
+     * @param {string} key Key
+     * @param {object} value New value
+     * @returns {Promise<object|null>}
+     */
+    static async requestHandlePluginSet (instance, childProcess, key, value) {
+        if(!instance || !instance._model || !instance._model.id) {
+            throw new Error('Unable to serve request: Plugin not called as plugin instance!');
+        }
+
+        let store = await DatabaseHelper.get('plugin-store').findOne({
+            where: {
+                pluginInstanceId: instance._model.id,
+                key
+            }
+        });
+        if(!store) {
+            store = DatabaseHelper.get('plugin-store').build();
+            store.pluginInstanceId = instance._model.id;
+            store.key = key;
+        }
+
+        store.value = JSON.stringify(value);
+
+        try {
+            store.save();
+
+            childProcess.send({
+                method: 'set',
+                key
+            });
+        }
+        catch(err) {
+            childProcess.send({
+                method: 'set',
+                key,
+                error: err.toString()
+            });
+        }
     }
 
     /**
