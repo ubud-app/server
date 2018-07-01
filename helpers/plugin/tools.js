@@ -1,6 +1,7 @@
 'use strict';
 
 const config = [];
+const TOOLS_API_VERSION = 1;
 
 /**
  * PluginTools
@@ -37,6 +38,10 @@ class PluginTools {
     static async setStore (key, value) {
         await this._runner.setStoreValue(key, value);
         return PluginTools;
+    }
+
+    static async version () {
+        return TOOLS_API_VERSION;
     }
 }
 
