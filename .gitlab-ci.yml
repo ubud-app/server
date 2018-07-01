@@ -143,6 +143,7 @@ publish_github:
     - ssh
   script:
     - git checkout $CI_COMMIT_REF_NAME
+    - git pull
     - git push "https://${GITHUB_AUTH}@github.com/sebbo2002/dwimm-server.git" --all
     - git push "https://${GITHUB_AUTH}@github.com/sebbo2002/dwimm-server.git" --tags
 
