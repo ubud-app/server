@@ -110,7 +110,7 @@ build_image_next_arm:
     - master
 
 build_image_arm:
-  stage: build
+  stage: publish
   tags:
     - docker-host
     - arm
@@ -137,11 +137,12 @@ build_image_arm:
 
 
 publish_github:
-  stage: pre-build
+  stage: publish
   tags:
     - matt.sebbo.net
     - ssh
   script:
+    - git checkout $CI_COMMIT_REF_NAME
     - git push "https://${GITHUB_AUTH}@github.com/sebbo2002/dwimm-server.git" --all
     - git push "https://${GITHUB_AUTH}@github.com/sebbo2002/dwimm-server.git" --tags
 
