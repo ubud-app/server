@@ -492,7 +492,6 @@ class PluginInstance extends EventEmitter {
     async syncAccount (account) {
         const AccountLogic = require('../../logic/account');
         const TransactionLogic = require('../../logic/transaction');
-        const SummaryLogic = require('../../logic/summary');
 
         const moment = require('moment');
 
@@ -547,7 +546,7 @@ class PluginInstance extends EventEmitter {
 
         // find out sync begin
         let syncBeginningFrom = moment().startOf('month');
-        if(moment().date() < 15) {
+        if (moment().date() < 15) {
             syncBeginningFrom = moment().subtract(1, 'month').startOf('month');
         }
 
@@ -585,175 +584,8 @@ class PluginInstance extends EventEmitter {
         );
 
 
-        const transactionModels = await Promise.all(
-            transactions.map(transaction => {
-                if (moment(transaction.time).isBefore(syncBeginningFrom)) {
-                    return null;
-                }
-
-                return this.syncTransaction(accountModel, transaction, transactions).catch(err => {
-                    log.error('Unable to sync transaction with plugin:\n', transaction);
-                    throw err;
-                });
-            })
-        );
-
-        log.info(
-            'Plugin %s: Transactions synced, destroy lost transactions…',
-            this.id().substr(0, 5)
-        );
-
-        // destroy lost transactions
-        await TransactionLogic.getModel().destroy({
-            where: {
-                time: {
-                    [DatabaseHelper.op('gt')]: moment(Math.min.apply(null, transactions.map(t => moment(t.time).valueOf()))).toJSON()
-                },
-                pluginsOwnId: {
-                    [DatabaseHelper.op('notIn')]: transactions.map(t => t.id)
-                },
-                accountId: accountModel.id
-            }
-        });
-
-        if (!accountIsNew) {
-            // @todo update summaries
-
-            // update summaries
-            await SummaryLogic.recalculateSummariesFrom(this.documentId(), syncBeginningFrom);
-
-            return;
-        }
-
-        const sum = transactionModels.reduce(function (acc, transactionModel) {
-            if (!transactionModel) {
-                return acc;
-            }
-
-            return acc + transactionModel.amount;
-        }, 0);
-
-        const startingBalance = account.balance - sum;
-        if (startingBalance === 0) {
-            return;
-        }
-
-        await TransactionLogic.getModel().create({
-            time: syncBeginningFrom.toJSON(),
-            amount: startingBalance,
-            status: 'cleared',
-            accountId: accountModel.id,
-            units: [{
-                amount: startingBalance,
-                incomeMonth: 'this'
-            }]
-        }, {include: [DatabaseHelper.get('unit')]});
-
-
-        // @todo update summaries
-
-        // update summaries
-        await SummaryLogic.recalculateSummariesFrom(this.documentId(), syncBeginningFrom);
-    }
-
-    /**
-     * Synchronizes one single account and it's transactions…
-     *
-     * @param {Model} accountModel
-     * @param {object} transaction
-     * @param {string} transaction.id
-     * @param {string} transaction.time
-     * @param {string} transaction.payeeId
-     * @param {string} transaction.memo
-     * @param {number} transaction.amount
-     * @param {string} transaction.status
-     * @param {object[]} transactions
-     * @param {string} transactions.id
-     * @param {string} transactions.time
-     * @param {string} transactions.payeeId
-     * @param {string} transactions.memo
-     * @param {number} transactions.amount
-     * @param {string} transactions.status
-     * @returns {Promise.<Model>} TransactionModel
-     */
-    async syncTransaction (accountModel, transaction, transactions) {
-        const moment = require('moment');
-        const TransactionLogic = require('../../logic/transaction');
-
-        // find transaction model
-        let transactionModel = await TransactionLogic.getModel().findOne({
-            where: {
-                accountId: accountModel.id,
-                pluginsOwnId: transaction.id
-            }
-        });
-
-        /*  model not found: try to find matching TransactionModel which
-         *    - are newer than the oldest transaction in plugin's list
-         *    - are not in the plugin's list, but in our database (pluginsOwnId / accountId)
-         *    - has same pluginsOwnPayeeId
-         *    - amount is about tha same (+/- 10%)
-         *  if one found:
-         *    - use that model
-         *    - pluginsOwnPayeeId will be updated below
-         *  else:
-         *    - do nothing                                                   */
-        if (!transactionModel) {
-            log.info(
-                'Plugin %s: Transaction with pluginsOwnId=%s and pluginsOwnPayeeId=%s seems to be new. Look for matching transactions…',
-                this.id().substr(0, 5),
-                transaction.id,
-                transaction.payeeId
-            );
-            const matchCandiates = await TransactionLogic.getModel().findAll({
-                where: {
-                    time: {
-                        [DatabaseHelper.op('gt')]: moment(Math.min.apply(null, transactions.map(t => moment(t.time).valueOf()))).toJSON()
-                    },
-                    pluginsOwnId: {
-                        [DatabaseHelper.op('notIn')]: transactions.map(t => t.id)
-                    },
-                    accountId: accountModel.id,
-                    pluginsOwnPayeeId: transaction.payeeId,
-                    amount: {
-                        [DatabaseHelper.op('between')]: [
-                            transaction.amount * (transaction.amount >= 0 ? 0.9 : 1.1),
-                            transaction.amount * (transaction.amount >= 0 ? 1.1 : 0.9)
-                        ]
-                    }
-                }
-            });
-
-            if (matchCandiates.length === 1) {
-                log.info(
-                    'Plugin %s: Found one match where ours is: pluginsOwnId=%s and pluginsOwnPayeeId=%s',
-                    this.id().substr(0, 5),
-                    matchCandiates[0].pluginsOwnId,
-                    matchCandiates[0].pluginsOwnPayeeId
-                );
-                transactionModel = matchCandiates[0];
-                transactionModel.pluginsOwnId = transaction.id;
-            } else {
-                log.info(
-                    'Plugin %s: Found %s candidates, do nothing… %s',
-                    this.id().substr(0, 5),
-                    matchCandiates.length,
-                    matchCandiates.length > 0 ?
-                        ('(' + matchCandiates.map(c => c.pluginsOwnId + ' / ' + c.pluginsOwnPayeeId).join('; ') + ')') :
-                        ''
-                );
-            }
-        }
-
-
-        // create new transaction model if not already there
-        if (!transactionModel) {
-            log.info(
-                'Plugin %s: Create new transaction model',
-                this.id().substr(0, 5)
-            );
-
-            transactionModel = TransactionLogic.getModel().build({
+        await TransactionLogic.syncTransactions(accountModel, transactions.map(
+            transaction => TransactionLogic.getModel().build({
                 accountId: accountModel.id,
                 pluginsOwnId: transaction.id,
                 memo: transaction.memo,
@@ -762,121 +594,13 @@ class PluginInstance extends EventEmitter {
                 pluginsOwnPayeeId: transaction.payeeId,
                 status: transaction.status,
                 pluginsOwnMemo: transaction.memo
-            });
+            })
+        ), {isNewAccount: accountIsNew, startingBalanceDate: syncBeginningFrom});
 
-            // get transactions with matching payeeId
-            const payees = await DatabaseHelper.get('transaction').findAll({
-                attributes: [
-                    [DatabaseHelper.count('*'), 'count'],
-                    'payeeId'
-                ],
-                where: {
-                    pluginsOwnPayeeId: transaction.payeeId,
-                    payeeId: {
-                        [DatabaseHelper.op('not')]: null
-                    }
-                },
-                group: ['payeeId'],
-                order: [[DatabaseHelper.literal('count'), 'DESC']],
-                raw: true
-            });
-
-            // use most used payeeId for our new transaction
-            let best = {count: 0, id: null, sum: 0};
-            payees.forEach(payee => {
-                if (payee.count > best.count) {
-                    best.count = payee.count;
-                    best.id = payee.payeeId;
-                    best.sum += payee.count;
-                }
-            });
-            log.info(
-                'Plugin %s: Best Payee: %s (%s out of %s)',
-                this.id().substr(0, 5),
-                best.id,
-                best.count,
-                best.sum
-            );
-
-            if (best.id && (best.count >= 3 || payees.length === 1)) {
-                log.info(
-                    'Plugin %s: Use %s as payee',
-                    this.id().substr(0, 5),
-                    best.id
-                );
-
-                transactionModel.payeeId = best.id;
-            }
-
-
-            // Ask plugins to add metadata
-            const PluginHelper = require('./index');
-            const allPlugins = await PluginHelper.listPlugins();
-            const allMetadataPlugins = allPlugins.filter(p => p.supported().includes('getMetadata'));
-
-            if(allMetadataPlugins.length > 0) {
-                log.info(
-                    'Plugin %s: Ask %s metadata plugins for information about this transaction…',
-                    this.id().substr(0, 5),
-                    allMetadataPlugins.length
-                );
-
-                await Promise.all(
-                    allMetadataPlugins.map(async p => {
-                        try {
-                            return p.getMetadata(transactionModel);
-                        }
-                        catch(err) {
-                            log.info('Plugin %s: Unable to load metadata: %s', this.id().substr(0, 5), err.toString());
-                            log.error(err);
-                        }
-                    })
-                );
-
-                log.info('Plugin %s: Metadata complete.', this.id().substr(0, 5));
-            }
-        }
-
-        // update transaction attributes
-        transactionModel.time = moment(transaction.time).toJSON();
-        transactionModel.pluginsOwnPayeeId = transaction.payeeId;
-        transactionModel.status = transaction.status;
-        transactionModel.pluginsOwnMemo = transaction.memo;
-
-        // update transaction amount -> add unit with difference
-        if (transactionModel.amount !== transaction.amount) {
-            const diff = transaction.amount - transactionModel.amount;
-            transactionModel.amount = transaction.amount;
-
-            const units = await transactionModel.getUnits();
-            if(units.length === 1) {
-                log.info('Plugin %s: Update unit %s to match transaction', this.id().substr(0, 5), units[0].id);
-
-                units[0].amount = transaction.amount;
-                await units[0].save();
-            }else{
-                log.info('Plugin %s: Add unit to match transaction %s\'s amount', this.id().substr(0, 5), transactionModel.id);
-
-                const unit = await DatabaseHelper.get('unit').create({
-                    amount: diff,
-                    budgetId: null,
-                    transactionId: transactionModel.id,
-                    incomeMonth: null
-                });
-
-                await transactionModel.addUnit(unit);
-            }
-        }
-
-        try {
-            await transactionModel.save();
-        }
-        catch(err) {
-            log.error('Unable to sync transaction: saving transaction failed.\n\n' + JSON.stringify(transactionModel.dataValues));
-            throw err;
-        }
-
-        return transactionModel;
+        log.info(
+            'Plugin %s: Transactions synced',
+            this.id().substr(0, 5)
+        );
     }
 
     /**
@@ -921,11 +645,11 @@ class PluginInstance extends EventEmitter {
         );
 
         // persist transaction to get it's id
-        if(metadata.find(m => m.type === 'split')) {
+        if (metadata.find(m => m.type === 'split')) {
             try {
                 await transactionModel.save();
             }
-            catch(err) {
+            catch (err) {
                 log.error('Unable to sync metadata: saving transaction failed.\n\n' + JSON.stringify(transactionModel.dataValues));
                 throw err;
             }
@@ -956,7 +680,7 @@ class PluginInstance extends EventEmitter {
      *
      * @returns {Promise<void>}
      */
-    async syncGoals() {
+    async syncGoals () {
         const goals = await PluginInstance.request(this, this.type(), 'getGoals', this.generateConfig());
         await Promise.all(
             goals.map(goal => this.syncGoal(goal).catch(err => {
@@ -975,7 +699,7 @@ class PluginInstance extends EventEmitter {
      * @param {Number} goal.price
      * @returns {Promise<void>}
      */
-    async syncGoal(goal) {
+    async syncGoal (goal) {
         const BudgetLogic = require('../../logic/budgets');
 
         // find transaction model
@@ -996,7 +720,7 @@ class PluginInstance extends EventEmitter {
         }
 
         // if category not set: use the one other goals are already in
-        if(!budgetModel.categoryId) {
+        if (!budgetModel.categoryId) {
             const bestMatch = await BudgetLogic.getModel().findOne({
                 attributes: [
                     'categoryId',
@@ -1009,13 +733,13 @@ class PluginInstance extends EventEmitter {
                 order: [[DatabaseHelper.literal('sum'), 'DESC']],
                 raw: true
             });
-            if(bestMatch) {
+            if (bestMatch) {
                 budgetModel.categoryId = bestMatch.categoryId;
             }
         }
 
         // if category still not set: use the one other plugins used to save goals in
-        if(!budgetModel.categoryId) {
+        if (!budgetModel.categoryId) {
             const bestMatch = await BudgetLogic.getModel().findOne({
                 attributes: [
                     'categoryId',
@@ -1032,13 +756,13 @@ class PluginInstance extends EventEmitter {
                 order: [[DatabaseHelper.literal('sum'), 'DESC']],
                 raw: true
             });
-            if(bestMatch) {
+            if (bestMatch) {
                 budgetModel.categoryId = bestMatch.categoryId;
             }
         }
 
         // if category still not set: use last category in document
-        if(!budgetModel.categoryId) {
+        if (!budgetModel.categoryId) {
             const bestMatch = await DatabaseHelper.get('category').findOne({
                 attributes: ['name', 'categoryId'],
                 where: {
@@ -1047,13 +771,13 @@ class PluginInstance extends EventEmitter {
                 order: [['name', 'DESC']],
                 raw: true
             });
-            if(bestMatch) {
+            if (bestMatch) {
                 budgetModel.categoryId = bestMatch.categoryId;
             }
         }
 
         // if category still not set: create one
-        if(!budgetModel.categoryId) {
+        if (!budgetModel.categoryId) {
             const newCategory = await DatabaseHelper.get('category').create({
                 name: this.type(),
                 documentId: this.documentId()
@@ -1067,7 +791,7 @@ class PluginInstance extends EventEmitter {
         try {
             await budgetModel.save();
         }
-        catch(err) {
+        catch (err) {
             log.error('Unable to sync goal: saving budget failed.\n\n' + JSON.stringify(budgetModel.dataValues));
             throw err;
         }
@@ -1218,7 +942,7 @@ class PluginInstance extends EventEmitter {
                 const text = (stderr.join('\n').trim() || stdout.join('\n').trim() || 'Plugin died')
                     .replace(/^Error:/, '')
                     .trim()
-                    .split('\n')[0];
+                    .split('\n').join(' ');
 
                 if (instance) {
                     instance._errors[method] = text;
@@ -1357,7 +1081,7 @@ class PluginInstance extends EventEmitter {
      * @returns {Promise<object|null>}
      */
     static async requestHandlePluginGet (instance, childProcess, key) {
-        if(!instance || !instance._model || !instance._model.id) {
+        if (!instance || !instance._model || !instance._model.id) {
             throw new Error('Unable to serve request: Plugin not called as plugin instance!');
         }
 
@@ -1372,7 +1096,7 @@ class PluginInstance extends EventEmitter {
         try {
             value = JSON.parse(store.value);
         }
-        catch(err) {
+        catch (err) {
             // ignore
         }
 
@@ -1393,7 +1117,7 @@ class PluginInstance extends EventEmitter {
      * @returns {Promise<object|null>}
      */
     static async requestHandlePluginSet (instance, childProcess, key, value) {
-        if(!instance || !instance._model || !instance._model.id) {
+        if (!instance || !instance._model || !instance._model.id) {
             throw new Error('Unable to serve request: Plugin not called as plugin instance!');
         }
 
@@ -1403,7 +1127,7 @@ class PluginInstance extends EventEmitter {
                 key
             }
         });
-        if(!store) {
+        if (!store) {
             store = DatabaseHelper.get('plugin-store').build();
             store.pluginInstanceId = instance._model.id;
             store.key = key;
@@ -1419,7 +1143,7 @@ class PluginInstance extends EventEmitter {
                 key
             });
         }
-        catch(err) {
+        catch (err) {
             childProcess.send({
                 method: 'set',
                 key,

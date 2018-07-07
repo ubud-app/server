@@ -2,6 +2,7 @@
 
 const _ = require('underscore');
 const BaseLogic = require('./_');
+const LogHelper = require('../helpers/log');
 const ErrorResponse = require('../helpers/errorResponse');
 
 class TransactionLogic extends BaseLogic {
@@ -388,7 +389,7 @@ class TransactionLogic extends BaseLogic {
 
             if (timeMoment.isBefore(recalculateFrom)) {
                 recalculateFrom = moment(timeMoment).startOf('month');
-            }else{
+            } else {
                 recalculateFrom = moment(timeMoment).startOf('month');
             }
         }
@@ -443,7 +444,7 @@ class TransactionLogic extends BaseLogic {
         if (body.amount !== undefined && model.amount !== (parseInt(body.amount, 10) || null)) {
             model.amount = parseInt(body.amount, 10) || null;
 
-            if(!recalculateFrom) {
+            if (!recalculateFrom) {
                 recalculateFrom = moment(timeMoment).startOf('month');
             }
         }
@@ -541,7 +542,7 @@ class TransactionLogic extends BaseLogic {
                     })
             );
 
-            if(!recalculateFrom) {
+            if (!recalculateFrom) {
                 recalculateFrom = moment(timeMoment).startOf('month');
             }
         }
@@ -602,10 +603,10 @@ class TransactionLogic extends BaseLogic {
                                     });
                                 }
 
-                                if(unit.amount !== unitModel.amount) {
+                                if (unit.amount !== unitModel.amount) {
                                     unitModel.amount = unit.amount;
 
-                                    if(!recalculateFrom) {
+                                    if (!recalculateFrom) {
                                         recalculateFrom = moment(timeMoment).startOf('month');
                                     }
                                 }
@@ -615,14 +616,14 @@ class TransactionLogic extends BaseLogic {
                                 if (unit.budgetId === 'income-0' && unitModel.incomeMonth !== 'this') {
                                     unitModel.incomeMonth = 'this';
 
-                                    if(!recalculateFrom) {
+                                    if (!recalculateFrom) {
                                         recalculateFrom = moment(timeMoment).startOf('month');
                                     }
                                 }
                                 else if (unit.budgetId === 'income-1' && unitModel.incomeMonth !== 'next') {
                                     unitModel.incomeMonth = 'next';
 
-                                    if(!recalculateFrom) {
+                                    if (!recalculateFrom) {
                                         recalculateFrom = moment(timeMoment).startOf('month');
                                     }
                                 }
@@ -630,7 +631,7 @@ class TransactionLogic extends BaseLogic {
                                     unitModel.incomeMonth = null;
                                     unitModel.budgetId = unit.budgetId;
 
-                                    if(!recalculateFrom) {
+                                    if (!recalculateFrom) {
                                         recalculateFrom = moment(timeMoment).startOf('month');
                                     }
                                 }
@@ -656,7 +657,7 @@ class TransactionLogic extends BaseLogic {
                             .then(unit => {
                                 units.push(unit);
 
-                                if(!recalculateFrom) {
+                                if (!recalculateFrom) {
                                     recalculateFrom = moment(timeMoment).startOf('month');
                                 }
                             })
@@ -678,7 +679,7 @@ class TransactionLogic extends BaseLogic {
                             .then(unit => {
                                 units.push(unit);
 
-                                if(!recalculateFrom) {
+                                if (!recalculateFrom) {
                                     recalculateFrom = moment(timeMoment).startOf('month');
                                 }
                             })
@@ -769,6 +770,252 @@ class TransactionLogic extends BaseLogic {
             .catch(e => {
                 throw e;
             });
+    }
+
+    /**
+     * Sync multiple transactions with the given account.
+     * Usable for both managed and manual accounts. It's
+     * required to serve all transactions for a given time-
+     * frame, otherwise missing transactions are removed in
+     * the system!
+     *
+     * @param {Model} account AccountModel
+     * @param {Array<Model>} transactions TransactionModels
+     * @param {object} [options]
+     * @param {boolean} [options.isNewAccount] true, if the given account is a new one
+     * @param {string} [options.startingBalanceDate] Starting date of the given export
+     * @returns {Promise<void>}
+     */
+    static async syncTransactions (account, transactions, options = {}) {
+        const moment = require('moment');
+        const SummaryLogic = require('./summary');
+        const DatabaseHelper = require('../helpers/database');
+        const newTransactions = await Promise.all(transactions.map(t => this.syncTransaction(t, transactions)));
+
+        const minDate = moment(Math.min.apply(null, transactions.map(t => moment(t.time).valueOf())));
+        const maxDate = moment(Math.max.apply(null, transactions.map(t => moment(t.time).valueOf())));
+
+        // destroy lost transactions
+        await this.getModel().destroy({
+            where: {
+                time: {
+                    [DatabaseHelper.op('gte')]: minDate.toJSON(),
+                    [DatabaseHelper.op('lte')]: maxDate.toJSON()
+                },
+                id: {
+                    [DatabaseHelper.op('notIn')]: newTransactions.map(t => t.id)
+                },
+                accountId: account.id
+            }
+        });
+
+        // is this a new account?
+        if(options.isNewAccount === undefined) {
+            const transactions = await this.getModel().count({
+                where: {
+                    accountId: account.id
+                }
+            });
+
+            options.isNewAccount = transactions.length === 0;
+        }
+
+        // create first transaction / starting balance
+        if (options.isNewAccount) {
+            const sum = newTransactions.reduce((acc, transactionModel) => acc + transactionModel.amount, 0);
+
+            const startingBalance = (account.balance || 0) - sum;
+            if (startingBalance !== 0) {
+                await TransactionLogic.getModel().create({
+                    time: moment(options.startingBalanceDate || minDate).toJSON(),
+                    amount: startingBalance,
+                    status: 'cleared',
+                    accountId: account.id,
+                    units: [{
+                        amount: startingBalance,
+                        incomeMonth: 'this'
+                    }]
+                }, {include: [DatabaseHelper.get('unit')]});
+            }
+        }
+
+
+        // update summaries
+        await SummaryLogic.recalculateSummariesFrom(account.documentId, minDate);
+    }
+
+    static async syncTransaction (reference, allTransactions) {
+        const moment = require('moment');
+        const DatabaseHelper = require('../helpers/database');
+        const log = new LogHelper('TransactionLogic.syncTransaction');
+        const jobs = [];
+
+        // find transaction model
+        let newTransaction;
+        if (!reference.accountId) {
+            throw new Error('Unable to sync transaction: accountId missing!');
+        }
+
+        if (reference.pluginsOwnId) {
+            newTransaction = await this.getModel().findOne({
+                where: {
+                    accountId: reference.accountId,
+                    pluginsOwnId: reference.pluginsOwnId
+                }
+            });
+        }
+
+        /*  model not found: try to find matching TransactionModel which
+         *    - are newer than the oldest transaction in plugin's list
+         *    - are not in the plugin's list, but in our database (pluginsOwnId / accountId)
+         *    - has same pluginsOwnPayeeId
+         *    - amount is about tha same (+/- 10%)
+         *  if one found:
+         *    - use that model
+         *    - pluginsOwnPayeeId will be updated below
+         *  else:
+         *    - do nothing                                                   */
+        if (!newTransaction && reference.pluginsOwnId) {
+            const matchCandiates = await TransactionLogic.getModel().findAll({
+                where: {
+                    time: {
+                        [DatabaseHelper.op('gte')]: moment(
+                            Math.min.apply(null, allTransactions.map(
+                                t => moment(t.time).valueOf()
+                            ))
+                        ).toJSON(),
+                        [DatabaseHelper.op('lte')]: moment(
+                            Math.max.apply(null, allTransactions.map(
+                                t => moment(t.time).valueOf()
+                            ))
+                        ).toJSON()
+                    },
+                    pluginsOwnId: {
+                        [DatabaseHelper.op('notIn')]: allTransactions.map(t => t.id)
+                    },
+                    accountId: reference.accountId,
+                    pluginsOwnPayeeId: reference.pluginsOwnPayeeId,
+                    amount: {
+                        [DatabaseHelper.op('between')]: [
+                            reference.amount * (reference.amount >= 0 ? 0.9 : 1.1),
+                            reference.amount * (reference.amount >= 0 ? 1.1 : 0.9)
+                        ]
+                    }
+                }
+            });
+
+            if (matchCandiates.length === 1) {
+                newTransaction = matchCandiates[0];
+                newTransaction.pluginsOwnId = reference.pluginsOwnId;
+            }
+        }
+
+        // create new transaction model if not already there
+        if (!newTransaction) {
+            newTransaction = TransactionLogic.getModel().build({
+                accountId: reference.accountId,
+                pluginsOwnId: reference.id,
+                memo: reference.memo,
+                amount: reference.amount,
+                time: moment(reference.time).toJSON(),
+                pluginsOwnPayeeId: reference.payeeId,
+                status: reference.status,
+                pluginsOwnMemo: reference.memo
+            });
+        }
+
+        newTransaction.amount = reference.amount;
+        newTransaction.time = moment(reference.time).toJSON();
+        newTransaction.pluginsOwnPayeeId = reference.payeeId;
+        newTransaction.status = reference.status;
+        newTransaction.pluginsOwnMemo = reference.memo;
+
+
+        // pluginsOwnPayeeId but no Payee set: maybe we can find one?
+        if (newTransaction.pluginsOwnPayeeId && !newTransaction.payeeId) {
+            jobs.push((async () => {
+
+                // get transactions with matching payeeId
+                const payees = await DatabaseHelper.get('transaction').findAll({
+                    attributes: [
+                        [DatabaseHelper.count('*'), 'count'],
+                        'payeeId'
+                    ],
+                    where: {
+                        pluginsOwnPayeeId: newTransaction.payeeId,
+                        payeeId: {
+                            [DatabaseHelper.op('not')]: null
+                        }
+                    },
+                    group: ['payeeId'],
+                    order: [[DatabaseHelper.literal('count'), 'DESC']],
+                    raw: true
+                });
+
+                // use most used payeeId for our new transaction
+                const best = {count: 0, id: null, sum: 0};
+                payees.forEach(payee => {
+                    if (payee.count > best.count) {
+                        best.count = payee.count;
+                        best.id = payee.payeeId;
+                        best.sum += payee.count;
+                    }
+                });
+
+                if (best.id && (best.count >= 3 || payees.length === 1)) {
+                    reference.payeeId = best.id;
+                }
+            })());
+        }
+
+        // Ask plugins to add metadata
+        jobs.push((async () => {
+            const PluginHelper = require('../helpers/plugin');
+            const allPlugins = await PluginHelper.listPlugins();
+            const allMetadataPlugins = allPlugins.filter(p => p.supported().includes('getMetadata'));
+
+            return Promise.all(allMetadataPlugins.map(plugin => (async () => {
+                try {
+                    return plugin.getMetadata(newTransaction);
+                }
+                catch (err) {
+                    log.info('Unable to load metadata: %s', err.toString());
+                    log.error(err);
+                }
+            })()));
+        })());
+
+        await Promise.all(jobs);
+
+        // check units and add unit with difference when necessary
+        if (newTransaction.id) {
+            const units = await newTransaction.getUnits();
+            if (units.length === 1 && units[0].amount !== newTransaction.amount) {
+                units[0].amount = newTransaction.amount;
+                await units[0].save();
+            }
+            else if (units.length > 1) {
+                const diff = newTransaction.amount - units.reduce((a, b) => a + b.amount, 0);
+                const unit = await DatabaseHelper.get('unit').create({
+                    amount: diff,
+                    budgetId: null,
+                    transactionId: newTransaction.id,
+                    incomeMonth: null
+                });
+
+                await newTransaction.addUnit(unit);
+            }
+        }
+
+        try {
+            await newTransaction.save();
+        }
+        catch (err) {
+            log.error('Unable to sync transaction: saving transaction failed.\n\n' + JSON.stringify(newTransaction.dataValues));
+            throw err;
+        }
+
+        return newTransaction;
     }
 }
 
