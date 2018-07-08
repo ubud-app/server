@@ -935,6 +935,24 @@ class TransactionLogic extends BaseLogic {
             }
         }
 
+        /* Fallback matching without ID, match by amount and time only
+         * Mainly used für manual imports…
+         */
+        if(!newTransaction && !reference.pluginsOwnId) {
+            const matchCandiates = await TransactionLogic.getModel().findAll({
+                where: {
+                    amount: reference.amount,
+                    time: moment(reference.time).toJSON(),
+                    accountId: reference.accountId
+                }
+            });
+
+            if (matchCandiates.length === 1) {
+                newTransaction = matchCandiates[0];
+                newTransaction.pluginsOwnPayeeId = reference.pluginsOwnPayeeId;
+            }
+        }
+
         // create new transaction model if not already there
         if (!newTransaction) {
             newTransaction = TransactionLogic.getModel().build({
