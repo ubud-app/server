@@ -146,7 +146,8 @@ class HTTPRequestHandler {
             id: this.req.params[0] || null,
             body: this.req.body || {},
             params: this.req.query,
-            session: session
+            session: session,
+            httpRequest: this.req
         };
 
         return Logic[method](options).catch(e => {

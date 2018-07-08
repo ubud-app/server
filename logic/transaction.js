@@ -792,6 +792,10 @@ class TransactionLogic extends BaseLogic {
         const DatabaseHelper = require('../helpers/database');
         const newTransactions = await Promise.all(transactions.map(t => this.syncTransaction(t, transactions)));
 
+        if(!transactions.length) {
+            return;
+        }
+
         const minDate = moment(Math.min.apply(null, transactions.map(t => moment(t.time).valueOf())));
         const maxDate = moment(Math.max.apply(null, transactions.map(t => moment(t.time).valueOf())));
 
@@ -850,12 +854,15 @@ class TransactionLogic extends BaseLogic {
         const log = new LogHelper('TransactionLogic.syncTransaction');
         const jobs = [];
 
+        // check input for required fields
+        ['time', 'amount', 'accountId'].forEach(attr => {
+            if(!reference[attr]) {
+                throw new Error('Unable to sync transaction: attribute `' + attr + '` empty!');
+            }
+        });
+
         // find transaction model
         let newTransaction;
-        if (!reference.accountId) {
-            throw new Error('Unable to sync transaction: accountId missing!');
-        }
-
         if (reference.pluginsOwnId) {
             newTransaction = await this.getModel().findOne({
                 where: {
@@ -910,25 +917,43 @@ class TransactionLogic extends BaseLogic {
             }
         }
 
+        /* Fallback matching without ID, match by amount, time and PayeeID
+         * Mainly used für manual imports…
+         */
+        if(!newTransaction && !reference.pluginsOwnId) {
+            const matchCandiates = await TransactionLogic.getModel().findAll({
+                where: {
+                    amount: reference.amount,
+                    time: moment(reference.time).toJSON(),
+                    pluginsOwnPayeeId: reference.pluginsOwnPayeeId,
+                    accountId: reference.accountId
+                }
+            });
+
+            if (matchCandiates.length === 1) {
+                newTransaction = matchCandiates[0];
+            }
+        }
+
         // create new transaction model if not already there
         if (!newTransaction) {
             newTransaction = TransactionLogic.getModel().build({
                 accountId: reference.accountId,
-                pluginsOwnId: reference.id,
+                pluginsOwnId: reference.pluginsOwnId,
                 memo: reference.memo,
                 amount: reference.amount,
                 time: moment(reference.time).toJSON(),
                 pluginsOwnPayeeId: reference.payeeId,
                 status: reference.status,
-                pluginsOwnMemo: reference.memo
+                pluginsOwnMemo: reference.pluginsOwnMemo
             });
         }
 
         newTransaction.amount = reference.amount;
         newTransaction.time = moment(reference.time).toJSON();
-        newTransaction.pluginsOwnPayeeId = reference.payeeId;
-        newTransaction.status = reference.status;
-        newTransaction.pluginsOwnMemo = reference.memo;
+        newTransaction.pluginsOwnPayeeId = reference.pluginsOwnPayeeId;
+        newTransaction.status = reference.status || 'normal';
+        newTransaction.pluginsOwnMemo = reference.pluginsOwnMemo;
 
 
         // pluginsOwnPayeeId but no Payee set: maybe we can find one?

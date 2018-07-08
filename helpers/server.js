@@ -3,7 +3,9 @@
 const socketio = require('socket.io');
 const http = require('http');
 const express = require('express');
+const cors = require('cors');
 const bodyParser = require('body-parser');
+const fileUpload = require('express-fileupload');
 
 const LogHelper = require('./log');
 const ConfigHelper = require('./config');
@@ -47,6 +49,8 @@ class ServerHelper {
         app = express();
         server = http.Server(app);
         app.use(bodyParser.json());
+        app.use(fileUpload());
+        app.use(cors());
         io = socketio(server);
 
         try {
