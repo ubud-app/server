@@ -1,7 +1,6 @@
 'use strict';
 
 const path = require('path');
-const ofx = require('ofx');
 const moment = require('moment');
 const TransactionLogic = require('../../logic/transaction');
 
@@ -14,11 +13,20 @@ const TransactionLogic = require('../../logic/transaction');
  */
 class OFXImporter {
     static async check (file) {
+        try {
+            require('ofx');
+        }
+        catch(err) {
+            return false;
+        }
+
         return path.extname(file.name).toLowerCase() === '.ofx';
     }
 
     static async parse (file) {
+        const ofx = require('ofx');
         const TransactionModel = TransactionLogic.getModel();
+
         const transactions = [];
         const data = await ofx.parse(file.data.toString());
 
