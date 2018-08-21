@@ -137,7 +137,7 @@ class PortionLogic extends BaseLogic {
 
                 return PortionLogic.recalculatePortion(budget.portion);
             })
-        )
+        );
     }
 
     static async update (model, body) {
@@ -215,7 +215,8 @@ class PortionLogic extends BaseLogic {
         const DatabaseHelper = require('../helpers/database');
         const monthMoment = moment(portion.month);
 
-        return Promise.all([
+        return Promise.all(
+            [
                 /*
                  *   1. Calculate Portion's Outflow
                  */
