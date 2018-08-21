@@ -4,6 +4,7 @@ const _ = require('underscore');
 const BaseLogic = require('./_');
 const LogHelper = require('../helpers/log');
 const ErrorResponse = require('../helpers/errorResponse');
+const log = new LogHelper('TransactionLogic');
 
 class TransactionLogic extends BaseLogic {
     static getModelName () {
@@ -782,25 +783,35 @@ class TransactionLogic extends BaseLogic {
      * @param {Model} account AccountModel
      * @param {Array<Model>} transactions TransactionModels
      * @param {object} [options]
-     * @param {boolean} [options.isNewAccount] true, if the given account is a new one
-     * @param {string} [options.startingBalanceDate] Starting date of the given export
-     * @returns {Promise<void>}
+     * @param {boolean} [options.updateSummaries]
+     * @returns {Promise<Array<Model>>}
      */
     static async syncTransactions (account, transactions, options = {}) {
         const moment = require('moment');
         const SummaryLogic = require('./summary');
         const DatabaseHelper = require('../helpers/database');
-        const newTransactions = await Promise.all(transactions.map(t => this.syncTransaction(t, transactions)));
 
-        if(!transactions.length) {
+        log.debug('Syncing account ' + account.id + '…');
+
+        if (!transactions.length) {
+            log.debug('No transactions given, done…');
             return;
+        }
+
+        const newTransactions = [];
+        for (let i = 0; i < transactions.length; i++) {
+            const transaction = await this.syncTransaction(transactions[i], transactions);
+            if (transaction) {
+                newTransactions.push(transaction);
+            }
         }
 
         const minDate = moment(Math.min.apply(null, transactions.map(t => moment(t.time).valueOf())));
         const maxDate = moment(Math.max.apply(null, transactions.map(t => moment(t.time).valueOf())));
+        log.debug('Got transaction beginning from ' + minDate.toJSON() + ' to ' + maxDate.toJSON());
 
         // destroy lost transactions
-        await this.getModel().destroy({
+        const toDestroy = await this.getModel().findAll({
             where: {
                 time: {
                     [DatabaseHelper.op('gte')]: minDate.toJSON(),
@@ -812,40 +823,19 @@ class TransactionLogic extends BaseLogic {
                 accountId: account.id
             }
         });
-
-        // is this a new account?
-        if(options.isNewAccount === undefined) {
-            const transactions = await this.getModel().count({
-                where: {
-                    accountId: account.id
-                }
-            });
-
-            options.isNewAccount = transactions.length === 0;
-        }
-
-        // create first transaction / starting balance
-        if (options.isNewAccount) {
-            const sum = newTransactions.reduce((acc, transactionModel) => acc + transactionModel.amount, 0);
-
-            const startingBalance = (account.balance || 0) - sum;
-            if (startingBalance !== 0) {
-                await TransactionLogic.getModel().create({
-                    time: moment(options.startingBalanceDate || minDate).toJSON(),
-                    amount: startingBalance,
-                    status: 'cleared',
-                    accountId: account.id,
-                    units: [{
-                        amount: startingBalance,
-                        incomeMonth: 'this'
-                    }]
-                }, {include: [DatabaseHelper.get('unit')]});
-            }
-        }
-
+        await Promise.all(toDestroy.map(async transaction => {
+            log.debug('Transaction obsolete, delete it: ' + JSON.stringify(transaction.dataValues));
+            return transaction.destroy();
+        }));
 
         // update summaries
-        await SummaryLogic.recalculateSummariesFrom(account.documentId, minDate);
+        if (options.updateSummaries !== false) {
+            await SummaryLogic.recalculateSummariesFrom(account.documentId, minDate);
+        }
+
+        log.debug('Syncing of account ' + account.id + ' done!');
+
+        return newTransactions;
     }
 
     static async syncTransaction (reference, allTransactions) {
@@ -854,9 +844,11 @@ class TransactionLogic extends BaseLogic {
         const log = new LogHelper('TransactionLogic.syncTransaction');
         const jobs = [];
 
+        log.debug('Sync transaction: ' + JSON.stringify(reference));
+
         // check input for required fields
         ['time', 'amount', 'accountId'].forEach(attr => {
-            if(!reference[attr]) {
+            if (!reference[attr]) {
                 throw new Error('Unable to sync transaction: attribute `' + attr + '` empty!');
             }
         });
@@ -864,6 +856,7 @@ class TransactionLogic extends BaseLogic {
         // find transaction model
         let newTransaction;
         if (reference.pluginsOwnId) {
+            log.debug('Try to find transaction by pluginsOwnId');
             newTransaction = await this.getModel().findOne({
                 where: {
                     accountId: reference.accountId,
@@ -873,29 +866,32 @@ class TransactionLogic extends BaseLogic {
         }
 
         /*  model not found: try to find matching TransactionModel which
-         *    - are newer than the oldest transaction in plugin's list
-         *    - are not in the plugin's list, but in our database (pluginsOwnId / accountId)
+         *    - is newer than the oldest transaction in plugin's list
+         *    - is not in the plugin's list, but in our database (pluginsOwnId / accountId)
          *    - has same pluginsOwnPayeeId
          *    - amount is about tha same (+/- 10%)
-         *  if one found:
+         *  if exactly one found:
          *    - use that model
          *    - pluginsOwnPayeeId will be updated below
          *  else:
          *    - do nothing                                                   */
         if (!newTransaction && reference.pluginsOwnId) {
+            log.debug('Try to find transaction by pluginsOwnId soft matching');
             const matchCandiates = await TransactionLogic.getModel().findAll({
                 where: {
                     time: {
-                        [DatabaseHelper.op('gte')]: moment(
+                        [DatabaseHelper.op('gt')]: moment(
                             Math.min.apply(null, allTransactions.map(
                                 t => moment(t.time).valueOf()
                             ))
                         ).toJSON(),
-                        [DatabaseHelper.op('lte')]: moment(
+                        [DatabaseHelper.op('lt')]: moment(
                             Math.max.apply(null, allTransactions.map(
                                 t => moment(t.time).valueOf()
                             ))
-                        ).toJSON()
+                        ).toJSON(),
+                        [DatabaseHelper.op('gte')]: moment(reference.time).startOf('day').toJSON(),
+                        [DatabaseHelper.op('lte')]: moment(reference.time).add(1, 'day').endOf('day').toJSON()
                     },
                     pluginsOwnId: {
                         [DatabaseHelper.op('notIn')]: allTransactions.map(t => t.id)
@@ -911,7 +907,11 @@ class TransactionLogic extends BaseLogic {
                 }
             });
 
+            log.debug(matchCandiates.length + ' candidates found');
+
             if (matchCandiates.length === 1) {
+                log.debug('Procceed with this one: ' + JSON.stringify(matchCandiates[0].dataValues));
+
                 newTransaction = matchCandiates[0];
                 newTransaction.pluginsOwnId = reference.pluginsOwnId;
             }
@@ -920,7 +920,9 @@ class TransactionLogic extends BaseLogic {
         /* Fallback matching without ID, match by amount, time and PayeeID
          * Mainly used für manual imports…
          */
-        if(!newTransaction && !reference.pluginsOwnId) {
+        if (!newTransaction && !reference.pluginsOwnId) {
+            log.debug('Try to find transaction by amount, time, accountId payeeId');
+
             const matchCandiates = await TransactionLogic.getModel().findAll({
                 where: {
                     amount: reference.amount,
@@ -930,7 +932,10 @@ class TransactionLogic extends BaseLogic {
                 }
             });
 
+            log.debug(matchCandiates.length + ' candidates found');
+
             if (matchCandiates.length === 1) {
+                log.debug('Procceed with this one: ' + JSON.stringify(matchCandiates[0].dataValues));
                 newTransaction = matchCandiates[0];
             }
         }
@@ -938,7 +943,9 @@ class TransactionLogic extends BaseLogic {
         /* Fallback matching without ID, match by amount and time only
          * Mainly used für manual imports…
          */
-        if(!newTransaction && !reference.pluginsOwnId) {
+        if (!newTransaction && !reference.pluginsOwnId) {
+            log.debug('Try to find transaction by amount, time and accountId');
+
             const matchCandiates = await TransactionLogic.getModel().findAll({
                 where: {
                     amount: reference.amount,
@@ -947,7 +954,11 @@ class TransactionLogic extends BaseLogic {
                 }
             });
 
+            log.debug(matchCandiates.length + ' candidates found');
+
             if (matchCandiates.length === 1) {
+                log.debug('Procceed with this one: ' + JSON.stringify(matchCandiates[0].dataValues));
+
                 newTransaction = matchCandiates[0];
                 newTransaction.pluginsOwnPayeeId = reference.pluginsOwnPayeeId;
             }
@@ -955,6 +966,8 @@ class TransactionLogic extends BaseLogic {
 
         // create new transaction model if not already there
         if (!newTransaction) {
+            log.debug('Create new transaction model');
+
             newTransaction = TransactionLogic.getModel().build({
                 accountId: reference.accountId,
                 pluginsOwnId: reference.pluginsOwnId,
@@ -977,6 +990,7 @@ class TransactionLogic extends BaseLogic {
         // pluginsOwnPayeeId but no Payee set: maybe we can find one?
         if (newTransaction.pluginsOwnPayeeId && !newTransaction.payeeId) {
             jobs.push((async () => {
+                log.debug('Try to find payee for this transaction');
 
                 // get transactions with matching payeeId
                 const payees = await DatabaseHelper.get('transaction').findAll({
@@ -985,7 +999,7 @@ class TransactionLogic extends BaseLogic {
                         'payeeId'
                     ],
                     where: {
-                        pluginsOwnPayeeId: newTransaction.payeeId,
+                        pluginsOwnPayeeId: newTransaction.pluginsOwnPayeeId,
                         payeeId: {
                             [DatabaseHelper.op('not')]: null
                         }
@@ -994,6 +1008,8 @@ class TransactionLogic extends BaseLogic {
                     order: [[DatabaseHelper.literal('count'), 'DESC']],
                     raw: true
                 });
+
+                log.debug(payees.length + ' payeed found, find best one');
 
                 // use most used payeeId for our new transaction
                 const best = {count: 0, id: null, sum: 0};
@@ -1006,7 +1022,10 @@ class TransactionLogic extends BaseLogic {
                 });
 
                 if (best.id && (best.count >= 3 || payees.length === 1)) {
+                    log.debug('Use payee#' + best.id + ' as payee');
                     reference.payeeId = best.id;
+                } else {
+                    log.debug('No unique payee found (' + JSON.stringify(best) + ')');
                 }
             })());
         }
@@ -1019,6 +1038,7 @@ class TransactionLogic extends BaseLogic {
 
             return Promise.all(allMetadataPlugins.map(plugin => (async () => {
                 try {
+                    log.debug('Run metadata plugin: ' + plugin.type());
                     return plugin.getMetadata(newTransaction);
                 }
                 catch (err) {
@@ -1051,6 +1071,7 @@ class TransactionLogic extends BaseLogic {
         }
 
         try {
+            log.debug('Save transaction: ' + JSON.stringify(newTransaction.dataValues));
             await newTransaction.save();
         }
         catch (err) {

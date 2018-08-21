@@ -4,7 +4,7 @@ const _ = require('underscore');
 const LogHelper = require('../log');
 const EventEmitter = require('events');
 const DatabaseHelper = require('../database');
-const log = new LogHelper('PluginHelper');
+const log = new LogHelper('PluginInstance');
 const status = ['initializing', 'configuration', 'ready', 'shutdown', 'error'];
 
 /**
@@ -471,12 +471,18 @@ class PluginInstance extends EventEmitter {
      */
     async syncAccounts () {
         const accounts = await PluginInstance.request(this, this.type(), 'getAccounts', this.generateConfig());
-        await Promise.all(
-            accounts.map(account => this.syncAccount(account).catch(err => {
+
+        for (let i = 0; i < accounts.length; i++) {
+            const account = accounts[i];
+
+            try {
+                await this.syncAccount(account);
+            }
+            catch (err) {
                 log.error('Unable to sync account `%s` with plugin %s: %s', account.id, this.type(), err);
                 log.error(err);
-            }))
-        );
+            }
+        }
     }
 
     /**
@@ -492,6 +498,8 @@ class PluginInstance extends EventEmitter {
     async syncAccount (account) {
         const AccountLogic = require('../../logic/account');
         const TransactionLogic = require('../../logic/transaction');
+        const SummaryLogic = require('../../logic/summary');
+        const PortionLogic = require('../../logic/portion');
 
         const moment = require('moment');
 
@@ -515,6 +523,14 @@ class PluginInstance extends EventEmitter {
                 name: account.name,
                 type: account.type
             });
+        } else {
+            const transactions = await TransactionLogic.getModel().count({
+                where: {
+                    accountId: account.id
+                }
+            });
+
+            accountIsNew = transactions.length === 0;
         }
 
         // get newest cleared transaction
@@ -595,10 +611,53 @@ class PluginInstance extends EventEmitter {
                 status: transaction.status,
                 pluginsOwnMemo: transaction.memo
             })
-        ), {isNewAccount: accountIsNew, startingBalanceDate: syncBeginningFrom});
+        ), {updateSummaries: false});
 
         log.info(
             'Plugin %s: Transactions synced',
+            this.id().substr(0, 5)
+        );
+
+
+        // create balance transaction
+        const info = await TransactionLogic.getModel().findOne({
+            attributes: [
+                [DatabaseHelper.sum('amount'), 'balance']
+            ],
+            where: {
+                accountId: accountModel.id
+            },
+            raw: true
+        });
+
+        log.debug(
+            'Plugin %s: Balance after sync in DWIMM: %s, should be %s.',
+            this.id().substr(0, 5),
+            info.balance,
+            account.balance
+        );
+
+        const balanceTransactionValue = (account.balance || 0) - info.balance;
+        if (balanceTransactionValue !== 0) {
+            log.debug('Plugin %s: Add balance transaction of %s', this.id().substr(0, 5), balanceTransactionValue);
+
+            await TransactionLogic.getModel().create({
+                time: moment(accountIsNew ? syncBeginningFrom : undefined).toJSON(),
+                amount: balanceTransactionValue,
+                status: 'cleared',
+                accountId: accountModel.id,
+                units: [{
+                    amount: balanceTransactionValue,
+                    incomeMonth: 'this'
+                }]
+            }, {include: [DatabaseHelper.get('unit')]});
+        }
+
+        await SummaryLogic.recalculateSummariesFrom(accountModel.documentId, syncBeginningFrom);
+        await PortionLogic.recalculatePortionsFrom({month: syncBeginningFrom, documentId: accountModel.documentId});
+
+        log.info(
+            'Plugin %s: Account Sync completed!',
             this.id().substr(0, 5)
         );
     }
