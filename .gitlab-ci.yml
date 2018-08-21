@@ -90,6 +90,7 @@ build_image_next_arm:
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
     - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+    - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
     - npm run bump:develop
     - docker pull arm32v7/node
     - docker build --no-cache
@@ -118,6 +119,7 @@ build_image_arm:
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
     - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+    - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
     - npm run bump:production
     - docker pull arm32v7/node
     - docker build --no-cache
