@@ -225,6 +225,21 @@ class AccountLogic extends BaseLogic {
         await PortionsLogic.recalculatePortionsFrom({month, documentId: model.documentId});
         await SummaryLogic.recalculateSummariesFrom(model.documentId, month);
     }
+
+    /**
+     * Method to manually send the `updated` event
+     * for an account. As an account includes the
+     * budget and the number of transactions, this
+     * is required when touching transactions.
+     */
+    static sendUpdatedEvent (model) {
+        const PluginHelper = require('../helpers/plugin');
+        PluginHelper.events().emit('update', {
+            action: 'updated',
+            name: 'account',
+            model
+        });
+    }
 }
 
 module.exports = AccountLogic;

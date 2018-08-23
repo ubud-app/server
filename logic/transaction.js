@@ -260,18 +260,29 @@ class TransactionLogic extends BaseLogic {
         }
 
 
+        const lastJobs = [];
+
         // update portions
         const PortionLogic = require('../logic/portion');
-        PortionLogic.recalculatePortionsFrom({
-            month: timeMoment.startOf('month'),
-            documentId: documentId
-        });
+        lastJobs.push(
+            PortionLogic.recalculatePortionsFrom({
+                month: timeMoment.startOf('month'),
+                documentId: documentId
+            })
+        );
 
         // update summaries
         const SummaryLogic = require('../logic/summary');
-        SummaryLogic.recalculateSummariesFrom(documentId, timeMoment.startOf('month'));
+        lastJobs.push(
+            SummaryLogic.recalculateSummariesFrom(documentId, timeMoment.startOf('month'))
+        );
+
+        // update account balance
+        const AccountLogic = require('./account');
+        lastJobs.push(AccountLogic.sendUpdatedEvent(accountModel));
 
 
+        await Promise.all(lastJobs);
         return {model};
     }
 
@@ -727,26 +738,40 @@ class TransactionLogic extends BaseLogic {
         await model.save();
 
 
-        if (recalculateFrom === null) {
-            return {model};
-        }
-
-        const PortionLogic = require('../logic/portion');
-        const SummaryLogic = require('../logic/summary');
+        const lastJobs = [];
 
         // update portions
-        PortionLogic.recalculatePortionsFrom({
-            month: recalculateFrom,
-            documentId: model.account.document.id
-        });
+        if (recalculateFrom !== null) {
+            const PortionLogic = require('../logic/portion');
+            lastJobs.push(
+                PortionLogic.recalculatePortionsFrom({
+                    month: recalculateFrom,
+                    documentId: model.account.document.id
+                })
+            );
+        }
 
         // update summaries
-        SummaryLogic.recalculateSummariesFrom(model.account.document.id, recalculateFrom);
+        if (recalculateFrom !== null) {
+            const SummaryLogic = require('../logic/summary');
+            lastJobs.push(
+                SummaryLogic.recalculateSummariesFrom(model.account.document.id, recalculateFrom)
+            );
+        }
 
+        // update account balance
+        lastJobs.push((async () => {
+            const AccountLogic = require('./account');
+            const account = await model.getAccount();
+            AccountLogic.sendUpdatedEvent(account);
+        })());
+
+
+        await Promise.all(lastJobs);
         return {model};
     }
 
-    static delete (model) {
+    static async delete (model) {
         if (model.account.pluginInstanceId) {
             throw new ErrorResponse(400, 'Not able to destroy transaction: managed by transaction');
         }
@@ -755,22 +780,23 @@ class TransactionLogic extends BaseLogic {
         const month = moment(model).startOf('month');
         const documentId = model.account.document.id;
 
-        return model.destroy()
-            .then(model => {
-                const PortionLogic = require('../logic/portion');
-                const SummaryLogic = require('../logic/summary');
+        await model.destroy();
 
-                // update portions
-                PortionLogic.recalculatePortionsFrom({month, documentId});
 
-                // update summaries
-                SummaryLogic.recalculateSummariesFrom(documentId, month);
+        // update portions
+        const PortionLogic = require('../logic/portion');
+        PortionLogic.recalculatePortionsFrom({month, documentId});
 
-                return model;
-            })
-            .catch(e => {
-                throw e;
-            });
+        // update summaries
+        const SummaryLogic = require('../logic/summary');
+        SummaryLogic.recalculateSummariesFrom(documentId, month);
+
+        // update account balance
+        const AccountLogic = require('./account');
+        const account = await model.getAccount();
+        AccountLogic.sendUpdatedEvent(account);
+
+        return model;
     }
 
     /**
@@ -795,7 +821,7 @@ class TransactionLogic extends BaseLogic {
 
         if (!transactions.length) {
             log.debug('No transactions given, done…');
-            return;
+            return [];
         }
 
         const newTransactions = [];
@@ -832,6 +858,9 @@ class TransactionLogic extends BaseLogic {
         if (options.updateSummaries !== false) {
             await SummaryLogic.recalculateSummariesFrom(account.documentId, minDate);
         }
+
+        const AccountLogic = require('./account');
+        AccountLogic.sendUpdatedEvent(account);
 
         log.debug('Syncing of account ' + account.id + ' done!');
 

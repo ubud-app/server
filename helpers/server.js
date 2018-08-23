@@ -156,7 +156,9 @@ class ServerHelper {
         this.setupSocketRoutes(socket, session);
         this.setupSocketUpdateEvents(socket, session);
 
-        setTimeout(() => { socket.emit('hello'); });
+        setTimeout(() => {
+            socket.emit('hello');
+        });
     }
 
     /**
@@ -193,7 +195,7 @@ class ServerHelper {
      * @param {SocketSession} session
      */
     static setupSocketUpdateEvents (socket, session) {
-        const handleEvent = function (event) {
+        const handleEvent = async event => {
             if (!event.name || !allLogics[event.name]) {
                 log.warn('Unknown Logic `' + event.name + '`!');
                 return;
@@ -203,7 +205,6 @@ class ServerHelper {
             }
 
             const Logic = allLogics[event.name];
-
             if (event.action === 'deleted') {
                 socket.emit('update', {
                     action: event.action,
@@ -216,27 +217,24 @@ class ServerHelper {
                 return;
             }
 
-            Logic.get(typeof event.model.id === 'function' ? event.model.id() : event.model.id, {session: session.getSessionModel()})
-                .then(model => {
-                    if(!model) {
-                        return null;
-                    }
+            const model = await Logic.get(
+                typeof event.model.id === 'function' ? event.model.id() : event.model.id,
+                {session: session.getSessionModel()}
+            );
+            if (!model) {
+                return null;
+            }
 
-                    return Logic.format(model, {}, {session: session.getSessionModel()});
-                })
-                .then(function (json) {
-                    if(json) {
-                        socket.emit('update', {
-                            action: event.action,
-                            name: Logic.getPluralModelName(),
-                            id: json.id,
-                            data: json
-                        });
-                    }
-                })
-                .catch(err => {
-                    log.error(err);
+
+            const json = await Logic.format(model, {}, {session: session.getSessionModel()});
+            if (json) {
+                socket.emit('update', {
+                    action: event.action,
+                    name: Logic.getPluralModelName(),
+                    id: json.id,
+                    data: json
                 });
+            }
         };
 
         DatabaseHelper.events().on('update', handleEvent);
