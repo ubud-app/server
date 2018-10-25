@@ -50,6 +50,11 @@ module.exports = class TransactionModelDefinition {
             pluginsOwnId: {
                 type: DataTypes.STRING,
                 allowNull: true
+            },
+            isReconciling: {
+                type: DataTypes.BOOLEAN,
+                allowNull: false,
+                defaultValue: false
             }
         };
     }

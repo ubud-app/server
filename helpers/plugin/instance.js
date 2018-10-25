@@ -49,11 +49,11 @@ class PluginInstance extends EventEmitter {
         this._initialize()
             .catch(err => {
                 log.error(err);
-                log.debug('Failed to initialize plugin %s, try again in 5 minutes…', this._model.id);
+                log.debug('Failed to initialize plugin %s, try again in 60 seconds…', this._model.id);
 
                 setTimeout(() => {
                     this._tryToInitialize();
-                }, 5 * 60 * 1000);
+                }, 60 * 1000);
             });
     }
 
@@ -657,7 +657,8 @@ class PluginInstance extends EventEmitter {
                 units: [{
                     amount: balanceTransactionValue,
                     incomeMonth: 'this'
-                }]
+                }],
+                isReconciling: true
             }, {include: [DatabaseHelper.get('unit')]});
         }
 
@@ -958,7 +959,7 @@ class PluginInstance extends EventEmitter {
             });
         }
         if (!method) {
-            console.log(new Error());
+            throw new Error('PluginInstance: called request() wthout method!');
         }
 
         const childProcess = fork(__dirname + '/runner.js', {

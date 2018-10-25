@@ -850,6 +850,10 @@ class TransactionLogic extends BaseLogic {
             }
         });
         await Promise.all(toDestroy.map(async transaction => {
+            if(transaction.isReconciling) {
+                return Promise.resolve();
+            }
+
             log.debug('Transaction obsolete, delete it: ' + JSON.stringify(transaction.dataValues));
             return transaction.destroy();
         }));
