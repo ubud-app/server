@@ -48,7 +48,7 @@ class BudgetLogic extends BaseLogic {
         model.goal = parseInt(body.goal, 10) || null;
 
         return DatabaseHelper.get('category')
-            .find({
+            .findOne({
                 where: {id: body.categoryId},
                 attributes: ['id'],
                 include: [{
@@ -178,7 +178,7 @@ class BudgetLogic extends BaseLogic {
         }
 
         return DatabaseHelper.get('category')
-            .find({
+            .findOne({
                 where: {id: body.categoryId},
                 attributes: ['id'],
                 include: [{

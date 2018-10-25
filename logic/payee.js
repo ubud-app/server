@@ -42,7 +42,7 @@ class PayeeLogic extends BaseLogic {
         }
 
         return DatabaseHelper.get('document')
-            .find({
+            .findOne({
                 where: {id: body.documentId},
                 attributes: ['id'],
                 include: DatabaseHelper.includeUserIfNotAdmin(options.session)

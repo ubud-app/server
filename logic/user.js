@@ -97,7 +97,7 @@ class UserLogic extends BaseLogic {
 
     static get(id, options) {
         if (options.session.user.isAdmin || id === options.session.userId) {
-            return this.getModel().findById(id);
+            return this.getModel().findByPk(id);
         }
 
         return Promise.resolve(null);

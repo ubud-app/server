@@ -76,7 +76,7 @@ class AccountLogic extends BaseLogic {
         model.hidden = !!body.hidden;
 
         return DatabaseHelper.get('document')
-            .find({
+            .findOne({
                 where: {id: body.documentId},
                 attributes: ['id'],
                 include: [{

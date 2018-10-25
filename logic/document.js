@@ -196,7 +196,7 @@ class DocumentLogic extends BaseLogic {
                 return;
             }
 
-            const userModel = await DatabaseHelper.get('user').findById(user.id);
+            const userModel = await DatabaseHelper.get('user').findByPk(user.id);
             if (!userModel) {
                 throw new ErrorResponse(400, 'Unable to add user to document: User not found', {
                     attributes: {

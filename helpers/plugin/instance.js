@@ -42,10 +42,18 @@ class PluginInstance extends EventEmitter {
                 this._status = 2;
             }
         });
+        this._tryToInitialize();
+    }
 
+    _tryToInitialize () {
         this._initialize()
             .catch(err => {
                 log.error(err);
+                log.debug('Failed to initialize plugin %s, try again in 5 minutes…', this._model.id);
+
+                setTimeout(() => {
+                    this._tryToInitialize();
+                }, 5 * 60 * 1000);
             });
     }
 

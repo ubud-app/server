@@ -102,7 +102,7 @@ class SessionLogic extends BaseLogic {
 
         // logged out user: login
         return DatabaseHelper.get('user')
-            .find({
+            .findOne({
                 where: {
                     email: options.session.name
                 }

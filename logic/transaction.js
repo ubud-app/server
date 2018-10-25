@@ -121,7 +121,7 @@ class TransactionLogic extends BaseLogic {
         // payee
         if (body.payeeId) {
             await DatabaseHelper.get('payee')
-                .findById(body.payeeId)
+                .findByPk(body.payeeId)
                 .then(function (payee) {
                     if (!payee) {
                         throw new ErrorResponse(400, 'Not able to create transaction: linked payee not found.');
@@ -165,7 +165,7 @@ class TransactionLogic extends BaseLogic {
 
         // account
         const accountModel = await DatabaseHelper.get('account')
-            .find({
+            .findOne({
                 where: {id: body.accountId},
                 attributes: ['id', 'pluginInstanceId'],
                 include: [{
@@ -430,7 +430,7 @@ class TransactionLogic extends BaseLogic {
         if (body.payeeId !== model.payeeId) {
             checks.push(
                 DatabaseHelper.get('payee')
-                    .findById(body.payeeId)
+                    .findByPk(body.payeeId)
                     .then(function (payee) {
                         if (!payee) {
                             throw new ErrorResponse(400, 'Not able to create transaction: linked payee not found.');
@@ -533,7 +533,7 @@ class TransactionLogic extends BaseLogic {
         if (body.accountId !== undefined && body.accountId !== model.accountId) {
             checks.push(
                 DatabaseHelper.get('account')
-                    .find({
+                    .findOne({
                         where: {id: body.accountId},
                         attributes: ['id', 'pluginInstanceId']
                     })

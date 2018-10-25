@@ -60,7 +60,7 @@ class PluginInstanceLogic extends BaseLogic {
             }];
         }
 
-        const document = await DatabaseHelper.get('document').findById(attributes.documentId, sql);
+        const document = await DatabaseHelper.get('document').findByPk(attributes.documentId, sql);
         if (!document) {
             throw new ErrorResponse(404, 'Could not create PluginInstance: document not found…', {
                 attributes: {
@@ -88,7 +88,7 @@ class PluginInstanceLogic extends BaseLogic {
 
         if (!options.session.user.isAdmin) {
             const DatabaseHelper = require('../helpers/database');
-            const document = await DatabaseHelper.get('document').findById(plugin.documentId(), {
+            const document = await DatabaseHelper.get('document').findByPk(plugin.documentId(), {
                 include: DatabaseHelper.includeUserIfNotAdmin(options.session)
             });
 
@@ -105,7 +105,7 @@ class PluginInstanceLogic extends BaseLogic {
             throw new ErrorResponse(403, 'Only admins are allowed to list all plugins…');
         }
         if (params.document) {
-            const document = await DatabaseHelper.get('document').findById(params.document);
+            const document = await DatabaseHelper.get('document').findByPk(params.document);
 
             if (!document) {
                 return [];

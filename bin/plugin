@@ -56,7 +56,7 @@ commander
     .description('Install a plugin, where document is a valid document id and plugin is a `npm install` parameter (name, tarball, etc.)')
     .action(function (documentId, plugin) {
         run(async function() {
-            const document = await DatabaseHelper.get('document').findById(documentId);
+            const document = await DatabaseHelper.get('document').findByPk(documentId);
             if(!document) {
                 throw new Error('Document not found, is the id correct?');
             }

@@ -60,7 +60,7 @@ class SettingLogic extends BaseLogic {
 
         return DatabaseHelper
             .get('document')
-            .find({
+            .findOne({
                 attributes: ['id'],
                 where: {
                     id: model.documentId
