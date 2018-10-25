@@ -12,21 +12,28 @@ const models = {};
 
 
 // initialize sequalize.js
-const sequelize = new Sequelize(ConfigHelper.getDatabaseURI(), {
-    logging: function (text) {
-        log.log(text);
-    },
-    define: {
-        timestamps: true,
-        charset: 'utf8',
-        collate: 'utf8_general_ci'
-    },
-    pool: {
-        maxConnections: 5,
-        maxIdleTime: 30
-    },
-    operatorsAliases: false
-});
+let sequelize;
+try {
+    sequelize = new Sequelize(ConfigHelper.getDatabaseURI(), {
+        logging: function (text) {
+            log.log(text);
+        },
+        define: {
+            timestamps: true,
+            charset: 'utf8',
+            collate: 'utf8_general_ci'
+        },
+        pool: {
+            maxConnections: 5,
+            maxIdleTime: 30
+        },
+        operatorsAliases: false
+    });
+}
+catch (err) {
+    log.fatal('Unable to connect to database `%s`: Is the database URI correct?', ConfigHelper.getDatabaseURI());
+    process.exit(1);
+}
 
 
 // load models (sync)
@@ -45,8 +52,8 @@ fs.readdirSync(__dirname + '/../models').forEach(function (modelFile) {
             def.getDefinition(Sequelize),
             {
                 hooks: {
-                    afterCreate(model) {
-                        if(def.disableSequelizeSocketHooks && def.disableSequelizeSocketHooks('create') === true) {
+                    afterCreate (model) {
+                        if (def.disableSequelizeSocketHooks && def.disableSequelizeSocketHooks('create') === true) {
                             return;
                         }
                         setTimeout(function () {
@@ -57,8 +64,8 @@ fs.readdirSync(__dirname + '/../models').forEach(function (modelFile) {
                             });
                         }, 10);
                     },
-                    afterDestroy(model) {
-                        if(def.disableSequelizeSocketHooks && def.disableSequelizeSocketHooks('destroy') === true) {
+                    afterDestroy (model) {
+                        if (def.disableSequelizeSocketHooks && def.disableSequelizeSocketHooks('destroy') === true) {
                             return;
                         }
                         setTimeout(function () {
@@ -69,8 +76,8 @@ fs.readdirSync(__dirname + '/../models').forEach(function (modelFile) {
                             });
                         }, 10);
                     },
-                    afterUpdate(model) {
-                        if(def.disableSequelizeSocketHooks && def.disableSequelizeSocketHooks('update') === true) {
+                    afterUpdate (model) {
+                        if (def.disableSequelizeSocketHooks && def.disableSequelizeSocketHooks('update') === true) {
                             return;
                         }
                         setTimeout(function () {
@@ -81,8 +88,8 @@ fs.readdirSync(__dirname + '/../models').forEach(function (modelFile) {
                             });
                         }, 10);
                     },
-                    afterSave(model) {
-                        if(def.disableSequelizeSocketHooks && def.disableSequelizeSocketHooks('save') === true) {
+                    afterSave (model) {
+                        if (def.disableSequelizeSocketHooks && def.disableSequelizeSocketHooks('save') === true) {
                             return;
                         }
                         setTimeout(function () {
@@ -178,7 +185,7 @@ class DatabaseHelper {
      * @param {String} name Name of model
      * @returns {Model}
      */
-    static get(name) {
+    static get (name) {
         if (!models[name]) {
             throw new Error('Can\'t get model `' + name + '`: Model unknown.');
         }
@@ -192,7 +199,7 @@ class DatabaseHelper {
      *
      * @returns {Umzug}
      */
-    static getMigrator() {
+    static getMigrator () {
         const Umzug = require('umzug');
         const path = require('path');
         const log = new LogHelper('DatabaseMigrator');
@@ -220,7 +227,7 @@ class DatabaseHelper {
      * @returns {EventEmitter}
      * @instance
      */
-    static events() {
+    static events () {
         return modelEvents;
     }
 
@@ -230,7 +237,7 @@ class DatabaseHelper {
      *
      * @returns {Promise}
      */
-    static reset() {
+    static reset () {
         return sequelize.dropAllSchemas({force: true});
     }
 
@@ -238,7 +245,7 @@ class DatabaseHelper {
      * Closes all database connections.
      * @returns {Promise}
      */
-    static close() {
+    static close () {
         return sequelize.close();
     }
 
@@ -252,11 +259,11 @@ class DatabaseHelper {
      * @param {Boolean} [options.through]
      * @returns {*}
      */
-    static includeUserIfNotAdmin(session, options) {
-        if(!session || !session.user) {
+    static includeUserIfNotAdmin (session, options) {
+        if (!session || !session.user) {
             throw new Error('includeUserIfNotAdmin: Session is not valid!');
         }
-        if(session.user.isAdmin) {
+        if (session.user.isAdmin) {
             return [];
         }
 
@@ -270,7 +277,7 @@ class DatabaseHelper {
             }
         }];
 
-        if(options.through) {
+        if (options.through) {
             result[0].through = {attributes: []};
         }
 
@@ -283,7 +290,7 @@ class DatabaseHelper {
      * @param {String} [operator]
      * @returns {Sequelize.Op}
      */
-    static op(operator) {
+    static op (operator) {
         if (operator) {
             return Sequelize.Op[operator];
         }
@@ -294,15 +301,15 @@ class DatabaseHelper {
     /**
      * @param {String} literal
      */
-    static literal(literal) {
+    static literal (literal) {
         return sequelize.literal(literal);
     }
 
-    static where(k, v) {
+    static where (k, v) {
         return sequelize.where(k, v);
     }
 
-    static query(query) {
+    static query (query) {
         return sequelize.query(query, {type: sequelize.QueryTypes.SELECT});
     }
 
@@ -310,7 +317,7 @@ class DatabaseHelper {
      * Helps to get a sum
      * @param {String} column
      */
-    static sum(column) {
+    static sum (column) {
         return sequelize.fn('sum', sequelize.col(column));
     }
 
@@ -318,7 +325,7 @@ class DatabaseHelper {
      * Helps to get count of elements
      * @param {String} column
      */
-    static count(column) {
+    static count (column) {
         return sequelize.fn('count', sequelize.col(column));
     }
 }
