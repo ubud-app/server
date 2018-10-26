@@ -1056,7 +1056,7 @@ class TransactionLogic extends BaseLogic {
 
                 if (best.id && (best.count >= 3 || payees.length === 1)) {
                     log.debug('Use payee#' + best.id + ' as payee');
-                    reference.payeeId = best.id;
+                    newTransaction.payeeId = best.id;
                 } else {
                     log.debug('No unique payee found (' + JSON.stringify(best) + ')');
                 }
