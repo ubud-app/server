@@ -119,6 +119,9 @@ models.account.belongsTo(models['plugin-instance'], {onDelete: 'SET NULL'});
 models.account.hasMany(models.transaction, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 models.transaction.belongsTo(models.account, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 
+models.transaction.hasOne(models.transaction, {onDelete: 'CASCADE', foreignKey: 'transferId'});
+models.transaction.belongsTo(models.transaction, {onDelete: 'CASCADE', foreignKey: 'transferId'});
+
 models.payee.hasMany(models.transaction, {onDelete: 'CASCADE'});
 models.transaction.belongsTo(models.payee, {onDelete: 'CASCADE'});
 
