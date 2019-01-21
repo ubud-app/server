@@ -256,7 +256,7 @@ class PluginRunner {
         const moment = require('moment');
         const transactions = await job.plugin.getTransactions(
             job.params.accountId,
-            moment(job.since)
+            moment(job.params.since)
         );
 
         return transactions.map(transaction => {
