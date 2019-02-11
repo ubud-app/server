@@ -51,6 +51,7 @@ class SocketSession {
             throw new ErrorResponse(401, 'Not able to authorize: Is session id and secret correct?');
         }
 
+        this.session = session;
         return session;
     }
 
