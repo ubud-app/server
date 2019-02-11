@@ -123,7 +123,7 @@ class SessionLogic extends BaseLogic {
             });
         });
 
-        model.secret = hash;
+        secrets.secret = hash;
         options.setSession(model);
         await model.save();
 

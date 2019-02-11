@@ -25,10 +25,10 @@ class SocketSession {
      */
     async authenticate(data) {
         if (!data.id) {
-            return Promise.reject(new ErrorResponse(401, 'Error in `auth` data: attribute `id` missing…'));
+            throw new ErrorResponse(401, 'Error in `auth` data: attribute `id` missing…');
         }
         if (!data.secret) {
-            return Promise.reject(new ErrorResponse(401, 'Error in `auth` data: attribute `secret` missing…'));
+            throw new ErrorResponse(401, 'Error in `auth` data: attribute `secret` missing…');
         }
 
         const session = await DatabaseHelper.get('session').findOne({
