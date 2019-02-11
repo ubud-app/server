@@ -113,7 +113,7 @@ class SessionLogic extends BaseLogic {
         }
 
         const crypto = require('crypto');
-        const hash = await new Promise((resolve, reject) => {
+        const random = await new Promise((resolve, reject) => {
             crypto.randomBytes(32, (err, buffer) => {
                 if (err) {
                     reject(err);
@@ -123,7 +123,10 @@ class SessionLogic extends BaseLogic {
             });
         });
 
-        secrets.secret = hash;
+        const hash = await bcrypt.hash(random, 10);
+        model.secret = hash;
+        secrets.token = random;
+
         options.setSession(model);
         await model.save();
 
