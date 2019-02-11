@@ -23,10 +23,7 @@ class SocketSession {
      * @param {String} data.secret Session secret
      * @returns {Promise}
      */
-    authenticate(data) {
-        const s = this;
-        let session;
-
+    async authenticate(data) {
         if (!data.id) {
             return Promise.reject(new ErrorResponse(401, 'Error in `auth` data: attribute `id` missing…'));
         }
@@ -34,37 +31,27 @@ class SocketSession {
             return Promise.reject(new ErrorResponse(401, 'Error in `auth` data: attribute `secret` missing…'));
         }
 
-        return DatabaseHelper.get('session')
-            .findOne({
-                where: {
-                    id: data.id || data.name
-                },
-                include: [{
-                    model: DatabaseHelper.get('user')
-                }]
-            })
-            .then(function (_session) {
-                session = _session;
-                if (!session) {
-                    throw new ErrorResponse(401, 'Not able to authorize: Is session id and secret correct?');
-                }
-                if (session.mobilePairing) {
-                    throw new ErrorResponse(401, 'Not able to authorize: mobile auth flow not implemented for sockets');
-                }
+        const session = await DatabaseHelper.get('session').findOne({
+            where: {
+                id: data.id || data.name
+            },
+            include: [{
+                model: DatabaseHelper.get('user')
+            }]
+        });
+        if (!session) {
+            throw new ErrorResponse(401, 'Not able to authorize: Is session id and secret correct?');
+        }
+        if (session.mobilePairing) {
+            throw new ErrorResponse(401, 'Not able to authorize: mobile auth flow not yet implemented for sockets');
+        }
 
-                return bcrypt.compare(data.secret, session.secret);
-            })
-            .then(function (isSessionCorrect) {
-                if (!isSessionCorrect) {
-                    throw new ErrorResponse(401, 'Not able to authorize: Is session id and secret correct?');
-                }
+        const isSessionCorrect = await bcrypt.compare(data.secret, session.secret);
+        if (!isSessionCorrect) {
+            throw new ErrorResponse(401, 'Not able to authorize: Is session id and secret correct?');
+        }
 
-                s.session = session;
-                return session;
-            })
-            .catch(m => {
-                throw m;
-            });
+        return session;
     }
 
     /**
@@ -85,7 +72,7 @@ class SocketSession {
 
     /**
      * Sets the session model
-     * @returns {null}
+     * @returns {SocketSession}
      */
     setSessionModel(session) {
         this.session = session;

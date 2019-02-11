@@ -99,15 +99,14 @@ class PluginHelper {
 
             // remove plugin again
             // @todo only if not used otherwise
-            await this._runPackageRemove(type)
-                .then(() => {
-                    log.debug('%s: removed successfully', type);
-                })
-                .catch(err => {
-                    log.warn('%s: unable to remove plugin: %s', type, err);
-                });
-
-            throw err;
+            try {
+                await this._runPackageRemove(type);
+                log.debug('%s: removed successfully', type);
+            }
+            catch(err) {
+                log.warn('%s: unable to remove plugin: %s', type, err);
+                throw err;
+            }
         }
 
 
@@ -196,13 +195,7 @@ class PluginHelper {
         const exec = require('promised-exec');
         const escape = require('shell-escape');
 
-        return exec(escape(['npm', 'remove', type, '--save']))
-            .then(() => {
-                return Promise.resolve();
-            })
-            .catch(e => {
-                throw e;
-            });
+        await exec(escape(['npm', 'remove', type, '--save']));
     }
 }
 

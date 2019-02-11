@@ -23,7 +23,7 @@ class PortionLogic extends BaseLogic {
         };
     }
 
-    static get (id, options) {
+    static async get (id, options) {
         const DatabaseHelper = require('../helpers/database');
         return this.getModel().findOne({
             where: {
@@ -210,86 +210,81 @@ class PortionLogic extends BaseLogic {
             });
     }
 
-    static recalculatePortion (portion) {
+    static async recalculatePortion (portion) {
         const moment = require('moment');
         const DatabaseHelper = require('../helpers/database');
         const monthMoment = moment(portion.month);
 
-        return Promise.all(
-            [
-                /*
-                 *   1. Calculate Portion's Outflow
-                 */
-                DatabaseHelper.get('unit').findOne({
-                    attributes: [
-                        [DatabaseHelper.sum('unit.amount'), 'outflow']
-                    ],
+        const calculated = await Promise.all([
+            /*
+             *   1. Calculate Portion's Outflow
+             */
+            DatabaseHelper.get('unit').findOne({
+                attributes: [
+                    [DatabaseHelper.sum('unit.amount'), 'outflow']
+                ],
+                where: {
+                    budgetId: portion.budgetId
+                },
+                include: [{
+                    model: DatabaseHelper.get('transaction'),
+                    attributes: [],
                     where: {
-                        budgetId: portion.budgetId
-                    },
-                    include: [{
-                        model: DatabaseHelper.get('transaction'),
-                        attributes: [],
-                        where: {
-                            time: {
-                                [DatabaseHelper.op('gte')]: moment(monthMoment).startOf('month').toJSON(),
-                                [DatabaseHelper.op('lte')]: moment(monthMoment).endOf('month').toJSON()
-                            }
+                        time: {
+                            [DatabaseHelper.op('gte')]: moment(monthMoment).startOf('month').toJSON(),
+                            [DatabaseHelper.op('lte')]: moment(monthMoment).endOf('month').toJSON()
                         }
-                    }],
-                    raw: true
-                }),
+                    }
+                }],
+                raw: true
+            }),
 
-                /*
-                 *   2. Calculate Portion's Transactions
-                 */
-                DatabaseHelper.get('unit').findOne({
-                    attributes: [
-                        [DatabaseHelper.sum('unit.amount'), 'transactions']
-                    ],
+            /*
+             *   2. Calculate Portion's Transactions
+             */
+            DatabaseHelper.get('unit').findOne({
+                attributes: [
+                    [DatabaseHelper.sum('unit.amount'), 'transactions']
+                ],
+                where: {
+                    budgetId: portion.budgetId
+                },
+                include: [{
+                    model: DatabaseHelper.get('transaction'),
+                    attributes: [],
                     where: {
-                        budgetId: portion.budgetId
-                    },
-                    include: [{
-                        model: DatabaseHelper.get('transaction'),
-                        attributes: [],
-                        where: {
-                            time: {
-                                [DatabaseHelper.op('lte')]: moment(monthMoment).endOf('month').toJSON()
-                            }
+                        time: {
+                            [DatabaseHelper.op('lte')]: moment(monthMoment).endOf('month').toJSON()
                         }
-                    }],
-                    raw: true
-                }),
+                    }
+                }],
+                raw: true
+            }),
 
-                /*
-                 *   3: Calculate Portions Budgeted
-                 */
-                DatabaseHelper.get('portion').findOne({
-                    attributes: [
-                        [DatabaseHelper.sum('budgeted'), 'budgetedTillLastMonth']
-                    ],
-                    where: {
-                        month: {
-                            [DatabaseHelper.op('lte')]: moment(monthMoment).subtract(1, 'month').endOf('month').toJSON()
-                        },
-                        budgetId: portion.budgetId
+            /*
+             *   3: Calculate Portions Budgeted
+             */
+            DatabaseHelper.get('portion').findOne({
+                attributes: [
+                    [DatabaseHelper.sum('budgeted'), 'budgetedTillLastMonth']
+                ],
+                where: {
+                    month: {
+                        [DatabaseHelper.op('lte')]: moment(monthMoment).subtract(1, 'month').endOf('month').toJSON()
                     },
-                    raw: true
-                })
-            ])
-            .then(calculated => {
-                portion.outflow = parseInt(calculated[0].outflow) || 0;
-                portion.balance = (parseInt(calculated[2].budgetedTillLastMonth) || 0) +
-                    (parseInt(calculated[1].transactions) || 0) +
-                    (portion.budgeted || 0);
-
-                portion.outflow *= -1;
-                return portion.save();
+                    budgetId: portion.budgetId
+                },
+                raw: true
             })
-            .catch(e => {
-                throw e;
-            });
+        ]);
+
+        portion.outflow = parseInt(calculated[0].outflow) || 0;
+        portion.balance = (parseInt(calculated[2].budgetedTillLastMonth) || 0) +
+            (parseInt(calculated[1].transactions) || 0) +
+            (portion.budgeted || 0);
+
+        portion.outflow *= -1;
+        await portion.save();
     }
 }
 

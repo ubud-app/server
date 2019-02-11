@@ -254,20 +254,18 @@ class ServerHelper {
      *
      * @returns {Promise}
      */
-    static migrateDatabaseIfRequired () {
-        return DatabaseHelper.getMigrator().up()
-            .then(migrations => {
-                if (migrations.length > 0) {
-                    log.info('Executed %s migrations.\n - %s', migrations.length, migrations.map(m => m.file).join('\n - '));
-                }
-
-                return Promise.resolve();
-            })
-            .catch(e => {
-                log.error(e);
-                log.error(new Error('Unable to execute pending database transactions, stop server…'));
-                process.exit(1);
-            });
+    static async migrateDatabaseIfRequired () {
+        try {
+            const migrations = await DatabaseHelper.getMigrator().up();
+            if (migrations.length > 0) {
+                log.info('Executed %s migrations.\n - %s', migrations.length, migrations.map(m => m.file).join('\n - '));
+            }
+        }
+        catch(e) {
+            log.error(e);
+            log.error(new Error('Unable to execute pending database transactions, stop server…'));
+            process.exit(1);
+        }
     }
 
     /**
@@ -276,59 +274,48 @@ class ServerHelper {
      *
      * @returns {Promise}
      */
-    static createDefaultUserIfRequired () {
+    static async createDefaultUserIfRequired () {
         const crypto = require('crypto');
         const bcrypt = require('bcrypt');
         const user = DatabaseHelper.get('user');
-        let password;
 
-        return user.destroy({where: {email: 'setup@dwimm.org'}})
-            .then(function () {
-                return user.count();
-            })
-            .then(function (count) {
-                if (count > 0) {
-                    throw false; // -> "abort promise"
-                }
+        await user.destroy({
+            where: {
+                email: 'setup@dwimm.org'
+            }
+        });
 
-                return new Promise((resolve, reject) => {
-                    crypto.randomBytes(16, (err, buffer) => {
-                        if (err) {
-                            reject(err);
-                        } else {
-                            resolve(buffer.toString('hex'));
-                        }
-                    });
-                });
-            })
-            .then(function (random) {
-                password = random;
-                return bcrypt.hash(random, 10);
-            })
-            .then(function (hash) {
-                return DatabaseHelper.get('user').create({
-                    email: 'setup@dwimm.org',
-                    password: hash,
-                    isAdmin: true,
-                    needsPasswordChange: true
-                });
-            })
-            .then(function () {
-                let s = '\n\n\n##########################################\n\n';
-                s += 'Hey buddy,\n\nI just created a new admin user for you. \nUse these credentials to login:\n\n';
-                s += 'Email: setup@dwimm.org\n';
-                s += 'Password: ' + password + '\n\n';
-                s += 'Cheers, \nyour lovely DWIMM server :)\n\n';
-                s += '##########################################\n\n\n';
+        const count = await user.count();
+        if(count > 0) {
+            return;
+        }
 
-                log.info(s);
-                return Promise.resolve();
-            })
-            .catch(function (err) {
-                if (err !== false) {
-                    throw err;
+        const password = await new Promise((resolve, reject) => {
+            crypto.randomBytes(16, (err, buffer) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(buffer.toString('hex'));
                 }
             });
+        });
+
+        const hash = await bcrypt.hash(password, 10);
+        await DatabaseHelper.get('user').create({
+            email: 'setup@dwimm.org',
+            password: hash,
+            isAdmin: true,
+            needsPasswordChange: true
+        });
+
+        let s = '\n\n\n##########################################\n\n';
+        s += 'Hey buddy,\n\nI just created a new admin user for you. \nUse these credentials to login:\n\n';
+        s += 'Email: setup@dwimm.org\n';
+        s += 'Password: ' + password + '\n\n';
+        s += 'Cheers, \nyour lovely DWIMM server :)\n\n';
+        s += '##########################################\n\n\n';
+
+        log.info(s);
     }
 }
 

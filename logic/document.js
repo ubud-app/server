@@ -34,10 +34,8 @@ class DocumentLogic extends BaseLogic {
         return r;
     }
 
-    static create (attributes, options) {
-        const _ = require('underscore');
+    static async create (attributes, options) {
         const model = this.getModel().build();
-        let document;
 
         model.name = attributes.name;
         if (!model.name) {
@@ -48,44 +46,36 @@ class DocumentLogic extends BaseLogic {
             });
         }
 
-        return model.save()
-            .then(function (_document) {
-                document = _document;
-                let jobs = [document.addUser(options.session.user)];
+        await model.save();
+        let jobs = [model.addUser(options.session.user)];
 
-                // Settings
-                _.each(attributes.settings || {}, (v, k) => {
-                    jobs.push(
-                        DatabaseHelper
-                            .get('setting')
-                            .create(
-                                {
-                                    key: k,
-                                    value: JSON.stringify(v),
-                                    documentId: document.id
-                                }
-                            )
-                            .then(setting => {
-                                document.settings = document.settings || [];
-                                document.settings.push(setting);
-                            })
-                            .catch(e => {
-                                throw e;
-                            })
-                    );
-                });
+        // Settings
+        attributes.settings.forEach((v, k) => {
+            jobs.push(
+                DatabaseHelper
+                    .get('setting')
+                    .create(
+                        {
+                            key: k,
+                            value: JSON.stringify(v),
+                            documentId: model.id
+                        }
+                    )
+                    .then(setting => {
+                        model.settings = model.settings || [];
+                        model.settings.push(setting);
+                    })
+                    .catch(e => {
+                        throw e;
+                    })
+            );
+        });
 
-                return Promise.all(jobs);
-            })
-            .then(function () {
-                return {model: document};
-            })
-            .catch(err => {
-                throw err;
-            });
+        await Promise.all(jobs);
+        return {model};
     }
 
-    static get (id, options) {
+    static async get (id, options) {
         const sql = {
             where: {id},
             include: [
@@ -108,7 +98,7 @@ class DocumentLogic extends BaseLogic {
         return this.getModel().findOne(sql);
     }
 
-    static list (params, options) {
+    static async list (params, options) {
         const sql = {
             include: [
                 {

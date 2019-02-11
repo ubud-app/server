@@ -16,7 +16,7 @@ class PluginLogic extends BaseLogic {
         return plugin;
     }
 
-    static get(id) {
+    static async get(id) {
         return RepositoryHelper.getPluginById(id);
     }
 

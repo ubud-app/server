@@ -25,7 +25,7 @@ class BudgetLogic extends BaseLogic {
         };
     }
 
-    static create(body, options) {
+    static async create(body, options) {
         const DatabaseHelper = require('../helpers/database');
         const model = this.getModel().build();
 
@@ -47,33 +47,26 @@ class BudgetLogic extends BaseLogic {
 
         model.goal = parseInt(body.goal, 10) || null;
 
-        return DatabaseHelper.get('category')
-            .findOne({
-                where: {id: body.categoryId},
-                attributes: ['id'],
-                include: [{
-                    model: DatabaseHelper.get('document'),
-                    attributes: [],
-                    include: DatabaseHelper.includeUserIfNotAdmin(options.session)
-                }]
-            })
-            .then(function (categoryModel) {
-                if (!categoryModel) {
-                    throw new ErrorResponse(400, 'Not able to create budget: linked category not found.');
-                }
+        const categoryModel = await DatabaseHelper.get('category').findOne({
+            where: {id: body.categoryId},
+            attributes: ['id'],
+            include: [{
+                model: DatabaseHelper.get('document'),
+                attributes: [],
+                include: DatabaseHelper.includeUserIfNotAdmin(options.session)
+            }]
+        });
+        if (!categoryModel) {
+            throw new ErrorResponse(400, 'Not able to create budget: linked category not found.');
+        }
 
-                model.categoryId = categoryModel.id;
-                return model.save();
-            })
-            .then(function (model) {
-                return {model};
-            })
-            .catch(e => {
-                throw e;
-            });
+        model.categoryId = categoryModel.id;
+        await model.save();
+
+        return {model};
     }
 
-    static get(id, options) {
+    static async get(id, options) {
         const DatabaseHelper = require('../helpers/database');
         return this.getModel().findOne({
             where: {
@@ -91,7 +84,7 @@ class BudgetLogic extends BaseLogic {
         });
     }
 
-    static list(params, options) {
+    static async list(params, options) {
         const DatabaseHelper = require('../helpers/database');
 
         const sql = {
@@ -177,36 +170,29 @@ class BudgetLogic extends BaseLogic {
             return model.save();
         }
 
-        return DatabaseHelper.get('category')
-            .findOne({
-                where: {id: body.categoryId},
-                attributes: ['id'],
+        const categoryModel = await DatabaseHelper.get('category').findOne({
+            where: {id: body.categoryId},
+            attributes: ['id'],
+            include: [{
+                model: DatabaseHelper.get('document'),
+                attributes: [],
                 include: [{
-                    model: DatabaseHelper.get('document'),
+                    model: DatabaseHelper.get('user'),
                     attributes: [],
-                    include: [{
-                        model: DatabaseHelper.get('user'),
-                        attributes: [],
-                        where: {
-                            id: options.session.userId
-                        }
-                    }]
+                    where: {
+                        id: options.session.userId
+                    }
                 }]
-            })
-            .then(function (categoryModel) {
-                if (!categoryModel) {
-                    throw new ErrorResponse(400, 'Not able to update budget: linked category not found.');
-                }
+            }]
+        });
+        if (!categoryModel) {
+            throw new ErrorResponse(400, 'Not able to update budget: linked category not found.');
+        }
 
-                model.categoryId = categoryModel.id;
-                return model.save();
-            })
-            .then(function (model) {
-                return {model};
-            })
-            .catch(e => {
-                throw e;
-            });
+        model.categoryId = categoryModel.id;
+        await model.save();
+
+        return {model};
     }
 
     static delete() {

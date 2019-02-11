@@ -35,7 +35,7 @@ class SettingLogic extends BaseLogic {
         };
     }
 
-    static create(attributes, options) {
+    static async create(attributes, options) {
         const model = this.getModel().build();
 
         model.key = attributes.key;
@@ -58,47 +58,42 @@ class SettingLogic extends BaseLogic {
             });
         }
 
-        return DatabaseHelper
-            .get('document')
-            .findOne({
-                attributes: ['id'],
-                where: {
-                    id: model.documentId
-                },
-                include: DatabaseHelper.includeUserIfNotAdmin(options.session, {through: true})
-            })
-            .then(function (document) {
-                if (!document) {
-                    throw new ErrorResponse(400, 'Document given in `documentId` not found…', {
-                        attributes: {
-                            documentId: 'Document not found'
-                        }
-                    });
+        const document = await DatabaseHelper.get('document').findOne({
+            attributes: ['id'],
+            where: {
+                id: model.documentId
+            },
+            include: DatabaseHelper.includeUserIfNotAdmin(options.session, {through: true})
+        });
+        if (!document) {
+            throw new ErrorResponse(400, 'Document given in `documentId` not found…', {
+                attributes: {
+                    documentId: 'Document not found'
                 }
-
-                model.documentId = document.id;
-                return model.save();
-            })
-            .catch(function (err) {
-                if (err.toString().indexOf('SequelizeUniqueConstraintError') > -1) {
-                    throw new ErrorResponse(400, 'Setting with this key already exists in document…', {
-                        attributes: {
-                            key: 'Already exists'
-                        }
-                    });
-                }
-
-                throw err;
-            })
-            .then(function (model) {
-                return {model};
-            })
-            .catch(err => {
-                throw err;
             });
+        }
+
+        model.documentId = document.id;
+
+        try {
+            await model.save();
+        }
+        catch(err) {
+            if (err.toString().indexOf('SequelizeUniqueConstraintError') > -1) {
+                throw new ErrorResponse(400, 'Setting with this key already exists in document…', {
+                    attributes: {
+                        key: 'Already exists'
+                    }
+                });
+            }
+
+            throw err;
+        }
+
+        return {model};
     }
 
-    static get(id, options) {
+    static async get(id, options) {
         return this.getModel().findOne({
             where: {id},
             include: [{
@@ -109,7 +104,7 @@ class SettingLogic extends BaseLogic {
         });
     }
 
-    static list(params, options) {
+    static async list(params, options) {
         return this.getModel().findAll({
             include: [{
                 model: DatabaseHelper.get('document'),

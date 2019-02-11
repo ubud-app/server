@@ -35,11 +35,10 @@ class HTTPRequestHandler {
      */
     run() {
         const res = this.res;
+
         this.checkSession()
-            .then((session) => this.runLogic(session).catch(e => {
-                throw e;
-            }))
-            .then((response) => this.success(response), (error) => this.error(error))
+            .then(session => this.runLogic(session))
+            .then(response => this.success(response), error => this.error(error))
             .catch(function (err) {
                 log.error(err);
 
@@ -58,16 +57,15 @@ class HTTPRequestHandler {
      * Checks the Session
      * @returns {Promise}
      */
-    checkSession() {
+    async checkSession() {
         const auth = require('basic-auth');
         const bcrypt = require('bcrypt');
 
         const Logic = this.Logic;
         const route = this.route;
+
         const req = this.req;
         let credentials;
-        let session;
-
         try {
             credentials = auth(req);
         }
@@ -91,45 +89,28 @@ class HTTPRequestHandler {
             });
         }
 
-        return DatabaseHelper.get('session')
-            .findOne({
-                where: {
-                    id: credentials.name
-                },
-                include: [{
-                    model: DatabaseHelper.get('user')
-                }]
-            })
-            .then(function (_session) {
-                session = _session;
-                if (!session) {
-                    throw new ErrorResponse(401, 'Not able to authorize: Is session id and secret correct?');
-                }
+        const session = await DatabaseHelper.get('session').findOne({
+            where: {
+                id: credentials.name
+            },
+            include: [{
+                model: DatabaseHelper.get('user')
+            }]
+        });
+        if (!session) {
+            throw new ErrorResponse(401, 'Not able to authorize: Is session id and secret correct?');
+        }
 
-                return bcrypt.compare(credentials.pass, session.secret);
-            })
-            .then(function (isSessionCorrect) {
-                if (!isSessionCorrect) {
-                    throw new ErrorResponse(401, 'Not able to authorize: Is session id and secret correct?');
-                }
+        const isSessionCorrect = await bcrypt.compare(credentials.pass, session.secret);
+        if (!isSessionCorrect) {
+            throw new ErrorResponse(401, 'Not able to authorize: Is session id and secret correct?');
+        }
 
-                return session;
-            })
-            .then(function (session) {
-                if (
-                    session.mobilePairing && (
-                        Logic.getModelName() !== 'session' ||
-                        req.params[0] !== session.id
-                    )
-                ) {
-                    throw new ErrorResponse(401, 'Not able to authorize: This is only a session for the mobile auth flow.');
-                }
+        if (session.mobilePairing && (Logic.getModelName() !== 'session' || req.params[0] !== session.id)) {
+            throw new ErrorResponse(401, 'Not able to authorize: This is a session for the mobile auth flow only.');
+        }
 
-                return session;
-            })
-            .catch(m => {
-                throw m;
-            });
+        return session;
     }
 
     /**

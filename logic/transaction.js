@@ -286,7 +286,7 @@ class TransactionLogic extends BaseLogic {
         return {model};
     }
 
-    static get (id, options) {
+    static async get (id, options) {
         const DatabaseHelper = require('../helpers/database');
         return this.getModel().findOne({
             where: {
@@ -315,7 +315,7 @@ class TransactionLogic extends BaseLogic {
         });
     }
 
-    static list (params, options) {
+    static async list (params, options) {
         const moment = require('moment');
         const DatabaseHelper = require('../helpers/database');
 
