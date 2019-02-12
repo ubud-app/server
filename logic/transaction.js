@@ -1092,14 +1092,17 @@ class TransactionLogic extends BaseLogic {
             }
             else if (units.length > 1) {
                 const diff = newTransaction.amount - units.reduce((a, b) => a + b.amount, 0);
-                const unit = await DatabaseHelper.get('unit').create({
-                    amount: diff,
-                    budgetId: null,
-                    transactionId: newTransaction.id,
-                    incomeMonth: null
-                });
 
-                await newTransaction.addUnit(unit);
+                if(diff !== 0) {
+                    const unit = await DatabaseHelper.get('unit').create({
+                        amount: diff,
+                        budgetId: null,
+                        transactionId: newTransaction.id,
+                        incomeMonth: null
+                    });
+
+                    await newTransaction.addUnit(unit);
+                }
             }
         }
 
