@@ -655,8 +655,7 @@ class PluginInstance extends EventEmitter {
                 status: 'cleared',
                 accountId: accountModel.id,
                 units: [{
-                    amount: balanceTransactionValue,
-                    incomeMonth: 'this'
+                    amount: balanceTransactionValue
                 }],
                 isReconciling: true
             }, {include: [DatabaseHelper.get('unit')]});
@@ -729,9 +728,7 @@ class PluginInstance extends EventEmitter {
                     m.units.map(unit => DatabaseHelper.get('unit').create({
                         amount: unit.amount,
                         memo: unit.memo,
-                        budgetId: null,
-                        transactionId: transactionModel.id,
-                        incomeMonth: null
+                        transactionId: transactionModel.id
                     }))
                 );
             }
