@@ -682,7 +682,7 @@ class TransactionLogic extends BaseLogic {
             // delete old units
             await Promise.all(model.units.map(unitModel => {
                 if (!_.find(body.units, u => u.id === unitModel.id)) {
-                    return unitModel.destroy()
+                    return unitModel.destroy();
                 }
 
                 return Promise.resolve();
