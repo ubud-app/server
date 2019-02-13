@@ -179,13 +179,13 @@ class SummaryLogic extends BaseLogic {
                         where: {
                             [DatabaseHelper.op('or')]: [
                                 {
-                                    incomeMonth: 'this',
+                                    type: 'INCOME',
                                     '$transaction.time$': {
                                         [DatabaseHelper.op('lte')]: moment(monthMoment).subtract(1, 'month').endOf('month').toJSON()
                                     }
                                 },
                                 {
-                                    incomeMonth: 'next',
+                                    type: 'INCOME_NEXT',
                                     '$transaction.time$': {
                                         [DatabaseHelper.op('lte')]: moment(monthMoment).subtract(2, 'month').endOf('month').toJSON()
                                     }
@@ -244,8 +244,7 @@ class SummaryLogic extends BaseLogic {
                             [DatabaseHelper.sum('unit.amount'), 'unbudgetedUnitsTillLastMonth']
                         ],
                         where: {
-                            incomeMonth: null,
-                            budgetId: null
+                            type: null
                         },
                         include: [{
                             model: DatabaseHelper.get('transaction'),
@@ -288,14 +287,14 @@ class SummaryLogic extends BaseLogic {
                     where: {
                         [DatabaseHelper.op('or')]: [
                             {
-                                incomeMonth: 'this',
+                                type: 'INCOME',
                                 '$transaction.time$': {
                                     [DatabaseHelper.op('lte')]: moment(monthMoment).endOf('month').toJSON(),
                                     [DatabaseHelper.op('gte')]: moment(monthMoment).startOf('month').toJSON()
                                 }
                             },
                             {
-                                incomeMonth: 'next',
+                                type: 'INCOME_NEXT',
                                 '$transaction.time$': {
                                     [DatabaseHelper.op('lte')]: moment(monthMoment).subtract(1, 'month').endOf('month').toJSON(),
                                     [DatabaseHelper.op('gte')]: moment(monthMoment).subtract(1, 'month').startOf('month').toJSON()
@@ -354,8 +353,7 @@ class SummaryLogic extends BaseLogic {
                         [DatabaseHelper.sum('unit.amount'), 'unbudgetedUnitsThisMonth']
                     ],
                     where: {
-                        incomeMonth: null,
-                        budgetId: null
+                        type: null
                     },
                     include: [{
                         model: DatabaseHelper.get('transaction'),
@@ -402,7 +400,7 @@ class SummaryLogic extends BaseLogic {
                             [DatabaseHelper.op('lte')]: moment(monthMoment).endOf('month').toJSON(),
                             [DatabaseHelper.op('gte')]: moment(monthMoment).startOf('month').toJSON()
                         },
-                        incomeMonth: null
+                        type: null
                     },
                     include: [{
                         model: DatabaseHelper.get('transaction'),

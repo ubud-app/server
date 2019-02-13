@@ -111,7 +111,7 @@ class AccountLogic extends BaseLogic {
             },
             include: [{
                 model: DatabaseHelper.get('document'),
-                attributes: [],
+                attributes: ['id'],
                 include: DatabaseHelper.includeUserIfNotAdmin(options.session)
             }]
         });
