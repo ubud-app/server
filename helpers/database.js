@@ -131,6 +131,9 @@ models.unit.belongsTo(models.transaction, {foreignKey: {allowNull: false}, onDel
 models.budget.hasOne(models.unit, {onDelete: 'CASCADE'});
 models.unit.belongsTo(models.budget, {onDelete: 'CASCADE'});
 
+models.account.hasMany(models.unit, {as: 'transferUnits', foreignKey: 'transferAccountId', onDelete: 'CASCADE'});
+models.unit.belongsTo(models.account, {as: 'transferAccounts', foreignKey: 'transferAccountId', onDelete: 'CASCADE'});
+
 models.document.hasMany(models.category, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 models.category.belongsTo(models.document, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 

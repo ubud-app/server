@@ -15,23 +15,80 @@ class AccountLogic extends BaseLogic {
 
     static async format(account) {
         const DatabaseHelper = require('../helpers/database');
-        const info = await DatabaseHelper.get('transaction').findOne({
-            attributes: [
-                [DatabaseHelper.sum('amount'), 'balance'],
-                [DatabaseHelper.count('id'), 'transactions']
-            ],
-            where: {
-                accountId: account.id
-            }
-        });
+
+        const [transactionCount, transactionsWithoutUnits, notTransfer, transferOn, transferOff] = await Promise.all([
+            DatabaseHelper.get('transaction').findOne({
+                attributes: [
+                    [DatabaseHelper.count('id'), 'value']
+                ],
+                where: {
+                    accountId: account.id
+                }
+            }),
+            DatabaseHelper.query(
+                'SELECT SUM(`amount`) AS `value` ' +
+                'FROM `transactions` AS `transaction` ' +
+                'WHERE ' +
+                '  (SELECT COUNT(*) FROM `units` WHERE `units`.`transactionId` = `transaction`.`id`) = 0 AND ' +
+                '  `accountId` = "' + account.id + '";'
+            ),
+            DatabaseHelper.get('unit').findOne({
+                attributes: [
+                    [DatabaseHelper.sum('unit.amount'), 'value']
+                ],
+                where: {
+                    type: {
+                        [DatabaseHelper.op('not')]: 'TRANSFER'
+                    }
+                },
+                include: [{
+                    model: DatabaseHelper.get('transaction'),
+                    attributes: ['id'],
+                    required: true,
+                    where: {
+                        accountId: account.id
+                    }
+                }]
+            }),
+            DatabaseHelper.get('unit').findOne({
+                attributes: [
+                    [DatabaseHelper.sum('unit.amount'), 'value']
+                ],
+                where: {
+                    type: 'TRANSFER'
+                },
+                include: [{
+                    model: DatabaseHelper.get('transaction'),
+                    attributes: ['id'],
+                    required: true,
+                    where: {
+                        accountId: account.id
+                    }
+                }]
+            }),
+            DatabaseHelper.get('unit').findOne({
+                attributes: [
+                    [DatabaseHelper.sum('amount'), 'value']
+                ],
+                where: {
+                    type: 'TRANSFER',
+                    transferAccountId: account.id
+                }
+            })
+        ]);
 
         return {
             id: account.id,
             name: account.name,
             type: account.type,
             number: account.number,
-            balance: parseInt(info.dataValues.balance, 10) || 0,
-            transactions: parseInt(info.dataValues.transactions, 10) || 0,
+            balance: (
+                (parseInt(notTransfer.dataValues.value, 10) || 0) +
+                (parseInt(transactionsWithoutUnits[0].value, 10) || 0) +
+                (parseInt(transferOn.dataValues.value, 10) || 0) -
+                (parseInt(transferOff.dataValues.value, 10) || 0)
+            ),
+            transactions: parseInt(transactionCount.dataValues.value, 10) || 0,
             documentId: account.documentId,
             pluginInstanceId: account.pluginInstanceId
         };

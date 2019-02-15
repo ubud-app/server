@@ -175,8 +175,7 @@ class PluginHelper {
         let res;
 
         try {
-            // use --save because of https://github.com/npm/npm/issues/17379
-            res = await exec(escape(['npm', 'install', type, '--save']));
+            res = await exec(escape(['npm', 'install', type, '--no-save']));
         }
         catch(err) {
             log.error(err.string);

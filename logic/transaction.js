@@ -30,7 +30,7 @@ class TransactionLogic extends BaseLogic {
                 type: unit.type,
                 memo: unit.memo,
                 budgetId: unit.budgetId,
-                transactionId: unit.transactionId
+                transferAccountId: unit.transferAccountId
             })),
             approved: transaction.approved,
             status: transaction.status,
@@ -218,6 +218,20 @@ class TransactionLogic extends BaseLogic {
                     unitModel.type = 'INCOME_NEXT';
                     unitModel.budgetId = null;
                 }
+                else if (typeof unit.type === 'string' && unit.transferAccountId) {
+                    const AccountLogic = require('./account');
+                    const transferAccount = await AccountLogic.get(unit.transferAccountId, options);
+                    if (!transferAccount || accountModel.document.id !== transferAccount.document.id) {
+                        throw new ErrorResponse(400, 'Not able to update transaction: unit[' + i + '] has invalid transferAccountId', {
+                            attributes: {
+                                units: 'unit[' + i + '] has invalid transferAccountId'
+                            }
+                        });
+                    }
+
+                    unitModel.type = 'TRANSFER';
+                    unitModel.transferAccountId = unit.transferAccountId;
+                }
                 else if (unit.budgetId) {
                     const BudgetLogic = require('./budgets');
                     const budget = await BudgetLogic.get(unit.budgetId, options);
@@ -288,7 +302,17 @@ class TransactionLogic extends BaseLogic {
 
         // update account balance
         const AccountLogic = require('./account');
-        lastJobs.push(AccountLogic.sendUpdatedEvent(accountModel));
+        if(model.units.find(u => u.type === 'TRANSFER')) {
+            lastJobs.push((async () => {
+                const accounts = await AccountLogic.list({}, options);
+                await Promise.all(accounts.map(a => AccountLogic.sendUpdatedEvent(a)));
+            })());
+        }else {
+            lastJobs.push((async () => {
+                const account = await model.getAccount();
+                await AccountLogic.sendUpdatedEvent(account);
+            })());
+        }
 
 
         await Promise.all(lastJobs);
@@ -534,7 +558,7 @@ class TransactionLogic extends BaseLogic {
         }
         if (body.accountId !== undefined && body.accountId !== model.accountId) {
             const AccountLogic = require('./account');
-            const accountModel = AccountLogic.get(body.accountId, options);
+            const accountModel = await AccountLogic.get(body.accountId, options);
             if(!accountModel) {
                 throw new ErrorResponse(400, 'Not able to update transaction: account can not be changed to a non existing one!', {
                     attributes: {
@@ -626,6 +650,23 @@ class TransactionLogic extends BaseLogic {
                 else if (typeof unit.type === 'string' && unit.type.toUpperCase() === 'INCOME_NEXT') {
                     unitModel.type = 'INCOME_NEXT';
                     unitModel.budgetId = null;
+                }
+                else if (typeof unit.type === 'string' && unit.transferAccountId) {
+                    const AccountLogic = require('./account');
+
+                    const ownAccount = await AccountLogic.get(model.accountId, options);
+                    const transferAccount = await AccountLogic.get(unit.transferAccountId, options);
+
+                    if (!transferAccount || ownAccount.document.id !== transferAccount.document.id) {
+                        throw new ErrorResponse(400, 'Not able to update transaction: unit[' + i + '] has invalid transferAccountId', {
+                            attributes: {
+                                units: 'unit[' + i + '] has invalid transferAccountId'
+                            }
+                        });
+                    }
+
+                    unitModel.type = 'TRANSFER';
+                    unitModel.transferAccountId = unit.transferAccountId;
                 }
                 else if (unit.budgetId && unit.budgetId !== unitModel.budgetId) {
                     const BudgetLogic = require('./budgets');
@@ -719,18 +760,27 @@ class TransactionLogic extends BaseLogic {
         }
 
         // update account balance
-        lastJobs.push((async () => {
-            const AccountLogic = require('./account');
-            const account = await model.getAccount();
-            AccountLogic.sendUpdatedEvent(account);
-        })());
+        if(model.units.find(u => u.type === 'TRANSFER')) {
+            lastJobs.push((async () => {
+                const AccountLogic = require('./account');
+                const accounts = await AccountLogic.list({}, options);
+
+                accounts.forEach(a => AccountLogic.sendUpdatedEvent(a));
+            })());
+        }else {
+            lastJobs.push((async () => {
+                const AccountLogic = require('./account');
+                const account = await model.getAccount();
+                AccountLogic.sendUpdatedEvent(account);
+            })());
+        }
 
 
         await Promise.all(lastJobs);
         return {model};
     }
 
-    static async delete (model) {
+    static async delete (model, options) {
         if (model.account.pluginInstanceId) {
             throw new ErrorResponse(400, 'Not able to destroy transaction: managed by transaction');
         }
@@ -752,8 +802,13 @@ class TransactionLogic extends BaseLogic {
 
         // update account balance
         const AccountLogic = require('./account');
-        const account = await model.getAccount();
-        AccountLogic.sendUpdatedEvent(account);
+        if(model.units.find(u => u.type === 'TRANSFER')) {
+            const accounts = await AccountLogic.list({}, options);
+            accounts.forEach(a => AccountLogic.sendUpdatedEvent(a));
+        }else {
+            const account = await model.getAccount();
+            AccountLogic.sendUpdatedEvent(account);
+        }
 
         return model;
     }
