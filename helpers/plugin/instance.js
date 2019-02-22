@@ -628,24 +628,16 @@ class PluginInstance extends EventEmitter {
 
 
         // create balance transaction
-        const info = await TransactionLogic.getModel().findOne({
-            attributes: [
-                [DatabaseHelper.sum('amount'), 'balance']
-            ],
-            where: {
-                accountId: accountModel.id
-            },
-            raw: true
-        });
+        const accountJson = await AccountLogic.format(accountModel);
 
         log.debug(
             'Plugin %s: Balance after sync in DWIMM: %s, should be %s.',
             this.id().substr(0, 5),
-            info.balance,
+            accountJson.balance,
             account.balance
         );
 
-        const balanceTransactionValue = (account.balance || 0) - info.balance;
+        const balanceTransactionValue = (account.balance || 0) - accountJson.balance;
         if (balanceTransactionValue !== 0) {
             log.debug('Plugin %s: Add balance transaction of %s', this.id().substr(0, 5), balanceTransactionValue);
 
