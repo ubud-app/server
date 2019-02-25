@@ -646,11 +646,9 @@ class PluginInstance extends EventEmitter {
                 amount: balanceTransactionValue,
                 status: 'cleared',
                 accountId: accountModel.id,
-                units: [{
-                    amount: balanceTransactionValue
-                }],
+                units: [],
                 isReconciling: true
-            }, {include: [DatabaseHelper.get('unit')]});
+            });
         }
 
         await SummaryLogic.recalculateSummariesFrom(accountModel.documentId, syncBeginningFrom);
