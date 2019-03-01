@@ -15,7 +15,7 @@ build_image_next:
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
     - npm run bump:develop
-    - docker pull node
+    - docker pull node:slim
     - docker build --no-cache
         --build-arg NODE_ENV="develop"
         --build-arg CLIENT_TAG="next"
@@ -37,7 +37,7 @@ build_image:
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
     - npm run bump:production
-    - docker pull node
+    - docker pull node:slim
     - docker build --no-cache
         --build-arg NODE_ENV="develop"
         -t "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-dev" .
@@ -92,7 +92,7 @@ build_image_next_arm:
     - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
     - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
     - npm run bump:develop
-    - docker pull arm32v7/node
+    - docker pull arm32v7/node:slim
     - docker build --no-cache
         --build-arg NODE_ENV="develop"
         --build-arg CLIENT_TAG="next"
@@ -121,7 +121,7 @@ build_image_arm:
     - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
     - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
     - npm run bump:production
-    - docker pull arm32v7/node
+    - docker pull arm32v7/node:slim
     - docker build --no-cache
         --build-arg NODE_ENV="develop"
         -f ./Dockerfile.arm
