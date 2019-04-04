@@ -26,8 +26,7 @@ try {
         pool: {
             maxConnections: 5,
             maxIdleTime: 30
-        },
-        operatorsAliases: false
+        }
     });
 }
 catch (err) {
