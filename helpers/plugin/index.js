@@ -19,7 +19,7 @@ let plugins = [];
  * @class PluginHelper
  */
 class PluginHelper {
-    static async initialize() {
+    static async initialize () {
         if (initialized) {
             return;
         }
@@ -38,7 +38,7 @@ class PluginHelper {
         plugins = models.map(plugin => new PluginInstance(plugin, pluginEvents));
     }
 
-    static async listPlugins() {
+    static async listPlugins () {
         return plugins;
     }
 
@@ -73,7 +73,7 @@ class PluginHelper {
      * @param {boolean} [options.dontLoad] Don't load plugin instance. Method will return null then.
      * @returns {Promise.<PluginInstance>}
      */
-    static async installPlugin(type, document, options) {
+    static async installPlugin (type, document, options) {
         options = options || {};
 
         /*
@@ -103,7 +103,7 @@ class PluginHelper {
                 await this._runPackageRemove(type);
                 log.debug('%s: removed successfully', type);
             }
-            catch(err) {
+            catch (err) {
                 log.warn('%s: unable to remove plugin: %s', type, err);
                 throw err;
             }
@@ -114,7 +114,7 @@ class PluginHelper {
          *  add instance to database
          */
         const model = await DatabaseHelper.get('plugin-instance').create({type, documentId: document.id});
-        if(options.dontLoad) {
+        if (options.dontLoad) {
             return null;
         }
 
@@ -131,7 +131,7 @@ class PluginHelper {
      * @param {PluginInstance} instance
      * @returns {Promise.<void>}
      */
-    static async removePlugin(instance) {
+    static async removePlugin (instance) {
         // stop plugin
         await instance.destroy();
 
@@ -140,7 +140,7 @@ class PluginHelper {
 
         // remove plugin from index
         const i = plugins.indexOf(instance);
-        if(i !== -1) {
+        if (i !== -1) {
             plugins.splice(i, 1);
         }
 
@@ -152,7 +152,7 @@ class PluginHelper {
         });
 
         // remove package if not used anymore
-        if(!usages) {
+        if (!usages) {
             await this._runPackageRemove(instance.type());
         }
     }
@@ -164,33 +164,63 @@ class PluginHelper {
      *
      * @returns {EventEmitter}
      */
-    static events() {
+    static events () {
         return pluginEvents;
     }
 
 
-    static async _runPackageInstall(type) {
+    static async _runPackageInstall (type) {
         const exec = require('promised-exec');
         const escape = require('shell-escape');
         let res;
 
+        if (!this._runPackageInstall.running) {
+            this._runPackageInstall.running = {};
+        }
+        if (this._runPackageInstall.running[type]) {
+            log.debug('_runPackageInstall: Plugin %s installation running, wait for that…', type);
+
+            await new Promise((resolve, reject) => {
+                this._runPackageInstall.running[type].once('result', (error, result) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else {
+                        resolve(result);
+                    }
+                });
+            });
+            return;
+        }
+
+        this._runPackageInstall.running[type] = new EventEmitter();
+
         try {
             res = await exec(escape(['npm', 'install', type, '--no-save']));
         }
-        catch(err) {
+        catch (err) {
+            const e = new Error('Unable to install required package via npm`: ' + err.string);
             log.error(err.string);
-            throw new Error('Unable to install required package via npm`: ' + err.string);
+            this._runPackageInstall.running[type].emit('result', [e, null]);
+            this._runPackageInstall.running[type] = null;
+            throw e;
         }
 
         const id = res.split('\n').find(l => l.trim().substr(0, 1) === '+');
         if (!id) {
-            throw new Error('Plugin installed, but unable to get plugin name. Output was `' + res + '`');
+            const e = new Error(`Plugin installed, but unable to get plugin name. Output was \`${res}\'`);
+            this._runPackageInstall.running[type].emit('result', [e, null]);
+            this._runPackageInstall.running[type] = null;
+            throw e;
         }
 
-        return id.substr(2, id.lastIndexOf('@') - 2).trim();
+        const result = id.substr(2, id.lastIndexOf('@') - 2).trim();
+        this._runPackageInstall.running[type].emit('result', [null, result]);
+        this._runPackageInstall.running[type] = null;
+        return result;
     }
 
-    static async _runPackageRemove(type) {
+    static async _runPackageRemove (type) {
         const exec = require('promised-exec');
         const escape = require('shell-escape');
 
