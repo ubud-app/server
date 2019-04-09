@@ -208,7 +208,7 @@ class PluginHelper {
 
         const id = res.split('\n').find(l => l.trim().substr(0, 1) === '+');
         if (!id) {
-            const e = new Error(`Plugin installed, but unable to get plugin name. Output was \`${res}\'`);
+            const e = new Error(`Plugin installed, but unable to get plugin name. Output was \`${res}\``);
             this._runPackageInstall.running[type].emit('result', [e, null]);
             this._runPackageInstall.running[type] = null;
             throw e;
