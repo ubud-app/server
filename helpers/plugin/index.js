@@ -170,61 +170,85 @@ class PluginHelper {
 
 
     static async _runPackageInstall (type) {
-        const exec = require('promised-exec');
-        const escape = require('shell-escape');
         let res;
 
-        if (!this._runPackageInstall.running) {
-            this._runPackageInstall.running = {};
-        }
-        if (this._runPackageInstall.running[type]) {
-            log.debug('_runPackageInstall: Plugin %s installation running, wait for that…', type);
-
-            await new Promise((resolve, reject) => {
-                this._runPackageInstall.running[type].once('result', (error, result) => {
-                    if (error) {
-                        reject(error);
-                    }
-                    else {
-                        resolve(result);
-                    }
-                });
-            });
-            return;
-        }
-
-        this._runPackageInstall.running[type] = new EventEmitter();
-
         try {
-            res = await exec(escape(['npm', 'install', type, '--no-save']));
+            res = await this._runPackageRunQueue(['npm', 'install', type, '--no-save']);
         }
         catch (err) {
-            const e = new Error('Unable to install required package via npm`: ' + err.string);
-            log.error(err.string);
-            this._runPackageInstall.running[type].emit('result', [e, null]);
-            this._runPackageInstall.running[type] = null;
-            throw e;
+            log.error(err);
+            throw new Error('Unable to install required package via npm`: ' + err.string);
         }
 
         const id = res.split('\n').find(l => l.trim().substr(0, 1) === '+');
         if (!id) {
-            const e = new Error(`Plugin installed, but unable to get plugin name. Output was \`${res}\``);
-            this._runPackageInstall.running[type].emit('result', [e, null]);
-            this._runPackageInstall.running[type] = null;
-            throw e;
+            throw new Error(`Plugin installed, but unable to get plugin name. Output was \`${res}\``);
         }
 
-        const result = id.substr(2, id.lastIndexOf('@') - 2).trim();
-        this._runPackageInstall.running[type].emit('result', [null, result]);
-        this._runPackageInstall.running[type] = null;
-        return result;
+        return id.substr(2, id.lastIndexOf('@') - 2).trim();
     }
 
     static async _runPackageRemove (type) {
-        const exec = require('promised-exec');
-        const escape = require('shell-escape');
+        await this._runPackageRunQueue(['npm', 'remove', type, '--save']);
+    }
 
-        await exec(escape(['npm', 'remove', type, '--save']));
+    static async _runPackageRunQueue (command) {
+        const id = command.join(' ');
+        log.debug('_runPackageRunQueue: %s: add', id);
+
+        this._runPackageRunQueue.q = this._runPackageRunQueue.q || [];
+        this._runPackageRunQueue.e = this._runPackageRunQueue.e || new EventEmitter();
+
+        // already in queue?
+        const i = this._runPackageRunQueue.q.find(i => i[0] === id);
+        if (i) {
+            log.debug('_runPackageRunQueue: %s: already in queue', id);
+            return i[2];
+        }
+
+        // add to queue
+        const item = [
+            id,
+            command,
+            new Promise(resolve => {
+                const l = _id => {
+                    if (_id === id) {
+                        this._runPackageRunQueue.e.off('start', l);
+                        resolve();
+                    }
+                };
+                this._runPackageRunQueue.e.on('start', l);
+            }).then(() => {
+                log.debug('_runPackageRunQueue: %s: running', id);
+
+                const exec = require('promised-exec');
+                const escape = require('shell-escape');
+
+                return exec(escape(command));
+            }).finally(() => {
+                log.debug('_runPackageRunQueue: %s: done', id);
+                const i = this._runPackageRunQueue.q.indexOf(item);
+                if(i >= 0) {
+                    log.debug('_runPackageRunQueue: %s: remove queue item', id);
+                    this._runPackageRunQueue.q.splice(i, 1);
+                }
+                if(this._runPackageRunQueue.q.length > 0) {
+                    setTimeout(() => {
+                        log.debug('_runPackageRunQueue: %s: start next item: %s', id, this._runPackageRunQueue.q[0][0]);
+                        this._runPackageRunQueue.e.emit('start', this._runPackageRunQueue.q[0][0]);
+                    }, 5000);
+                }
+            })
+        ];
+        this._runPackageRunQueue.q.push(item);
+        log.debug('_runPackageRunQueue: %s: added, now %i items in queue', id, this._runPackageRunQueue.q.length);
+
+        if (this._runPackageRunQueue.q.length === 1) {
+            log.debug('_runPackageRunQueue: %s: kickstart queue', id);
+            this._runPackageRunQueue.e.emit('start', this._runPackageRunQueue.q[0][0]);
+        }
+
+        return item[2];
     }
 }
 

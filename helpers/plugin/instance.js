@@ -75,11 +75,10 @@ class PluginInstance extends EventEmitter {
             /* eslint-enable security/detect-non-literal-require */
         }
         catch (err) {
-            log.warn('Unable to get version of plugin %s, try to install it…', this._model.type);
-
-            const PluginHelper = require('./index');
+            log.warn('Unable to get version of plugin %s, try to install it…', this.type());
 
             try {
+                const PluginHelper = require('./index');
                 await PluginHelper._runPackageInstall(this.type());
             }
             catch (err) {
@@ -90,14 +89,26 @@ class PluginInstance extends EventEmitter {
 
             try {
                 /* eslint-disable security/detect-non-literal-require */
-                this._version = require(this._model.type + '/package.json').version.toString();
+                this._version = require(this.type() + '/package.json').version.toString();
                 /* eslint-enable security/detect-non-literal-require */
             }
             catch (err) {
-                log.warn('Unable to get version of plugin %s, is it installed?', this._model.type);
-                log.fatal(err);
-                process.exit(1);
+                log.warn('Unable to get version of plugin %s directly, try fallback hack…', this.type());
+
+                try {
+                    const fs = require('fs');
+                    const file = require.resolve(this.type())
+                        .split(`/${this.type()}/`)[0] + `/${this.type()}/package.json`;
+                    this._version = JSON.parse(fs.readFileSync(file, {encoding: 'utf8'})).version.toString();
+                }
+                catch (err) {
+                    log.warn('Unable to get version of plugin %s, is it installed?', this.type());
+                    log.fatal(err);
+                    process.exit(1);
+                }
             }
+
+            log.warn('Okay, got it now, version of %s is %s', this.type(), this._version);
         }
 
         try {
