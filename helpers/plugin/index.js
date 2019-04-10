@@ -173,7 +173,7 @@ class PluginHelper {
         let res;
 
         try {
-            res = await this._runPackageRunQueue(['npm', 'install', type, '--no-save']);
+            res = await this._runPackageRunQueue(['npm', 'install', type]);
         }
         catch (err) {
             log.error(err);
