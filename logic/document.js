@@ -50,7 +50,7 @@ class DocumentLogic extends BaseLogic {
         let jobs = [model.addUser(options.session.user)];
 
         // Settings
-        attributes.settings.forEach((v, k) => {
+        Object.entries(attributes.settings || {}).forEach(([k, v]) => {
             jobs.push(
                 DatabaseHelper
                     .get('setting')

@@ -23,7 +23,8 @@ class SummaryLogic extends BaseLogic {
             income: summary.income,
             budgeted: summary.budgeted,
             outflow: summary.outflow,
-            balance: summary.balance
+            balance: summary.balance,
+            documentId: summary.documentId
         };
     }
 

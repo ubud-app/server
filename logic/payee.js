@@ -64,7 +64,8 @@ class PayeeLogic extends BaseLogic {
             },
             include: [{
                 model: DatabaseHelper.get('document'),
-                attributes: [],
+                attributes: ['id'],
+                required: true,
                 include: DatabaseHelper.includeUserIfNotAdmin(options.session)
             }]
         });
@@ -79,14 +80,7 @@ class PayeeLogic extends BaseLogic {
                 model: DatabaseHelper.get('document'),
                 attributes: ['id'],
                 required: true,
-                include: options.session.user.isAdmin ? [] : [{
-                    model: DatabaseHelper.get('user'),
-                    attributes: [],
-                    required: true,
-                    where: {
-                        id: options.session.userId
-                    }
-                }]
+                include: DatabaseHelper.includeUserIfNotAdmin(options.session)
             }],
             order: [
                 ['name', 'ASC']

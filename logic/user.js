@@ -2,6 +2,7 @@
 
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
+const { pwnedPassword } = require('hibp');
 const mailValidator = require('email-validator');
 
 const BaseLogic = require('./_');
@@ -136,7 +137,19 @@ class UserLogic extends BaseLogic {
             throw new ErrorResponse(403, 'You are not allowed to update other people\'s password!');
         }
         if (body.password !== undefined) {
-            const hash =  bcrypt.hash(body.password, 10);
+            const [hash, count] =  await Promise.all([
+                bcrypt.hash(body.password, 10),
+                pwnedPassword(body.password)
+            ]);
+
+            if(count > 0) {
+                throw new ErrorResponse(400, 'Password is not secure…', {
+                    attributes: {
+                        password: `Seems not to be secure. Password is listed on haveibeenpwned.com ${count} times.`
+                    }
+                });
+            }
+
             model.password = hash;
             model.needsPasswordChange = false;
         }

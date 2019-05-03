@@ -21,7 +21,8 @@ class BudgetLogic extends BaseLogic {
             hidden: budget.hidden,
             overspending: budget.overspending,
             pluginInstanceId: budget.pluginInstanceId,
-            categoryId: budget.categoryId
+            categoryId: budget.categoryId,
+            documentId: budget.category.document.id
         };
     }
 
@@ -90,11 +91,11 @@ class BudgetLogic extends BaseLogic {
         const sql = {
             include: [{
                 model: DatabaseHelper.get('category'),
-                attributes: [],
+                attributes: ['id'],
                 required: true,
                 include: [{
                     model: DatabaseHelper.get('document'),
-                    attributes: [],
+                    attributes: ['id'],
                     required: true,
                     include: options.session.user.isAdmin ? [] : [{
                         model: DatabaseHelper.get('user'),

@@ -20,10 +20,13 @@ class TransactionLogic extends BaseLogic {
             id: transaction.id,
             time: transaction.time,
             accountId: transaction.accountId,
+            documentId: transaction.account.documentId,
             amount: transaction.amount,
             memo: transaction.memo,
-            payeeId: transaction.payeeId,
+            payeeId: transaction.payee ? transaction.payee.id : null,
+            payeeName: transaction.payee ? transaction.payee.name : null,
             pluginsOwnPayeeId: transaction.pluginsOwnPayeeId,
+            pluginsOwnMemo: transaction.pluginsOwnMemo,
             units: (transaction.units || []).map(unit => ({
                 id: unit.id,
                 amount: unit.amount,
@@ -328,7 +331,7 @@ class TransactionLogic extends BaseLogic {
             include: [
                 {
                     model: DatabaseHelper.get('account'),
-                    attributes: ['pluginInstanceId'],
+                    attributes: ['pluginInstanceId', 'documentId'],
                     include: [{
                         model: DatabaseHelper.get('document'),
                         attributes: ['id'],
@@ -343,6 +346,10 @@ class TransactionLogic extends BaseLogic {
                 },
                 {
                     model: DatabaseHelper.get('unit')
+                },
+                {
+                    model: DatabaseHelper.get('payee'),
+                    attribute: ['id', 'name']
                 }
             ]
         });
@@ -356,7 +363,7 @@ class TransactionLogic extends BaseLogic {
             include: [
                 {
                     model: DatabaseHelper.get('account'),
-                    attributes: [],
+                    attributes: ['documentId'],
                     required: true,
                     include: [{
                         model: DatabaseHelper.get('document'),
@@ -367,6 +374,9 @@ class TransactionLogic extends BaseLogic {
                 },
                 {
                     model: DatabaseHelper.get('unit')
+                },
+                {
+                    model: DatabaseHelper.get('payee')
                 }
             ],
             order: [
@@ -462,12 +472,13 @@ class TransactionLogic extends BaseLogic {
         // Payee
         if (body.payeeId !== model.payeeId) {
             const PayeeLogic = require('./payee');
-            const payee = PayeeLogic.get(body.payeeId, options);
+            const payee = await PayeeLogic.get(body.payeeId, {session: options.session});
             if (!payee) {
                 throw new ErrorResponse(400, 'Not able to create transaction: linked payee not found.');
             }
 
             model.payeeId = payee.id;
+            model.payee = payee;
         }
 
 

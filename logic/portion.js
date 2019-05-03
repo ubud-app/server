@@ -15,11 +15,13 @@ class PortionLogic extends BaseLogic {
     static format (portion) {
         return {
             id: portion.id,
-            budgetId: portion.budgetId,
             month: portion.month,
             budgeted: portion.budgeted,
             outflow: portion.outflow,
-            balance: portion.balance
+            balance: portion.balance,
+            budgetId: portion.budget.id,
+            hidden: portion.budget.hidden,
+            documentId: portion.budget.category.documentId
         };
     }
 
@@ -31,10 +33,10 @@ class PortionLogic extends BaseLogic {
             },
             include: [{
                 model: DatabaseHelper.get('budget'),
-                attributes: ['id'],
+                attributes: ['id', 'hidden'],
                 include: [{
                     model: DatabaseHelper.get('category'),
-                    attributes: ['documentId'],
+                    attributes: ['id', 'documentId'],
                     include: [{
                         model: DatabaseHelper.get('document'),
                         attributes: [],
@@ -111,7 +113,17 @@ class PortionLogic extends BaseLogic {
                 budgetId: {
                     [DatabaseHelper.op('in')]: budgets.map(b => b.id)
                 }
-            }
+            },
+            include: [{
+                model: DatabaseHelper.get('budget'),
+                attributes: ['id', 'hidden'],
+                required: true,
+                include: [{
+                    model: DatabaseHelper.get('category'),
+                    attributes: ['id', 'documentId'],
+                    required: true
+                }]
+            }]
         });
 
         const myBudgets = budgets.map(b => ({
@@ -131,7 +143,8 @@ class PortionLogic extends BaseLogic {
 
                 budget.portion = PortionLogic.getModel().build({
                     month,
-                    budgetId: budget.budgetId,
+                    budgetId: budget.id,
+                    budget: budget,
                     budgeted: null
                 });
 
@@ -187,7 +200,7 @@ class PortionLogic extends BaseLogic {
         else if (options.documentId) {
             query.include = [{
                 model: DatabaseHelper.get('budget'),
-                attributes: [],
+                attributes: ['id', 'hidden'],
                 include: [{
                     model: DatabaseHelper.get('category'),
                     attributes: [],
