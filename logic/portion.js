@@ -127,7 +127,7 @@ class PortionLogic extends BaseLogic {
         });
 
         const myBudgets = budgets.map(b => ({
-            budgetId: b.id,
+            budget: b,
             portion: portions.find(p => p.budgetId === b.id) || null
         }));
 
@@ -135,22 +135,23 @@ class PortionLogic extends BaseLogic {
          *   3. Find missing portions, calculate their values and create them
          *      Promise returns a portions array
          */
-        return Promise.all(
-            myBudgets.map(async budget => {
-                if (budget.portion) {
-                    return budget.portion;
-                }
+        return Promise.all(myBudgets.map(budget => (async () => {
+            if (budget.portion) {
+                return budget.portion;
+            }
 
-                budget.portion = PortionLogic.getModel().build({
-                    month,
-                    budgetId: budget.id,
-                    budget: budget,
-                    budgeted: null
-                });
+            budget.portion = PortionLogic.getModel().build({
+                month,
+                budgetId: budget.budget.id,
+                budget: budget.budget,
+                budgeted: null
+            });
 
-                return PortionLogic.recalculatePortion(budget.portion);
-            })
-        );
+            await PortionLogic.recalculatePortion(budget.portion);
+
+            budget.portion.budget = budget.budget;
+            return budget.portion;
+        })()));
     }
 
     static async update (model, body) {
@@ -291,12 +292,11 @@ class PortionLogic extends BaseLogic {
             })
         ]);
 
-        portion.outflow = parseInt(calculated[0].outflow) || 0;
-        portion.balance = (parseInt(calculated[2].budgetedTillLastMonth) || 0) +
-            (parseInt(calculated[1].transactions) || 0) +
+        portion.outflow = (parseInt(calculated[0].outflow, 10) || 0) * -1;
+        portion.balance = (parseInt(calculated[2].budgetedTillLastMonth, 10) || 0) +
+            (parseInt(calculated[1].transactions, 10) || 0) +
             (portion.budgeted || 0);
 
-        portion.outflow *= -1;
         await portion.save();
     }
 }
