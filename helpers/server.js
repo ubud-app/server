@@ -117,10 +117,13 @@ class ServerHelper {
                 // static files
                 app.use(express.static(web.static));
 
-                // default route
-                app.use(function (req, res) {
-                    res.sendFile(web.static + '/index.html');
-                });
+                // default language
+                if(web.languages && Array.isArray(web.languages)) {
+                    app.use((req, res) => {
+                        const language = req.acceptsLanguages(web.languages) || 'en-US';
+                        res.sendFile(`${web.static}/${language}/index.html`);
+                    });
+                }
             }
         }
         catch (err) {
@@ -140,8 +143,8 @@ class ServerHelper {
         const methods = allMethods[route];
         const regex = Logic.getPathForRoute(route);
 
-        methods.forEach(function (method) {
-            app[method](regex, function (req, res) {
+        methods.forEach(method => {
+            app[method](regex, (req, res) => {
                 new HTTPRequestHandler({Logic, route, req, res}).run();
             });
         });
