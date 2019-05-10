@@ -113,7 +113,7 @@ class BudgetLogic extends BaseLogic {
         };
 
         _.each(params, (id, k) => {
-            if (k === 'categorie') {
+            if (k === 'category') {
                 sql.include[0].where = {id};
             }
             else if (k === 'document') {
