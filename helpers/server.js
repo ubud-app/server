@@ -115,7 +115,9 @@ class ServerHelper {
             if (web) {
 
                 // static files
-                app.use(express.static(web.static));
+                app.use(express.static(web.static, {
+                    etag: false
+                }));
 
                 // default language
                 if(web.languages && Array.isArray(web.languages)) {
