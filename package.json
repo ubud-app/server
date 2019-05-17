@@ -27,7 +27,7 @@
 		"commander": "^2.20.0",
 		"cors": "^2.8.5",
 		"email-validator": "^2.0.4",
-		"express": "^4.16.4",
+		"express": "^4.17.0",
 		"express-fileupload": "^1.1.4",
 		"hibp": "^7.5.1",
 		"moment": "^2.24.0",
