@@ -53,7 +53,7 @@ class BudgetLogic extends BaseLogic {
             attributes: ['id'],
             include: [{
                 model: DatabaseHelper.get('document'),
-                attributes: [],
+                attributes: ['id'],
                 include: DatabaseHelper.includeUserIfNotAdmin(options.session)
             }]
         });
@@ -62,6 +62,7 @@ class BudgetLogic extends BaseLogic {
         }
 
         model.categoryId = categoryModel.id;
+        model.category = categoryModel;
         await model.save();
 
         return {model};
