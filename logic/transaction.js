@@ -20,7 +20,7 @@ class TransactionLogic extends BaseLogic {
             id: transaction.id,
             time: transaction.time,
             accountId: transaction.accountId,
-            documentId: transaction.account.documentId,
+            documentId: transaction.account ? transaction.account.documentId : null,
             amount: transaction.amount,
             memo: transaction.memo,
             payeeId: transaction.payee ? transaction.payee.id : null,
