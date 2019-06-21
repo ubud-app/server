@@ -623,7 +623,6 @@ class PluginInstance extends EventEmitter {
             transaction => TransactionLogic.getModel().build({
                 accountId: accountModel.id,
                 pluginsOwnId: transaction.id,
-                memo: transaction.memo,
                 amount: transaction.amount,
                 time: moment(transaction.time).toJSON(),
                 pluginsOwnPayeeId: transaction.payeeId,
