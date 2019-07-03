@@ -40,6 +40,7 @@
         ]
       }
     ],
-    "security/detect-object-injection": "off"
+    "security/detect-object-injection": "off",
+    "require-atomic-updates": "off"
   }
 }
