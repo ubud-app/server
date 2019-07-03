@@ -159,7 +159,7 @@ class HTTPRequestHandler {
 
         if (err instanceof Error && !(err instanceof ErrorResponse)) {
             err = new ErrorResponse(500, err, {
-                reference: log.error(err)
+                reference: log.error(err).id
             });
         }
         if (err instanceof ErrorResponse) {
