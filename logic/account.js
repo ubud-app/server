@@ -32,40 +32,20 @@ class AccountLogic extends BaseLogic {
                 '  (SELECT COUNT(*) FROM `units` WHERE `units`.`transactionId` = `transaction`.`id`) = 0 AND ' +
                 '  `accountId` = "' + account.id + '";'
             ),
-            DatabaseHelper.get('unit').findOne({
-                attributes: [
-                    [DatabaseHelper.sum('unit.amount'), 'value']
-                ],
-                where: {
-                    type: {
-                        [DatabaseHelper.op('not')]: 'TRANSFER'
-                    }
-                },
-                include: [{
-                    model: DatabaseHelper.get('transaction'),
-                    attributes: ['id'],
-                    required: true,
-                    where: {
-                        accountId: account.id
-                    }
-                }]
-            }),
-            DatabaseHelper.get('unit').findOne({
-                attributes: [
-                    [DatabaseHelper.sum('unit.amount'), 'value']
-                ],
-                where: {
-                    type: 'TRANSFER'
-                },
-                include: [{
-                    model: DatabaseHelper.get('transaction'),
-                    attributes: ['id'],
-                    required: true,
-                    where: {
-                        accountId: account.id
-                    }
-                }]
-            }),
+            DatabaseHelper.query(
+                'SELECT SUM(`amount`) AS `value` ' +
+                'FROM `units` AS `unit` ' +
+                'WHERE ' +
+                '  `type` != "TRANSFER" AND ' +
+                '  `transactionId` IN (SELECT `id` FROM `transactions` WHERE `accountId` = "' + account.id + '");'
+            ),
+            DatabaseHelper.query(
+                'SELECT SUM(`amount`) AS `value` ' +
+                'FROM `units` AS `unit` ' +
+                'WHERE ' +
+                '  `type` = "TRANSFER" AND ' +
+                '  `transactionId` IN (SELECT `id` FROM `transactions` WHERE `accountId` = "' + account.id + '");'
+            ),
             DatabaseHelper.get('unit').findOne({
                 attributes: [
                     [DatabaseHelper.sum('amount'), 'value']
@@ -83,9 +63,9 @@ class AccountLogic extends BaseLogic {
             type: account.type,
             number: account.number,
             balance: (
-                (parseInt(notTransfer.dataValues.value, 10) || 0) +
+                (parseInt(notTransfer[0].value, 10) || 0) +
                 (parseInt(transactionsWithoutUnits[0].value, 10) || 0) +
-                (parseInt(transferOn.dataValues.value, 10) || 0) -
+                (parseInt(transferOn[0].value, 10) || 0) -
                 (parseInt(transferOff.dataValues.value, 10) || 0)
             ),
             transactions: parseInt(transactionCount.dataValues.value, 10) || 0,

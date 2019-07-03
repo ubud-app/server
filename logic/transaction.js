@@ -1102,7 +1102,7 @@ class TransactionLogic extends BaseLogic {
                 }
                 catch (err) {
                     log.info('Unable to load metadata: %s', err.toString());
-                    log.error(err);
+                    log.warn(err);
                 }
             })()));
         })());

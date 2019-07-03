@@ -79,13 +79,8 @@ class PluginHelper {
         /*
          *  npm install
          */
-        try {
-            type = await this._runPackageInstall(type);
-            log.debug('%s: installed successfully', type);
-        }
-        catch (err) {
-            throw err;
-        }
+        type = await this._runPackageInstall(type);
+        log.debug('%s: installed successfully', type);
 
 
         /*
