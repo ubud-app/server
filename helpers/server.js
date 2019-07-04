@@ -116,7 +116,8 @@ class ServerHelper {
 
                 // static files
                 app.use(express.static(web.static, {
-                    etag: false
+                    etag: false,
+                    maxage: 10 * 60 * 1000
                 }));
 
                 // default language
