@@ -70,9 +70,7 @@ class PluginInstance extends EventEmitter {
         log.debug('Initialize Plugin %s', this._model.id);
 
         try {
-            /* eslint-disable security/detect-non-literal-require */
-            this._version = require(this._model.type + '/package.json').version.toString();
-            /* eslint-enable security/detect-non-literal-require */
+            this._version = require(this._model.type + '/package.json').version.toString(); // eslint-disable-line security/detect-non-literal-require
         }
         catch (err) {
             log.warn('Unable to get version of plugin %s, try to install it…', this.type());
@@ -88,9 +86,7 @@ class PluginInstance extends EventEmitter {
             }
 
             try {
-                /* eslint-disable security/detect-non-literal-require */
-                this._version = require(this.type() + '/package.json').version.toString();
-                /* eslint-enable security/detect-non-literal-require */
+                this._version = require(this.type() + '/package.json').version.toString(); // eslint-disable-line security/detect-non-literal-require
             }
             catch (err) {
                 log.warn('Unable to get version of plugin %s directly, try fallback hack…', this.type());

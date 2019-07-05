@@ -29,6 +29,7 @@ if(sentryDSN === undefined) {
 // Client / UI
 try {
     const path = require('path');
+    const fs = require('fs');
 
     ui = require('@dwimm/client-web');
 
@@ -38,9 +39,7 @@ try {
     const stats = fs.statSync(packageJson);
     ui.timestamp = stats.mtime;
 
-    /* eslint-disable security/detect-non-literal-require */
-    ui.version = require(packageJson).version;
-    /* eslint-enable security/detect-non-literal-require */
+    ui.version = require(packageJson).version;  // eslint-disable-line security/detect-non-literal-require
 }
 catch(err) {
     // do nothing
