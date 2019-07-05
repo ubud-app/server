@@ -101,9 +101,6 @@ class PluginInstanceLogic extends BaseLogic {
     }
 
     static async list (params, options) {
-        if (!options.session.user.isAdmin) {
-            throw new ErrorResponse(403, 'Only admins are allowed to list all plugins…');
-        }
         if (params.document) {
             const document = await DatabaseHelper.get('document').findByPk(params.document);
 
@@ -113,6 +110,10 @@ class PluginInstanceLogic extends BaseLogic {
                 const plugins = await PluginHelper.listPlugins();
                 return plugins.filter(p => p.documentId() === document.id);
             }
+        }
+
+        if (!options.session.user.isAdmin) {
+            throw new ErrorResponse(403, 'Only admins are allowed to list all plugins…');
         }
 
         return PluginHelper.listPlugins();
