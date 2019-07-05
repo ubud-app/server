@@ -30,6 +30,12 @@ class DocumentLogic extends BaseLogic {
                 email: user.email
             }));
         }
+        else if (options.session.user) {
+            r.users = [{
+                id: options.session.user.id,
+                email: options.session.user.email
+            }];
+        }
 
         return r;
     }
@@ -142,7 +148,7 @@ class DocumentLogic extends BaseLogic {
 
             // delete old and unused settings
             await Promise.all(model.settings.map(setting => {
-                if(Object.keys(body.settings).indexOf(setting.key) === -1) {
+                if (Object.keys(body.settings).indexOf(setting.key) === -1) {
                     return setting.destroy();
                 }
 
@@ -171,6 +177,13 @@ class DocumentLogic extends BaseLogic {
                         });
                 }
             }));
+        }
+
+        // leave document for non admins
+        if (!options.session.user.isAdmin && Array.isArray(body.users) && body.users.length === 0) {
+            const userModel = model.users.find(user => user.id === options.session.user.id);
+            model.users.splice(model.users.indexOf(userModel), 1);
+            await model.removeUser(userModel);
         }
 
         // all done for non-admins
