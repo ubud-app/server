@@ -117,11 +117,32 @@ class ServerHelper {
                 // static files
                 app.use(express.static(web.static, {
                     etag: false,
-                    maxage: 10 * 60 * 1000
+                    maxage: 5 * 60 * 1000,
+                    setHeaders: function (res) {
+                        if (ConfigHelper.getClient() && ConfigHelper.getClient().timestamp) {
+                            res.setHeader('Last-Modified', ConfigHelper.getClient().timestamp);
+                        }
+                        else {
+                            res.removeHeader('Last-Modified');
+                        }
+
+                        let server = 'DWIMM Server';
+                        if (ConfigHelper.getVersion()) {
+                            server += ' ' + ConfigHelper.getVersion();
+                        }
+                        if (ConfigHelper.getClient()) {
+                            server += ' with Client';
+                        }
+                        if (ConfigHelper.getClient() && ConfigHelper.getClient().version) {
+                            server += ' ' + ConfigHelper.getClient().version;
+                        }
+
+                        res.setHeader('x-powered-by', server);
+                    }
                 }));
 
                 // default language
-                if(web.languages && Array.isArray(web.languages)) {
+                if (web.languages && Array.isArray(web.languages)) {
                     app.use((req, res) => {
                         const language = req.acceptsLanguages(web.languages) || 'en-US';
                         res.sendFile(`${web.static}/${language}/index.html`);
@@ -267,7 +288,7 @@ class ServerHelper {
                 log.info('Executed %s migrations.\n - %s', migrations.length, migrations.map(m => m.file).join('\n - '));
             }
         }
-        catch(e) {
+        catch (e) {
             log.error(e);
             log.error(new Error('Unable to execute pending database transactions, stop server…'));
             process.exit(1);
@@ -292,7 +313,7 @@ class ServerHelper {
         });
 
         const count = await user.count();
-        if(count > 0) {
+        if (count > 0) {
             return;
         }
 
@@ -300,7 +321,8 @@ class ServerHelper {
             crypto.randomBytes(16, (err, buffer) => {
                 if (err) {
                     reject(err);
-                } else {
+                }
+                else {
                     resolve(buffer.toString('hex'));
                 }
             });

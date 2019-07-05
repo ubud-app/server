@@ -34,8 +34,12 @@ try {
 
     ui.static = path.resolve(ui.static);
 
+    const packageJson = path.resolve(ui.all + '/../package.json');
+    const stats = fs.statSync(packageJson);
+    ui.timestamp = stats.mtime;
+
     /* eslint-disable security/detect-non-literal-require */
-    ui.version = require(path.resolve(ui.all + '/../package.json')).version;
+    ui.version = require(packageJson).version;
     /* eslint-enable security/detect-non-literal-require */
 }
 catch(err) {
