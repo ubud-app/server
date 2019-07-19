@@ -3,6 +3,7 @@ stages:
   - pre-check
   - test
   - publish
+  - notify
 
 #
 # PRE-BUILD
@@ -204,6 +205,17 @@ private-deployment:
         "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
     - docker start dwimm
   when: manual
+  only:
+    - develop
+    - master
+
+notify:
+  stage: notify
+  tags:
+    - matt.sebbo.net
+    - ssh
+  script:
+    - curl -X "POST" "https://api.repository.dwimm.org/webhooks/update-components/${NOTIFY_WEBHOOK_SECRET}"
   only:
     - develop
     - master
