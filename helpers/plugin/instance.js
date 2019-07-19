@@ -107,15 +107,14 @@ class PluginInstance extends EventEmitter {
             log.warn('Okay, got it now, version of %s is %s', this.type(), this._version);
         }
 
+        // get plugin information
         try {
-            /* eslint-disable security/detect-non-literal-require */
-            this._metainfo = require(this._model.type + '/.dwimm-plugin.json');
-            /* eslint-enable security/detect-non-literal-require */
+            const RepositoryHelper = require('../repository');
+            this._metainfo = await RepositoryHelper.getPluginById(this.type());
         }
         catch (err) {
             log.warn('Unable to get metadata of plugin %s…', this._model.type);
-            log.fatal(err);
-            process.exit(1);
+            log.warn(err);
         }
 
         // get configuration from database
@@ -1227,15 +1226,6 @@ class PluginInstance extends EventEmitter {
         }
         catch (err) {
             throw new Error('Unable to parse plugin\'s package.json');
-        }
-
-        try {
-            /* eslint-disable security/detect-non-literal-require */
-            require(type + '/.dwimm-plugin.json');
-            /* eslint-enable security/detect-non-literal-require */
-        }
-        catch (err) {
-            throw new Error('Unable to parse plugin\'s .dwimm-plugin.json');
         }
 
         const response = await this.request(null, type, 'check');

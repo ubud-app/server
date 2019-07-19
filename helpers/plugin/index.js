@@ -100,8 +100,9 @@ class PluginHelper {
             }
             catch (err) {
                 log.warn('%s: unable to remove plugin: %s', type, err);
-                throw err;
             }
+
+            throw err;
         }
 
 
@@ -168,7 +169,7 @@ class PluginHelper {
         let res;
 
         try {
-            res = await this._runPackageRunQueue(['npm', 'install', type]);
+            res = await this._runPackageRunQueue(['npm', 'install', '--ignore-scripts', '--production', type]);
         }
         catch (err) {
             log.error(err);
@@ -184,7 +185,7 @@ class PluginHelper {
     }
 
     static async _runPackageRemove (type) {
-        await this._runPackageRunQueue(['npm', 'remove', type, '--save']);
+        await this._runPackageRunQueue(['npm', 'remove', type]);
     }
 
     static async _runPackageRunQueue (command) {

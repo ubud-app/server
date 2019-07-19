@@ -305,7 +305,7 @@ class TransactionLogic extends BaseLogic {
 
         // update account balance
         const AccountLogic = require('./account');
-        if(model.units.find(u => u.type === 'TRANSFER')) {
+        if(model.units && model.units.find(u => u.type === 'TRANSFER')) {
             lastJobs.push((async () => {
                 const accounts = await AccountLogic.list({}, options);
                 await Promise.all(accounts.map(a => AccountLogic.sendUpdatedEvent(a)));

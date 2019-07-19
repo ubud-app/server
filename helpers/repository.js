@@ -11,7 +11,7 @@ let events = new EventEmitter();
 let initialized = false;
 let instanceIdModel = null;
 let repository = {
-    client: null,
+    components: {},
     plugins: null
 };
 
@@ -71,7 +71,7 @@ class RepositoryHelper {
         const payload = await this._payload();
 
         const res = await request({
-            uri: 'https://api.repository.dwimm.org/',
+            uri: 'https://api.repository.dwimm.org/v1/beacon',
             method: 'post',
             json: true,
             body: payload
@@ -98,8 +98,8 @@ class RepositoryHelper {
             });
         }
 
-        if(res.client) {
-            repository.client = res.client;
+        if(res.components) {
+            repository.components = res.components;
         }
         if(res.plugins) {
             repository.plugins = res.plugins;
@@ -128,7 +128,7 @@ class RepositoryHelper {
             data.nodeVersion = data.nodeVersion.substr(1);
         }
 
-        data.arch = os.arch();
+        data.cpuType = os.arch();
         data.osType = os.platform();
 
         data.users = await DatabaseHelper.get('user').count();
@@ -187,16 +187,6 @@ class RepositoryHelper {
     }
 
     /**
-     * Returns all plugins
-     *
-     * @param {string} q
-     * @returns {Promise.<object[]>}
-     */
-    static async getPlugins() {
-        return this.filterPluginByFilter(() => true);
-    }
-
-    /**
      * Tries to find the given plugin by ID
      *
      * @param {string} id
@@ -208,7 +198,59 @@ class RepositoryHelper {
             return plugins[0];
         }
 
+        try {
+            const request = require('request-promise-native');
+            const payload = await this._payload();
+            const plugin = await request({
+                uri: 'https://api.repository.dwimm.org/v1/plugin',
+                method: 'post',
+                json: true,
+                body: {
+                    id: payload.id,
+                    serverVersion: payload.serverVersion,
+                    clientVersion: payload.clientVersion,
+                    nodeVersion: payload.nodeVersion,
+                    npmVersion: payload.npmVersion,
+                    cpuType: payload.cpuType,
+                    osType: payload.osType,
+                    plugin: id
+                }
+            });
+
+            return plugin;
+        }
+        catch(err) {
+            log.warn(err.toString());
+        }
+
         return null;
+    }
+
+    /**
+     * Remotly search for an account plugin
+     *
+     * @param {string} q
+     * @returns {Promise.<object|null>}
+     */
+    static async searchAccountPlugin (q) {
+        const request = require('request-promise-native');
+        const payload = await this._payload();
+
+        return request({
+            uri: 'https://api.repository.dwimm.org/v1/search',
+            method: 'post',
+            json: true,
+            body: {
+                id: payload.id,
+                serverVersion: payload.serverVersion,
+                clientVersion: payload.clientVersion,
+                nodeVersion: payload.nodeVersion,
+                npmVersion: payload.npmVersion,
+                cpuType: payload.cpuType,
+                osType: payload.osType,
+                account: q
+            }
+        });
     }
 }
 
