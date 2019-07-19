@@ -89,7 +89,7 @@ class LogHelper {
             return null;
         }
         for (i in s.args) {
-            if (Object.prototype.hasOwnProperty.call(s, i)) {
+            if (Object.prototype.hasOwnProperty.call(s.args, i)) {
                 t.argument = s.args[i];
                 i = parseInt(i, 10);
 
