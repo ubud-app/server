@@ -104,6 +104,15 @@ class ConfigHelper {
     static getClient() {
         return ui;
     }
+
+    /**
+     * True, if app runs next channel instead of latest,
+     * applies not for plugins.
+     * @returns {boolean}
+     */
+    static isNext() {
+        return !!process.env.NEXT;
+    }
 }
 
 module.exports = ConfigHelper;

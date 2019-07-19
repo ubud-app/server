@@ -1001,8 +1001,7 @@ class PluginInstance extends EventEmitter {
 
                 const text = (stderr.join('\n').trim() || stdout.join('\n').trim() || 'Plugin died')
                     .replace(/^Error:/, '')
-                    .trim()
-                    .split('\n').join(' ');
+                    .trim();
 
                 if (instance) {
                     instance._errors[method] = text;

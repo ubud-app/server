@@ -53,11 +53,11 @@ class RepositoryHelper {
     static run() {
         this._run()
             .then(() => {
-                setTimeout(() => {this.run();}, 1000 * 60 * 60 * 6);
+                setTimeout(() => this.run(), 1000 * 60 * 60 * 3);
             })
             .catch(err => {
                 log.error(err.toString());
-                setTimeout(() => {this.run();}, 1000 * 60 * 5);
+                setTimeout(() => this.run(), 1000 * 60 * 5);
             });
     }
 
@@ -100,6 +100,13 @@ class RepositoryHelper {
 
         if(res.components) {
             repository.components = res.components;
+            Object.entries(repository.components).forEach(([name, data]) => {
+                DatabaseHelper.events().emit('update', {
+                    action: 'updated',
+                    name: 'component',
+                    model: this.prettifyComponent(name, data)
+                });
+            });
         }
         if(res.plugins) {
             repository.plugins = res.plugins;
@@ -166,6 +173,18 @@ class RepositoryHelper {
     }
 
     /**
+     * Wait till Beacon Request is done.
+     * @returns {Promise<void>}
+     */
+    static async wait() {
+        await new Promise(resolve => {
+            events.once('sync', () => {
+                resolve();
+            });
+        });
+    }
+
+    /**
      * Filter plugins which matches the given filter.
      *
      * @param filter
@@ -173,11 +192,7 @@ class RepositoryHelper {
      */
     static async filterPluginByFilter(filter) {
         if(repository.plugins === null) {
-            await new Promise(resolve => {
-                events.once('sync', () => {
-                    resolve();
-                });
-            });
+            await this.wait();
         }
         if(repository.plugins === null) {
             return null;
@@ -251,6 +266,57 @@ class RepositoryHelper {
                 account: q
             }
         });
+    }
+
+    /**
+     * Get Component
+     *
+     * @returns {Promise}
+     */
+    static async getComponents () {
+        if(!repository.components.length) {
+            await this.wait();
+        }
+
+        return Object.entries(repository.components).map(([name, data]) => {
+            return this.prettifyComponent(name, data);
+        });
+    }
+
+    /**
+     * List all components
+     *
+     * @returns {Promise}
+     */
+    static async getComponent (id) {
+        if(!repository.components.length) {
+            await this.wait();
+        }
+
+        const c = repository.components[id];
+        if(!c) {
+            return false;
+        }
+
+        return this.prettifyComponent(id, c);
+    }
+
+    static prettifyComponent (name, data) {
+        const j = {
+            id: name,
+            installed: null,
+            available: null
+        };
+
+        if(name === 'server' && ConfigHelper.getVersion()) {
+            j.installed = ConfigHelper.getVersion();
+        }
+        if(name === 'client' && ConfigHelper.getClient() && ConfigHelper.getClient().version) {
+            j.installed = ConfigHelper.getClient().version;
+        }
+
+        j.available = data.channels[ConfigHelper.isNext() ? 'next' : 'latest'];
+        return j;
     }
 }
 
