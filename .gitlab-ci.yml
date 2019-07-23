@@ -129,7 +129,6 @@ build_next_arm32v7:
       --build-arg NODE_ENV="production"
       --build-arg CLIENT_TAG="next"
       --build-arg NEXT="1"
-      -f ./Dockerfile.arm-v7
       -t "dwimm/server:${CI_COMMIT_SHA}-next-arm32v7" .
     - docker push "dwimm/server:${CI_COMMIT_SHA}-next-arm32v7"
   only:
@@ -151,7 +150,6 @@ build_arm32v7:
     - docker build --no-cache
       --build-arg BASEIMAGE="arm32v7/node:slim"
       --build-arg NODE_ENV="production"
-      -f ./Dockerfile.arm-v7
       -t "dwimm/server:${CI_COMMIT_SHA}-arm32v7" .
     - docker push "dwimm/server:${CI_COMMIT_SHA}-arm32v7"
   only:
