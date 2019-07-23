@@ -196,6 +196,8 @@ build_arm64v8:
       -f ./Dockerfile.arm-v8
       -t "dwimm/server:${CI_COMMIT_SHA}-arm64v8" .
     - docker push "dwimm/server:${CI_COMMIT_SHA}-arm64v8"
+  only:
+    - master
 
 
 #
