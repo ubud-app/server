@@ -23,7 +23,7 @@ let repository = {
  * @class RepositoryHelper
  */
 class RepositoryHelper {
-    static async initialize() {
+    static async initialize () {
         if (initialized) {
             return;
         }
@@ -38,19 +38,21 @@ class RepositoryHelper {
                 }
             });
         }
-        catch(err) {
+        catch (err) {
             log.warn('Invalid id in settings: ignore id (%s)', err);
             instanceIdModel = null;
         }
 
-        setTimeout(() => {this.run();}, 500);
+        setTimeout(() => {
+            this.run();
+        }, 500);
     }
 
     /**
      * Run the _run() method and manage the timeout to
      * start it again in a while…
      */
-    static run() {
+    static run () {
         this._run()
             .then(() => {
                 setTimeout(() => this.run(), 1000 * 60 * 60 * 3);
@@ -66,7 +68,7 @@ class RepositoryHelper {
      * fields and saves the answer in `lastResponse`. Also saves
      * the instance id in settings if required.
      */
-    static async _run() {
+    static async _run () {
         const request = require('request-promise-native');
         const payload = await this._payload();
 
@@ -77,28 +79,28 @@ class RepositoryHelper {
             body: payload
         });
 
-        if(res.id && instanceIdModel && instanceIdModel.value !== JSON.stringify(res.id)) {
+        if (res.id && instanceIdModel && instanceIdModel.value !== JSON.stringify(res.id)) {
             instanceIdModel.value = JSON.stringify(res.id);
             await instanceIdModel.save();
         }
-        else if(res.id && !instanceIdModel) {
+        else if (res.id && !instanceIdModel) {
             instanceIdModel = await DatabaseHelper.get('setting').create({
                 key: 'id',
                 value: JSON.stringify(res.id),
                 documentId: null
             });
         }
-        else if(!res.id) {
+        else if (!res.id) {
             throw new Error('Invalid repository response: `id` missing!');
         }
 
-        if(res.warn && res.warn.length) {
-            res.warn.forEach(function(s) {
+        if (res.warn && res.warn.length) {
+            res.warn.forEach(function (s) {
                 log.warn('Got repository warning: %s', s);
             });
         }
 
-        if(res.components) {
+        if (res.components) {
             repository.components = res.components;
             Object.entries(repository.components).forEach(([name, data]) => {
                 DatabaseHelper.events().emit('update', {
@@ -108,7 +110,7 @@ class RepositoryHelper {
                 });
             });
         }
-        if(res.plugins) {
+        if (res.plugins) {
             repository.plugins = res.plugins;
         }
 
@@ -119,7 +121,7 @@ class RepositoryHelper {
      * Prepares the payload to send with the request
      * @returns {Promise.<object>}
      */
-    static async _payload() {
+    static async _payload () {
         const os = require('os');
         const exec = require('promised-exec');
 
@@ -131,7 +133,7 @@ class RepositoryHelper {
         data.npmVersion = await exec('npm -v');
 
         data.nodeVersion = await exec('node -v');
-        if(data.nodeVersion.substr(0, 1) === 'v') {
+        if (data.nodeVersion.substr(0, 1) === 'v') {
             data.nodeVersion = data.nodeVersion.substr(1);
         }
 
@@ -146,7 +148,7 @@ class RepositoryHelper {
         const usages = {};
 
         await Promise.all(
-            plugins.map(async function(plugin) {
+            plugins.map(async function (plugin) {
                 usages[plugin.type()] = usages[plugin.type()] || {};
                 usages[plugin.type()].type = plugin.type();
                 usages[plugin.type()].version = plugin.version();
@@ -176,7 +178,11 @@ class RepositoryHelper {
      * Wait till Beacon Request is done.
      * @returns {Promise<void>}
      */
-    static async wait() {
+    static async wait () {
+        if (Object.keys(repository.components).length > 0) {
+            return;
+        }
+
         await new Promise(resolve => {
             events.once('sync', () => {
                 resolve();
@@ -190,11 +196,11 @@ class RepositoryHelper {
      * @param filter
      * @returns {Promise.<object|null>}
      */
-    static async filterPluginByFilter(filter) {
-        if(repository.plugins === null) {
+    static async filterPluginByFilter (filter) {
+        if (repository.plugins === null) {
             await this.wait();
         }
-        if(repository.plugins === null) {
+        if (repository.plugins === null) {
             return null;
         }
 
@@ -207,9 +213,9 @@ class RepositoryHelper {
      * @param {string} id
      * @returns {Promise.<object|null>}
      */
-    static async getPluginById(id) {
+    static async getPluginById (id) {
         const plugins = await this.filterPluginByFilter(plugin => plugin.id === id);
-        if(plugins.length >= 1) {
+        if (plugins.length >= 1) {
             return plugins[0];
         }
 
@@ -234,7 +240,7 @@ class RepositoryHelper {
 
             return plugin;
         }
-        catch(err) {
+        catch (err) {
             log.warn(err.toString());
         }
 
@@ -274,7 +280,7 @@ class RepositoryHelper {
      * @returns {Promise}
      */
     static async getComponents () {
-        if(!repository.components.length) {
+        if (!repository.components.length) {
             await this.wait();
         }
 
@@ -289,12 +295,12 @@ class RepositoryHelper {
      * @returns {Promise}
      */
     static async getComponent (id) {
-        if(!repository.components.length) {
+        if (!repository.components.length) {
             await this.wait();
         }
 
         const c = repository.components[id];
-        if(!c) {
+        if (!c) {
             return false;
         }
 
@@ -308,10 +314,10 @@ class RepositoryHelper {
             available: null
         };
 
-        if(name === 'server' && ConfigHelper.getVersion()) {
+        if (name === 'server' && ConfigHelper.getVersion()) {
             j.installed = ConfigHelper.getVersion();
         }
-        if(name === 'client' && ConfigHelper.getClient() && ConfigHelper.getClient().version) {
+        if (name === 'client' && ConfigHelper.getClient() && ConfigHelper.getClient().version) {
             j.installed = ConfigHelper.getClient().version;
         }
 

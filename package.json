@@ -30,7 +30,7 @@
 		"email-validator": "^2.0.4",
 		"express": "^4.17.1",
 		"express-fileupload": "^1.1.5",
-		"hibp": "^7.5.2",
+		"hibp": "^8.0.0",
 		"moment": "^2.24.0",
 		"mt940-js": "^0.6.0",
 		"mysql2": "^1.6.5",
@@ -38,7 +38,7 @@
 		"promised-exec": "^1.0.1",
 		"request": "^2.88.0",
 		"request-promise-native": "^1.0.7",
-		"sequelize": "^5.10.1",
+		"sequelize": "^5.10.2",
 		"shell-escape": "^0.2.0",
 		"socket.io": "^2.2.0",
 		"umzug": "^2.2.0",
@@ -49,7 +49,7 @@
 		"ofx": "^0.4.0"
 	},
 	"devDependencies": {
-		"eslint": "^6.0.1",
+		"eslint": "^6.1.0",
 		"eslint-plugin-security": "^1.4.0",
 		"npm-check": "^5.9.0"
 	}
