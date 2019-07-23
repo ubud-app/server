@@ -1,9 +1,10 @@
 FROM arm32v7/node:slim
 ARG CLIENT_TAG=latest
 ARG NODE_ENV=production
+ARG NEXT
 ARG SENTRY_DSN
 ENV SENTRY_DSN=$SENTRY_DSN
-ENV NEXT=1
+ENV NEXT=$NEXT
 
 ADD "." "/usr/local/lib/node_modules/@dwimm/server"
 

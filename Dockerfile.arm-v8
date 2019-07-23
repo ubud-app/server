@@ -1,4 +1,4 @@
-FROM node:slim
+FROM arm64v8/node:slim
 ARG CLIENT_TAG=latest
 ARG NODE_ENV=production
 ARG NEXT

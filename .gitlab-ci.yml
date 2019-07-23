@@ -1,14 +1,17 @@
 stages:
   - pre-build
   - pre-check
+  - build
   - test
   - publish
   - notify
 
+
 #
 # PRE-BUILD
 #
-build_image_next:
+
+pre_build_next:
   stage: pre-build
   tags:
     - matt.sebbo.net
@@ -16,21 +19,22 @@ build_image_next:
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
     - npm run bump:develop
+    - cp package.json package.new.json
     - docker pull node:slim
     - docker build --no-cache
         --build-arg NODE_ENV="develop"
         --build-arg CLIENT_TAG="next"
-        -t "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-dev" .
-    - docker push "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-dev"
-    - docker build --no-cache
-        --build-arg NODE_ENV="production"
-        --build-arg CLIENT_TAG="next"
+        --build-arg NEXT="1"
         -t "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" .
     - docker push "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
+  artifacts:
+    paths:
+      - package.new.json
+    expire_in: 2 weeks
   except:
     - master
 
-build_image:
+pre_build:
   stage: pre-build
   tags:
     - matt.sebbo.net
@@ -38,15 +42,16 @@ build_image:
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
     - npm run bump:production
+    - cp package.json package.new.json
     - docker pull node:slim
     - docker build --no-cache
         --build-arg NODE_ENV="develop"
-        -t "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-dev" .
-    - docker push "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-dev"
-    - docker build --no-cache
-        --build-arg NODE_ENV="production"
         -t "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" .
     - docker push "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
+  artifacts:
+    paths:
+      - package.new.json
+    expire_in: 4 weeks
   only:
     - master
 
@@ -54,6 +59,7 @@ build_image:
 #
 # PRE-CHECK
 #
+
 check_lint:
   stage: pre-check
   tags:
@@ -61,81 +67,152 @@ check_lint:
     - ssh
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
-    - docker pull "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-dev"
-    - docker run --rm "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-dev" npm run check
+    - docker pull "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
+    - docker run --rm "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" npm run check
+
+
+#
+# BUILD
+#
+
+build_next:
+  stage: build
+  tags:
+    - matt.sebbo.net
+    - ssh
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
+    - rm -f ./package.json
+    - mv ./package.new.json ./package.json
+    - docker pull node:slim
+    - docker build --no-cache
+      --build-arg NODE_ENV="production"
+      --build-arg CLIENT_TAG="next"
+      --build-arg NEXT="1"
+      -t "dwimm/server:${CI_COMMIT_SHA}-next" .
+    - docker push "dwimm/server:${CI_COMMIT_SHA}-next"
+  only:
+    - develop
+
+build:
+  stage: pre-build
+  tags:
+    - matt.sebbo.net
+    - ssh
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
+    - rm -f ./package.json
+    - mv ./package.new.json ./package.json
+    - docker pull node:slim
+    - docker build --no-cache
+      --build-arg NODE_ENV="production"
+      -t "dwimm/server:${CI_COMMIT_SHA}" .
+    - docker push "dwimm/server:${CI_COMMIT_SHA}"
+  only:
+    - master
+
+build_next_arm32v7:
+  stage: publish
+  tags:
+    - docker-host
+    - arm
+    - ssh
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
+    - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+    - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
+    - rm -f ./package.json
+    - mv ./package.new.json ./package.json
+    - docker pull arm32v7/node:slim
+    - docker build --no-cache
+      --build-arg NODE_ENV="production"
+      --build-arg CLIENT_TAG="next"
+      --build-arg NEXT="1"
+      -f ./Dockerfile.arm-v7
+      -t "dwimm/server:${CI_COMMIT_SHA}-next-arm32v7" .
+    - docker push "dwimm/server:${CI_COMMIT_SHA}-next-arm32v7"
+  only:
+    - develop
+
+build_arm32v7:
+  stage: publish
+  tags:
+    - docker-host
+    - arm
+    - ssh
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
+    - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+    - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
+    - rm -f ./package.json
+    - mv ./package.new.json ./package.json
+    - docker pull arm32v7/node:slim
+    - docker build --no-cache
+      --build-arg NODE_ENV="production"
+      -f ./Dockerfile.arm-v7
+      -t "dwimm/server:${CI_COMMIT_SHA}-arm32v7" .
+    - docker push "dwimm/server:${CI_COMMIT_SHA}-arm32v7"
+  only:
+    - master
+
+build_next_arm64v8:
+  stage: publish
+  tags:
+    - docker-host
+    - arm
+    - ssh
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
+    - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+    - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
+    - rm -f ./package.json
+    - mv ./package.new.json ./package.json
+    - docker pull arm64v8/node:slim
+    - docker build --no-cache
+      --build-arg NODE_ENV="production"
+      --build-arg CLIENT_TAG="next"
+      --build-arg NEXT="1"
+      -f ./Dockerfile.arm-v8
+      -t "dwimm/server:${CI_COMMIT_SHA}-next-arm64v8" .
+    - docker push "dwimm/server:${CI_COMMIT_SHA}-next-arm64v8"
+  only:
+    - develop
+
+build_arm64v8:
+  stage: publish
+  tags:
+    - docker-host
+    - arm
+    - ssh
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
+    - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+    - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
+    - rm -f ./package.json
+    - mv ./package.new.json ./package.json
+    - docker pull arm64v8/node:slim
+    - docker build --no-cache
+      --build-arg NODE_ENV="production"
+      -f ./Dockerfile.arm-v8
+      -t "dwimm/server:${CI_COMMIT_SHA}-arm64v8" .
+    - docker push "dwimm/server:${CI_COMMIT_SHA}-arm64v8"
 
 
 #
 # PUBLISH
 #
-build_image_next_arm:
-  stage: publish
-  tags:
-    - docker-host
-    - arm
-    - ssh
-  script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
-    - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-    - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
-    - npm run bump:develop
-    - docker pull arm32v7/node:slim
-    - docker build --no-cache
-        --build-arg NODE_ENV="develop"
-        --build-arg CLIENT_TAG="next"
-        -f ./Dockerfile.arm
-        -t "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-arm-dev" .
-    - docker push "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-arm-dev"
-    - docker build --no-cache
-        --build-arg NODE_ENV="production"
-        --build-arg CLIENT_TAG="next"
-        -f ./Dockerfile.arm
-        -t "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-arm" .
-    - docker push "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-arm"
-    - docker tag "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-arm" "sebbo2002/dwimm-server-beta:next-arm"
-    - docker push "sebbo2002/dwimm-server-beta:next-arm"
-  except:
-    - master
-
-build_image_arm:
-  stage: publish
-  tags:
-    - docker-host
-    - arm
-    - ssh
-  script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
-    - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-    - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
-    - npm run bump:production
-    - docker pull arm32v7/node:slim
-    - docker build --no-cache
-        --build-arg NODE_ENV="develop"
-        -f ./Dockerfile.arm
-        -t "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-arm-dev" .
-    - docker push "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-arm-dev"
-    - docker build --no-cache
-        --build-arg NODE_ENV="production"
-        -f ./Dockerfile.arm
-        -t "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-arm" .
-    - docker push "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}-arm"
-    - docker tag "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" "sebbo2002/dwimm-server-beta:arm"
-    - docker push "sebbo2002/dwimm-server-beta:arm"
-  only:
-    - master
-
 
 publish_github:
   stage: publish
   tags:
     - matt.sebbo.net
     - ssh
+  retry: 2
   script:
     - git checkout $CI_COMMIT_REF_NAME
     - git pull
     - git push "https://${GITHUB_AUTH}@github.com/sebbo2002/dwimm-server.git" --all
     - git push "https://${GITHUB_AUTH}@github.com/sebbo2002/dwimm-server.git" --tags
-
 
 publish_npm_next:
   stage: publish
@@ -143,20 +220,29 @@ publish_npm_next:
     - matt.sebbo.net
     - ssh
   script:
-    - node -v
-    - yarn -v
     - yarn install
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN docker.sebbo.net
-    - docker pull "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
     - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
-    - npm run bump:develop
-    - echo $(docker run --rm "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" cat ./package.json | jq '.version' -rce)
+    - rm -f ./package.json
+    - mv ./package.new.json ./package.json
     - npm publish --tag "next"
   only:
     - develop
 
+publish_npm:
+  stage: publish
+  tags:
+    - matt.sebbo.net
+    - ssh
+  script:
+    - yarn install
+    - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
+    - rm -f ./package.json
+    - mv ./package.new.json ./package.json
+    - npm publish
+  only:
+    - master
 
-publish_dockerhub_beta_next:
+publish_docker_private:
   stage: publish
   tags:
     - matt.sebbo.net
@@ -164,13 +250,15 @@ publish_dockerhub_beta_next:
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
     - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-    - docker pull "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
-    - docker tag "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" "sebbo2002/dwimm-server-beta:next"
-    - docker push "sebbo2002/dwimm-server-beta:next"
+    - docker manifest create "sebbo2002/dwimm-server-beta" "dwimm/server:${CI_COMMIT_SHA}-next" "dwimm/server:${CI_COMMIT_SHA}-next-arm32v7" "dwimm/server:${CI_COMMIT_SHA}-next-arm64v8"
+    - docker manifest annotate --arch "amd64" --os "linux" "sebbo2002/dwimm-server-beta" "dwimm/server:${CI_COMMIT_SHA}-next"
+    - docker manifest annotate --arch "arm" --os "linux" "sebbo2002/dwimm-server-beta" "dwimm/server:${CI_COMMIT_SHA}-next-arm32v7"
+    - docker manifest annotate --arch "arm64" --os "linux" "sebbo2002/dwimm-server-beta" "dwimm/server:${CI_COMMIT_SHA}-next-arm64v8"
+    - docker manifest push -p "sebbo2002/dwimm-server-beta"
   only:
     - develop
 
-publish_dockerhub_beta:
+publish_docker_next:
   stage: publish
   tags:
     - matt.sebbo.net
@@ -178,9 +266,44 @@ publish_dockerhub_beta:
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
     - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-    - docker pull "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
-    - docker tag "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}" "sebbo2002/dwimm-server-beta"
-    - docker push "sebbo2002/dwimm-server-beta"
+    - docker manifest create "dwimm/server:next" "dwimm/server:${CI_COMMIT_SHA}-next" "dwimm/server:${CI_COMMIT_SHA}-next-arm32v7" "dwimm/server:${CI_COMMIT_SHA}-next-arm64v8"
+    - docker manifest annotate --arch "amd64" --os "linux" "dwimm/server:next" "dwimm/server:${CI_COMMIT_SHA}-next"
+    - docker manifest annotate --arch "arm" --os "linux" "dwimm/server:next" "dwimm/server:${CI_COMMIT_SHA}-next-arm32v7"
+    - docker manifest annotate --arch "arm64" --os "linux" "dwimm/server:next" "dwimm/server:${CI_COMMIT_SHA}-next-arm64v8"
+    - docker manifest push -p "dwimm/server:next"
+  only:
+    - develop
+
+publish_docker:
+  stage: publish
+  tags:
+    - matt.sebbo.net
+    - ssh
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
+    - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+    - docker manifest create "dwimm/server" "dwimm/server:${CI_COMMIT_SHA}" "dwimm/server:${CI_COMMIT_SHA}-arm32v7" "dwimm/server:${CI_COMMIT_SHA}-arm64v8"
+    - docker manifest annotate --arch "amd64" --os "linux" "dwimm/server" "dwimm/server:${CI_COMMIT_SHA}"
+    - docker manifest annotate --arch "arm" --os "linux" "dwimm/server" "dwimm/server:${CI_COMMIT_SHA}-arm32v7"
+    - docker manifest annotate --arch "arm64" --os "linux" "dwimm/server" "dwimm/server:${CI_COMMIT_SHA}-arm64v8"
+    - docker manifest push -p "dwimm/server"
+  only:
+    - master
+
+publish_docker_version:
+  stage: publish
+  tags:
+    - matt.sebbo.net
+    - ssh
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
+    - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+    - export VERSION=$(cat ./package.new.json | jq -rM .version)
+    - docker manifest create "dwimm/server:${VERSION}" "dwimm/server:${CI_COMMIT_SHA}" "dwimm/server:${CI_COMMIT_SHA}-arm32v7" "dwimm/server:${CI_COMMIT_SHA}-arm64v8"
+    - docker manifest annotate --arch "amd64" --os "linux" "dwimm/server:${VERSION}" "dwimm/server:${CI_COMMIT_SHA}"
+    - docker manifest annotate --arch "arm" --os "linux" "dwimm/server:${VERSION}" "dwimm/server:${CI_COMMIT_SHA}-arm32v7"
+    - docker manifest annotate --arch "arm64" --os "linux" "dwimm/server:${VERSION}" "dwimm/server:${CI_COMMIT_SHA}-arm64v8"
+    - docker manifest push -p "dwimm/server:${VERSION}"
   only:
     - master
 
@@ -194,7 +317,7 @@ private-deployment:
     url: https://dwimm.sebbo.net/
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
-    - docker pull "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
+    - docker pull "dwimm/server:${CI_COMMIT_SHA}"
     - docker stop "dwimm" || true
     - docker rm "dwimm" || true
     - docker create --restart "always" --name="dwimm"
@@ -202,12 +325,15 @@ private-deployment:
         -v "/etc/timezone:/etc/timezone:ro" -v "/etc/localtime:/etc/localtime:ro"
         -e "DATABASE=${DEPLOYMENT_DATABASE}"
         -p 127.0.0.1:10060:8080
-        "docker.sebbo.net/dwimm/server:${CI_COMMIT_SHA}"
+        "dwimm/server:${CI_COMMIT_SHA}"
     - docker start dwimm
-  when: manual
   only:
     - develop
-    - master
+
+
+#
+# NOTIFY
+#
 
 notify:
   stage: notify
