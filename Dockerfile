@@ -3,6 +3,7 @@ ARG CLIENT_TAG=latest
 ARG NODE_ENV=production
 ARG SENTRY_DSN
 ENV SENTRY_DSN=$SENTRY_DSN
+ENV NEXT=1
 
 ADD "." "/usr/local/lib/node_modules/@dwimm/server"
 
