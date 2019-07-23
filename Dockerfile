@@ -1,4 +1,6 @@
-FROM node:slim
+ARG BASEIMAGE=node:slim
+FROM $BASEIMAGE
+
 ARG CLIENT_TAG=latest
 ARG NODE_ENV=production
 ARG NEXT
