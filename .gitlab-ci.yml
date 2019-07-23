@@ -95,7 +95,7 @@ build_next:
     - develop
 
 build:
-  stage: pre-build
+  stage: build
   tags:
     - matt.sebbo.net
     - ssh
@@ -112,7 +112,7 @@ build:
     - master
 
 build_next_arm32v7:
-  stage: publish
+  stage: build
   tags:
     - docker-host
     - arm
@@ -135,7 +135,7 @@ build_next_arm32v7:
     - develop
 
 build_arm32v7:
-  stage: publish
+  stage: build
   tags:
     - docker-host
     - arm
@@ -156,7 +156,7 @@ build_arm32v7:
     - master
 
 build_next_arm64v8:
-  stage: publish
+  stage: build
   tags:
     - docker-host
     - arm
@@ -179,7 +179,7 @@ build_next_arm64v8:
     - develop
 
 build_arm64v8:
-  stage: publish
+  stage: build
   tags:
     - docker-host
     - arm
