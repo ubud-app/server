@@ -22,7 +22,7 @@ WORKDIR "/usr/local/lib/node_modules/@ubud-app/server"
 
 RUN cd "/usr/local/lib/node_modules/@ubud-app/server" && \
     npm ci && \
-    npm i -g @ubud-app/client-web@$CLIENT_TAG --no-audit && \
+    npm i -g @ubud-app/client@$CLIENT_TAG --no-audit && \
     ln -s "/usr/local/lib/node_modules/@ubud-app/server/bin/database" "/usr/local/bin/ubud-db" && \
     ln -s "/usr/local/lib/node_modules/@ubud-app/server/bin/plugin" "/usr/local/bin/ubud-plugin" && \
     ln -s "/usr/local/lib/node_modules/@ubud-app/server/bin/user" "/usr/local/bin/ubud-user" && \
