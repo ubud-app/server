@@ -182,7 +182,7 @@ publish_npm_next:
     - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
     - rm -f ./package.json
     - mv ./package.new.json ./package.json
-    - npm publish --tag "next"
+    - npm publish --tag "next"su --access public
   only:
     - develop
 
