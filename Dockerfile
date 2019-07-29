@@ -8,7 +8,7 @@ ARG SENTRY_DSN
 ENV SENTRY_DSN=$SENTRY_DSN
 ENV NEXT=$NEXT
 
-ADD "." "/usr/local/lib/node_modules/@ubud/server"
+ADD "." "/usr/local/lib/node_modules/@ubud-app/server"
 
 RUN apt-get update && \
     apt-get install -y libexpat-dev python make gcc g++ libc-dev && \
