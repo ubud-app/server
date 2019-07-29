@@ -106,7 +106,7 @@ class ServerHelper {
     /**
      * Tries to get the directory of ubud-client and serve it's
      * static files by our server. Woun't do anything in case
-     * client-web is not installed within our scope…
+     * client is not installed within our scope…
      */
     static serveUI () {
         try {

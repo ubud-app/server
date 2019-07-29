@@ -23,7 +23,7 @@ if (!database) {
 // Sentry DSN
 sentryDSN = process.env['SENTRY_DSN'];
 if(sentryDSN === undefined) {
-    sentryDSN = 'https://aeb063cd52664d62bcb7d3324e6e9e89:d3655f9062844f43944ff508822cb58f@sentry.sebbo.net/5';
+    sentryDSN = 'https://3b91ffab25f54a4cbe71c6b9321f0639@sentry.sebbo.net/9';
 }
 
 // Client / UI
@@ -31,7 +31,7 @@ try {
     const path = require('path');
     const fs = require('fs');
 
-    ui = require('@ubud-app/client-web');
+    ui = require('@ubud-app/client');
 
     ui.static = path.resolve(ui.static);
 

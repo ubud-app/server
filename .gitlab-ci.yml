@@ -196,7 +196,7 @@ publish_npm:
     - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
     - rm -f ./package.json
     - mv ./package.new.json ./package.json
-    - npm publish
+    - npm publish --access public
   only:
     - master
 
