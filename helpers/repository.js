@@ -12,7 +12,8 @@ let initialized = false;
 let instanceIdModel = null;
 let repository = {
     components: {},
-    plugins: null
+    plugins: null,
+    terms: null
 };
 
 
@@ -73,7 +74,7 @@ class RepositoryHelper {
         const payload = await this._payload();
 
         const res = await request({
-            uri: 'https://api.repository.dwimm.org/v1/beacon',
+            uri: 'https://beacon.ubud.club/v1/beacon',
             method: 'post',
             json: true,
             body: payload
@@ -112,6 +113,10 @@ class RepositoryHelper {
         }
         if (res.plugins) {
             repository.plugins = res.plugins;
+        }
+
+        if(res.terms) {
+            repository.terms = res.terms || {};
         }
 
         events.emit('sync');
@@ -223,7 +228,7 @@ class RepositoryHelper {
             const request = require('request-promise-native');
             const payload = await this._payload();
             const plugin = await request({
-                uri: 'https://api.repository.dwimm.org/v1/plugin',
+                uri: 'https://beacon.ubud.club/v1/plugin',
                 method: 'post',
                 json: true,
                 body: {
@@ -258,7 +263,7 @@ class RepositoryHelper {
         const payload = await this._payload();
 
         return request({
-            uri: 'https://api.repository.dwimm.org/v1/search',
+            uri: 'https://beacon.ubud.club/v1/search',
             method: 'post',
             json: true,
             body: {
@@ -307,6 +312,13 @@ class RepositoryHelper {
         return this.prettifyComponent(id, c);
     }
 
+    /**
+     * Just formats the component for api output
+     *
+     * @param {string} name
+     * @param {object} data
+     * @returns {{installed: string|null, available: string|null, id: string}}
+     */
     static prettifyComponent (name, data) {
         const j = {
             id: name,
@@ -323,6 +335,17 @@ class RepositoryHelper {
 
         j.available = data.channels[ConfigHelper.isNext() ? 'next' : 'latest'];
         return j;
+    }
+
+    /**
+     * Returns information about the current terms of
+     * service and the privacy statement
+     *
+     * @returns {Promise<{{version: number, validFrom: string, tos: {{defaultUrl: string, updateUrl: string}}, privacy: {{defaultUrl: string, updateUrl: string}}}}>}
+     */
+    static async getTerms () {
+        await this.wait();
+        return repository.terms;
     }
 }
 

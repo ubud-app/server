@@ -154,11 +154,7 @@ class SocketRequestHandler {
             });
         }
         if (err instanceof ErrorResponse) {
-            cb({
-                error: err.status,
-                message: err.message,
-                attributes: err.options.attributes || {}
-            });
+            cb(err.toJSON());
             return;
         }
 

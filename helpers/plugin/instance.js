@@ -211,7 +211,7 @@ class PluginInstance extends EventEmitter {
      * Get the type identifier of this plugin, this
      * mostly equals to the npm package name.
      *
-     * @example "@dwimm/package-dummy"
+     * @example "@ubud-app/package-dummy"
      * @returns {string}
      */
     type () {
@@ -636,7 +636,7 @@ class PluginInstance extends EventEmitter {
         const accountJson = await AccountLogic.format(accountModel);
 
         log.debug(
-            'Plugin %s: Balance after sync in DWIMM: %s, should be %s.',
+            'Plugin %s: Balance after sync in ubud: %s, should be %s.',
             this.id().substr(0, 5),
             accountJson.balance,
             account.balance
@@ -926,7 +926,7 @@ class PluginInstance extends EventEmitter {
      * is forwared to the runner.
      *
      * @param {PluginInstance} [instance] Plugin Instance
-     * @param {string} type plugin to use, for example `@dwimm/plugin-dummy`
+     * @param {string} type plugin to use, for example `@ubud-app/plugin-dummy`
      * @param {string} method method to run, for example `check`
      * @param {object} [config]
      * @param {object} [params]
@@ -1214,7 +1214,7 @@ class PluginInstance extends EventEmitter {
     /**
      * Runs some basic checks on the plugin
      *
-     * @param {string} type plugin to use, for example `@dwimm/plugin-dummy`
+     * @param {string} type plugin to use, for example `@ubud-app/plugin-dummy`
      * @returns {Promise.<void>}
      */
     static async check (type) {

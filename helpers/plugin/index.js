@@ -67,7 +67,7 @@ class PluginHelper {
      *    - Valid: go to ready state
      *    - Invalid: go to waiting for configuration state
      *
-     * @param {string} type Plugin type, for example "@dwimm/plugin-n26" or "~/my-plugin"
+     * @param {string} type Plugin type, for example "@ubud-app/plugin-n26" or "~/my-plugin"
      * @param {Sequelize.Model} document
      * @param {object} [options]
      * @param {boolean} [options.dontLoad] Don't load plugin instance. Method will return null then.

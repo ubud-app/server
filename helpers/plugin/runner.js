@@ -10,10 +10,10 @@ module.exports = PluginTools;
  */
 class PluginRunner {
     static async initialize () {
-        process.title = 'dwimm-plugin';
+        process.title = 'ubud-plugin';
 
         const job = await this.getJobDescription();
-        process.title = 'dwimm-plugin (' + job.type + ')';
+        process.title = 'ubud-plugin (' + job.type + ')';
         PluginTools._runner = this;
         PluginTools._config = job.config;
 

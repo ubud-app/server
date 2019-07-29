@@ -1,18 +1,19 @@
 {
-	"name": "@dwimm/server",
+	"name": "@ubud-app/server",
 	"description": "",
 	"bin": {
-		"dwimm-db": "./bin/database",
-		"dwimm-plugin": "./bin/plugin",
-		"dwimm-server": "./server.js"
+		"ubud-db": "./bin/database",
+		"ubud-plugin": "./bin/plugin",
+		"ubud-user": "./bin/user",
+		"ubud-server": "./server.js"
 	},
 	"scripts": {
 		"check": "npm run check:eslint && npm run check:npm",
 		"check:quick": "npm run check:eslint",
 		"check:eslint": "eslint ./",
 		"check:npm": "npm-check -s",
-		"bump:reset": "export MODULEVERSION=$(npm view @dwimm/server version) && npm run bump:reset:save",
-		"bump:reset:next": "export MODULEVERSION=$(npm view @dwimm/server@next version) && npm run bump:reset:save",
+		"bump:reset": "export MODULEVERSION=$(npm view @ubud-app/server version) && npm run bump:reset:save",
+		"bump:reset:next": "export MODULEVERSION=$(npm view @ubud-app/server@next version) && npm run bump:reset:save",
 		"bump:reset:save": "node ./.ci-update-version",
 		"bump:develop": "npm run bump:reset:next && npm --no-git-tag-version version prerelease",
 		"bump:production": "npm run bump:reset && npm --no-git-tag-version version from-git"

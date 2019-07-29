@@ -163,10 +163,7 @@ class HTTPRequestHandler {
             });
         }
         if (err instanceof ErrorResponse) {
-            res.status(err.status).send({
-                message: err.message,
-                attributes: err.options.attributes || {}
-            });
+            res.status(err.status).send(err.toJSON());
             return;
         }
 

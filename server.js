@@ -4,4 +4,4 @@
 const Server = require('./helpers/server');
 Server.initialize();
 
-process.title = 'dwimm-server';
+process.title = 'ubud-server';

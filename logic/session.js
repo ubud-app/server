@@ -112,6 +112,24 @@ class SessionLogic extends BaseLogic {
             throw new ErrorResponse(401, 'Not able to authorize: Is username / password correct?');
         }
 
+        const RepositoryHelper = require('../helpers/repository');
+        const terms = await RepositoryHelper.getTerms();
+        if(attributes.acceptedTerms) {
+            userModel.acceptedTermVersion = terms.version;
+            await userModel.save();
+        }
+        if(!userModel.acceptedTermVersion || userModel.acceptedTermVersion < terms.version - 1) {
+            throw new ErrorResponse(401, 'Not able to login: User has not accept the terms!', {
+                attributes: {
+                    acceptedTerms: 'Is required to be set to the current term version.'
+                },
+                extra: {
+                    tos: terms.tos.defaultUrl,
+                    privacy: terms.privacy.defaultUrl
+                }
+            });
+        }
+
         const crypto = require('crypto');
         const random = await new Promise((resolve, reject) => {
             crypto.randomBytes(32, (err, buffer) => {

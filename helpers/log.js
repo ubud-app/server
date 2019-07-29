@@ -11,7 +11,7 @@ const ConfigHelper = require('./config');
 
 // bunyan logger
 const logger = bunyan.createLogger({
-    name: 'dwimm-server',
+    name: 'ubud-server',
     level: 'trace',
     serializers: {req: bunyan.stdSerializers.req}
 });

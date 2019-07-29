@@ -104,7 +104,7 @@ class ServerHelper {
     }
 
     /**
-     * Tries to get the directory of dwimm-client and serve it's
+     * Tries to get the directory of ubud-client and serve it's
      * static files by our server. Woun't do anything in case
      * client-web is not installed within our scope…
      */
@@ -126,7 +126,7 @@ class ServerHelper {
                             res.removeHeader('Last-Modified');
                         }
 
-                        let server = 'DWIMM Server';
+                        let server = 'ubud Server';
                         if (ConfigHelper.getVersion()) {
                             server += ' ' + ConfigHelper.getVersion();
                         }
@@ -308,7 +308,7 @@ class ServerHelper {
 
         await user.destroy({
             where: {
-                email: 'setup@dwimm.org'
+                email: 'setup@ubud.club'
             }
         });
 
@@ -330,7 +330,7 @@ class ServerHelper {
 
         const hash = await bcrypt.hash(password, 10);
         await DatabaseHelper.get('user').create({
-            email: 'setup@dwimm.org',
+            email: 'setup@ubud.club',
             password: hash,
             isAdmin: true,
             needsPasswordChange: true
@@ -338,9 +338,9 @@ class ServerHelper {
 
         let s = '\n\n\n##########################################\n\n';
         s += 'Hey buddy,\n\nI just created a new admin user for you. \nUse these credentials to login:\n\n';
-        s += 'Email: setup@dwimm.org\n';
+        s += 'Email: setup@ubud.club\n';
         s += 'Password: ' + password + '\n\n';
-        s += 'Cheers, \nyour lovely DWIMM server :)\n\n';
+        s += 'Cheers, \nyour lovely ubud server :)\n\n';
         s += '##########################################\n\n\n';
 
         log.info(s);

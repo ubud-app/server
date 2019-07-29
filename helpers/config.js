@@ -17,7 +17,7 @@ catch (err) {
 // Database Connection URI
 database = process.env['DATABASE'];
 if (!database) {
-    database = 'mysql://localhost/dwimm';
+    database = 'mysql://localhost/ubud';
 }
 
 // Sentry DSN
@@ -31,7 +31,7 @@ try {
     const path = require('path');
     const fs = require('fs');
 
-    ui = require('@dwimm/client-web');
+    ui = require('@ubud-app/client-web');
 
     ui.static = path.resolve(ui.static);
 
