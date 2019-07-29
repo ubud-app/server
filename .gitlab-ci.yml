@@ -89,8 +89,8 @@ build_next:
       --build-arg NODE_ENV="production"
       --build-arg CLIENT_TAG="next"
       --build-arg NEXT="1"
-      -t "ubud-app/server:${CI_COMMIT_SHA}-next" .
-    - docker push "ubud-app/server:${CI_COMMIT_SHA}-next"
+      -t "ubud/server:${CI_COMMIT_SHA}-next" .
+    - docker push "ubud/server:${CI_COMMIT_SHA}-next"
   only:
     - develop
 
@@ -106,8 +106,8 @@ build:
     - docker pull node:slim
     - docker build --no-cache
       --build-arg NODE_ENV="production"
-      -t "ubud-app/server:${CI_COMMIT_SHA}" .
-    - docker push "ubud-app/server:${CI_COMMIT_SHA}"
+      -t "ubud/server:${CI_COMMIT_SHA}" .
+    - docker push "ubud/server:${CI_COMMIT_SHA}"
   only:
     - master
 
@@ -129,8 +129,8 @@ build_next_arm32v7:
       --build-arg NODE_ENV="production"
       --build-arg CLIENT_TAG="next"
       --build-arg NEXT="1"
-      -t "ubud-app/server:${CI_COMMIT_SHA}-next-arm32v7" .
-    - docker push "ubud-app/server:${CI_COMMIT_SHA}-next-arm32v7"
+      -t "ubud/server:${CI_COMMIT_SHA}-next-arm32v7" .
+    - docker push "ubud/server:${CI_COMMIT_SHA}-next-arm32v7"
   only:
     - develop
 
@@ -150,8 +150,8 @@ build_arm32v7:
     - docker build --no-cache
       --build-arg BASEIMAGE="arm32v7/node:slim"
       --build-arg NODE_ENV="production"
-      -t "ubud-app/server:${CI_COMMIT_SHA}-arm32v7" .
-    - docker push "ubud-app/server:${CI_COMMIT_SHA}-arm32v7"
+      -t "ubud/server:${CI_COMMIT_SHA}-arm32v7" .
+    - docker push "ubud/server:${CI_COMMIT_SHA}-arm32v7"
   only:
     - master
 
@@ -208,10 +208,10 @@ publish_docker_next:
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
     - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-    - docker manifest create "ubud-app/server:next" "ubud-app/server:${CI_COMMIT_SHA}-next" "ubud-app/server:${CI_COMMIT_SHA}-next-arm32v7"
-    - docker manifest annotate --arch "amd64" --os "linux" "ubud-app/server:next" "ubud-app/server:${CI_COMMIT_SHA}-next"
-    - docker manifest annotate --arch "arm" --os "linux" "ubud-app/server:next" "ubud-app/server:${CI_COMMIT_SHA}-next-arm32v7"
-    - docker manifest push -p "ubud-app/server:next"
+    - docker manifest create "ubud/server:next" "ubud/server:${CI_COMMIT_SHA}-next" "ubud/server:${CI_COMMIT_SHA}-next-arm32v7"
+    - docker manifest annotate --arch "amd64" --os "linux" "ubud/server:next" "ubud/server:${CI_COMMIT_SHA}-next"
+    - docker manifest annotate --arch "arm" --os "linux" "ubud/server:next" "ubud/server:${CI_COMMIT_SHA}-next-arm32v7"
+    - docker manifest push -p "ubud/server:next"
   only:
     - develop
 
@@ -223,10 +223,10 @@ publish_docker:
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
     - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-    - docker manifest create "ubud-app/server" "ubud-app/server:${CI_COMMIT_SHA}" "ubud-app/server:${CI_COMMIT_SHA}-arm32v7"
-    - docker manifest annotate --arch "amd64" --os "linux" "ubud-app/server" "ubud-app/server:${CI_COMMIT_SHA}"
-    - docker manifest annotate --arch "arm" --os "linux" "ubud-app/server" "ubud-app/server:${CI_COMMIT_SHA}-arm32v7"
-    - docker manifest push -p "ubud-app/server"
+    - docker manifest create "ubud/server" "ubud/server:${CI_COMMIT_SHA}" "ubud/server:${CI_COMMIT_SHA}-arm32v7"
+    - docker manifest annotate --arch "amd64" --os "linux" "ubud/server" "ubud/server:${CI_COMMIT_SHA}"
+    - docker manifest annotate --arch "arm" --os "linux" "ubud/server" "ubud/server:${CI_COMMIT_SHA}-arm32v7"
+    - docker manifest push -p "ubud/server"
   only:
     - master
 
@@ -239,10 +239,10 @@ publish_docker_version:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
     - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
     - export VERSION=$(cat ./package.new.json | jq -rM .version)
-    - docker manifest create "ubud-app/server:${VERSION}" "ubud-app/server:${CI_COMMIT_SHA}" "ubud-app/server:${CI_COMMIT_SHA}-arm32v7"
-    - docker manifest annotate --arch "amd64" --os "linux" "ubud-app/server:${VERSION}" "ubud-app/server:${CI_COMMIT_SHA}"
-    - docker manifest annotate --arch "arm" --os "linux" "ubud-app/server:${VERSION}" "ubud-app/server:${CI_COMMIT_SHA}-arm32v7"
-    - docker manifest push -p "ubud-app/server:${VERSION}"
+    - docker manifest create "ubud/server:${VERSION}" "ubud/server:${CI_COMMIT_SHA}" "ubud/server:${CI_COMMIT_SHA}-arm32v7"
+    - docker manifest annotate --arch "amd64" --os "linux" "ubud/server:${VERSION}" "ubud/server:${CI_COMMIT_SHA}"
+    - docker manifest annotate --arch "arm" --os "linux" "ubud/server:${VERSION}" "ubud/server:${CI_COMMIT_SHA}-arm32v7"
+    - docker manifest push -p "ubud/server:${VERSION}"
   only:
     - master
 
