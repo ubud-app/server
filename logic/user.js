@@ -7,6 +7,7 @@ const mailValidator = require('email-validator');
 
 const BaseLogic = require('./_');
 const ErrorResponse = require('../helpers/errorResponse');
+const RepositoryHelper = require('../helpers/repository');
 
 class UserLogic extends BaseLogic {
     static getModelName() {
@@ -17,13 +18,18 @@ class UserLogic extends BaseLogic {
         return 'users';
     }
 
-    static format(user, secrets) {
+    static async format(user, secrets) {
+        const terms = await RepositoryHelper.getTerms();
         const r = {
             id: user.id,
             email: user.email,
             isAdmin: user.isAdmin,
             otpEnabled: user.otpEnabled,
-            needsPasswordChange: user.needsPasswordChange
+            needsPasswordChange: user.needsPasswordChange,
+            terms: {
+                accepted: user.acceptedTermVersion,
+                current: terms
+            }
         };
 
         if (secrets.password) {
