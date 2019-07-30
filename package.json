@@ -13,7 +13,7 @@
 		"check:eslint": "eslint ./",
 		"check:npm": "npm-check -s",
 		"bump:reset": "export MODULEVERSION=$(npm view @ubud-app/server version) && npm run bump:reset:save",
-		"bump:reset:next": "export MODULEVERSION=$(npm view @ubud-app/server@next version || echo \"0.0.2-145\") && npm run bump:reset:save",
+		"bump:reset:next": "export MODULEVERSION=\"0.0.2-145\" npm run bump:reset:save",
 		"bump:reset:save": "node ./.ci-update-version",
 		"bump:develop": "npm run bump:reset:next && npm --no-git-tag-version version prerelease",
 		"bump:production": "npm run bump:reset && npm --no-git-tag-version version from-git"
