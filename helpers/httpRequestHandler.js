@@ -110,6 +110,16 @@ class HTTPRequestHandler {
             throw new ErrorResponse(401, 'Not able to authorize: This is a session for the mobile auth flow only.');
         }
 
+        const RepositoryHelper = require('../helpers/repository');
+        const terms = await RepositoryHelper.getTerms();
+        if(!session.user.acceptedTermVersion || session.user.acceptedTermVersion !== terms.version) {
+            throw new ErrorResponse(401, 'Not able to login: User has not accept the current terms!', {
+                attributes: {
+                    acceptedTerms: 'Is required to be set to the current term version.'
+                }
+            });
+        }
+
         return session;
     }
 

@@ -118,8 +118,8 @@ class SessionLogic extends BaseLogic {
             userModel.acceptedTermVersion = terms.version;
             await userModel.save();
         }
-        if(!userModel.acceptedTermVersion || userModel.acceptedTermVersion < terms.version - 1) {
-            throw new ErrorResponse(401, 'Not able to login: User has not accept the terms!', {
+        if(!userModel.acceptedTermVersion || userModel.acceptedTermVersion !== terms.version) {
+            throw new ErrorResponse(401, 'Not able to login: User has not accept the current terms!', {
                 attributes: {
                     acceptedTerms: 'Is required to be set to the current term version.'
                 },

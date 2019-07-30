@@ -51,6 +51,20 @@ class SocketSession {
             throw new ErrorResponse(401, 'Not able to authorize: Is session id and secret correct?');
         }
 
+        const RepositoryHelper = require('../helpers/repository');
+        const terms = await RepositoryHelper.getTerms();
+        if(!session.user.acceptedTermVersion || session.user.acceptedTermVersion !== terms.version) {
+            throw new ErrorResponse(401, 'Not able to login: User has not accept the current terms!', {
+                attributes: {
+                    acceptedTerms: 'Is required to be set to the current term version.'
+                },
+                extra: {
+                    tos: terms.tos.defaultUrl,
+                    privacy: terms.privacy.defaultUrl
+                }
+            });
+        }
+
         this.session = session;
         return session;
     }
