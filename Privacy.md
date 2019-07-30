@@ -1,5 +1,5 @@
 # Datenschutzerklärung
-[**de** | [en](./Privacy_en.md)]
+[**de**|[en](./Privacy_en.md)]
 
 ## Verantwortlicher für die Datenverarbeitung
 Diese Datenschutzhinweise gelten für die Datenverarbeitung durch Sebastian Pekarek, Lindenstr. 75 B, 10969 Berlin (nachfolgend Betreiber genannt).

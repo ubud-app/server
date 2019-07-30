@@ -22,19 +22,25 @@ This repository contains the software ubud, a small private software for budgeti
 - Synchronization with banks possible with plugins
 - Multi-user capable
 
-## 🐳 Installation
+## 🐳 Quick Start
 
-The easiest way to install ubud is Docker. If you don't have Docker installed on your system yet, you can do this with [this guide](https://docs.docker.com/install/).
+The easiest way to test ubud is Docker. If you don't have Docker installed on your system yet, you can do this with [this guide](https://docs.docker.com/install/).
 
 You need a database where all the data is stored. Currently MySQL and MariaDB are supported. Docker images are currently available for ARM and AMD64. 
 
 ```
+# Download docker-compose.yml
 wget https://github.com/ubud-app/server/blob/develop/docker-compose.yml
-wget https://github.com/ubud-app/server/blob/develop/.env
 
-nano ./.env
+# Edit environment variables
+nano docker-compose.yml
 
-docker-compose up
+# Start ubud
+docker-compose up -d
+
+# Get initial login credentials
+docker logs -f $(docker-compose ps -q ubud) | docker-compose exec -T ubud \
+    ./node_modules/bunyan/bin/bunyan -o short --color -l info
 ```
 
 ## 🔧 Configuration

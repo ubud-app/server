@@ -1,5 +1,5 @@
 # Privacy Statement
-[[de](./Privacy.md) | **en**]
+[[de](./Privacy.md)|**en**]
 
 ## Person responsible for data processing
 This data protection notice applies to data processing by Sebastian Pekarek, Lindenstr. 75 B, 10969 Berlin (hereinafter referred to as operator).

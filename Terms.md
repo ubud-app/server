@@ -1,5 +1,5 @@
 # Allgemeine Geschäftsbedingungen
-[**de** | [en](./TOS_en.md)]
+[**de**|[en](./Terms_en.md)]
 
 ## Rechtsverhältnis zwischen Nutzer und Betreiber der Software ubud
 Bei der Bereitstellung der Software ubud handelt es sich um eine unentgeltliche bloße Gefälligkeit. Es werden somit keine Rechte und Pflichten des Betreibers der Software ubud begründet. Der Nutzer hingegen erklärt sich bereit, die geltenden Gesetze zu beachten. Verbotene Nutzungsaktivitäten sind zu unterlassen.

@@ -1,5 +1,5 @@
 # General terms and conditions
-[[de](./TOS.md) | **en**]
+[[de](./Terms.md)|**en**]
 
 ## Legal relationship between user and operator of the software ubud
 The provision of the software ubud is a free mere favour. Thus, no rights and obligations of the operator of the software ubud are established. The user, on the other hand, agrees to comply with the applicable laws. Prohibited usage activities are to be omitted.
