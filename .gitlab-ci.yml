@@ -32,7 +32,7 @@ pre_build_next:
       - package.new.json
     expire_in: 2 weeks
   except:
-    - master
+    - tags
 
 pre_build:
   stage: pre-build
@@ -41,7 +41,7 @@ pre_build:
     - ssh
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
-    - npm run bump:production
+    - jq -M ".version=\"$CI_COMMIT_TAG\"" package.json|sponge package.json
     - cp package.json package.new.json
     - docker pull node:slim
     - docker build --no-cache
@@ -53,7 +53,7 @@ pre_build:
       - package.new.json
     expire_in: 4 weeks
   only:
-    - master
+    - tags
 
 
 #
@@ -109,7 +109,7 @@ build:
       -t "ubud/server:${CI_COMMIT_SHA}" .
     - docker push "ubud/server:${CI_COMMIT_SHA}"
   only:
-    - master
+    - tags
 
 build_next_arm32v7:
   stage: build
@@ -155,7 +155,7 @@ build_arm32v7:
       -t "ubud/server:${CI_COMMIT_SHA}-arm32v7" .
     - docker push "ubud/server:${CI_COMMIT_SHA}-arm32v7"
   only:
-    - master
+    - tags
 
 
 #
@@ -173,6 +173,10 @@ publish_github:
     - git pull
     - git push "https://${GITHUB_AUTH}@github.com/ubud-app/server.git" --all
     - git push "https://${GITHUB_AUTH}@github.com/ubud-app/server.git" --tags
+  only:
+    - develop
+    - master
+    - tags
 
 publish_npm_next:
   stage: publish
@@ -200,7 +204,7 @@ publish_npm:
     - mv ./package.new.json ./package.json
     - npm publish --access public
   only:
-    - master
+    - tags
 
 publish_docker_next:
   stage: publish
@@ -230,7 +234,7 @@ publish_docker:
     - docker manifest annotate --arch "arm" --os "linux" "ubud/server" "ubud/server:${CI_COMMIT_SHA}-arm32v7"
     - docker manifest push -p "ubud/server"
   only:
-    - master
+    - tags
 
 publish_docker_version:
   stage: publish
@@ -246,7 +250,7 @@ publish_docker_version:
     - docker manifest annotate --arch "arm" --os "linux" "ubud/server:${VERSION}" "ubud/server:${CI_COMMIT_SHA}-arm32v7"
     - docker manifest push -p "ubud/server:${VERSION}"
   only:
-    - master
+    - tags
 
 private-deployment:
   stage: publish
@@ -285,4 +289,4 @@ notify:
     - curl -X "POST" "https://beacon.ubud.club/webhooks/update-components/${NOTIFY_WEBHOOK_SECRET}"
   only:
     - develop
-    - master
+    - tags
