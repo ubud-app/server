@@ -18,7 +18,9 @@ pre_build_next:
     - ssh
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
-    - npm run bump:develop
+    - export OLDVERSION=$(npm view @ubud-app/client@next version)
+    - jq -M ".version=\"$OLDVERSION\"" package.json|sponge package.json
+    - npm --no-git-tag-version version prerelease
     - cp package.json package.new.json
     - docker pull node:slim
     - docker build --no-cache
@@ -162,7 +164,7 @@ build_arm32v7:
 # PUBLISH
 #
 
-publish_github:
+publish_github_branch:
   stage: publish
   tags:
     - matt.sebbo.net
@@ -172,10 +174,19 @@ publish_github:
     - git checkout $CI_COMMIT_REF_NAME
     - git pull
     - git push "https://${GITHUB_AUTH}@github.com/ubud-app/server.git" --all
+  only:
+    - master
+    - develop
+
+publish_github_tag:
+  stage: publish
+  tags:
+    - matt.sebbo.net
+    - ssh
+  retry: 2
+  script:
     - git push "https://${GITHUB_AUTH}@github.com/ubud-app/server.git" --tags
   only:
-    - develop
-    - master
     - tags
 
 publish_npm_next:
