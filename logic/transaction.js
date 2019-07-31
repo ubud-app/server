@@ -20,27 +20,21 @@ class TransactionLogic extends BaseLogic {
             id: transaction.id,
             time: transaction.time,
             accountId: transaction.accountId,
+            documentId: transaction.account ? transaction.account.documentId : null,
             amount: transaction.amount,
             memo: transaction.memo,
-            payeeId: transaction.payeeId,
+            payeeId: transaction.payee ? transaction.payee.id : null,
+            payeeName: transaction.payee ? transaction.payee.name : null,
             pluginsOwnPayeeId: transaction.pluginsOwnPayeeId,
-            units: (transaction.units || []).map(unit => {
-                let budget = unit.budgetId;
-                if (unit.incomeMonth === 'this') {
-                    budget = 'income-0';
-                }
-                else if (unit.incomeMonth === 'next') {
-                    budget = 'income-1';
-                }
-
-                return {
-                    id: unit.id,
-                    amount: unit.amount,
-                    memo: unit.memo,
-                    budgetId: budget,
-                    transactionId: unit.transactionId
-                };
-            }),
+            pluginsOwnMemo: transaction.pluginsOwnMemo,
+            units: (transaction.units || []).map(unit => ({
+                id: unit.id,
+                amount: unit.amount,
+                type: unit.type,
+                memo: unit.memo,
+                budgetId: unit.budgetId,
+                transferAccountId: unit.transferAccountId
+            })),
             approved: transaction.approved,
             status: transaction.status,
             locationAccuracy: transaction.locationAccuracy || null,
@@ -164,17 +158,16 @@ class TransactionLogic extends BaseLogic {
 
 
         // account
-        const accountModel = await DatabaseHelper.get('account')
-            .findOne({
-                where: {id: body.accountId},
-                attributes: ['id', 'pluginInstanceId'],
-                include: [{
-                    model: DatabaseHelper.get('document'),
-                    attributes: ['id'],
-                    required: true,
-                    include: DatabaseHelper.includeUserIfNotAdmin(options.session)
-                }]
-            });
+        const accountModel = await DatabaseHelper.get('account').findOne({
+            where: {id: body.accountId},
+            attributes: ['id', 'pluginInstanceId'],
+            include: [{
+                model: DatabaseHelper.get('document'),
+                attributes: ['id'],
+                required: true,
+                include: DatabaseHelper.includeUserIfNotAdmin(options.session)
+            }]
+        });
 
         if (!accountModel) {
             throw new ErrorResponse(400, 'Not able to create transaction: linked account not found.');
@@ -192,20 +185,16 @@ class TransactionLogic extends BaseLogic {
             const unitJobs = [];
             let sum = 0;
 
-            body.units.forEach((unit, i) => {
+            await Promise.all(body.units.map(async (unit, i) => {
+                const unitModel = DatabaseHelper.get('unit').build();
+
+                // ignore empty units
                 if (!unit.budgetId && !unit.amount) {
                     return;
                 }
 
-                if (!unit.budgetId) {
-                    throw new ErrorResponse(400, 'Not able to update transaction: unit[' + i + '] has no budgetId set', {
-                        attributes: {
-                            units: 'unit[' + i + ' has no budgetId'
-                        }
-                    });
-                }
-
                 let amount = parseInt(unit.amount, 10);
+                unitModel.amount = amount;
                 sum += amount;
                 if (!amount) {
                     throw new ErrorResponse(400, 'Not able to update transaction: unit[' + i + '] has no amount set', {
@@ -215,7 +204,8 @@ class TransactionLogic extends BaseLogic {
                     });
                 }
 
-                if (unit.memo && unit.memo.length > 255) {
+                unitModel.memo = unit.memo || null;
+                if (unitModel.memo && unitModel.memo.length > 255) {
                     throw new ErrorResponse(400, 'Not able to update transaction: unit[' + i + '].memo is to long', {
                         attributes: {
                             units: 'unit[' + i + '.memo is to long'
@@ -223,23 +213,59 @@ class TransactionLogic extends BaseLogic {
                     });
                 }
 
-
-                if (unit.budgetId === 'income-0' || unit.budgetId === 'income-1') {
-                    unitJobs.push(() => DatabaseHelper.get('unit').create({
-                        amount: unit.amount,
-                        transactionId: model.id,
-                        budgetId: null,
-                        incomeMonth: unit.budgetId === 'income-0' ? 'this' : 'next'
-                    }));
-                } else {
-                    unitJobs.push(() => DatabaseHelper.get('unit').create({
-                        amount: unit.amount,
-                        transactionId: model.id,
-                        budgetId: unit.budgetId,
-                        incomeMonth: null
-                    }));
+                if (typeof unit.type === 'string' && unit.type.toUpperCase() === 'INCOME') {
+                    unitModel.type = 'INCOME';
+                    unitModel.budgetId = null;
                 }
-            });
+                else if (typeof unit.type === 'string' && unit.type.toUpperCase() === 'INCOME_NEXT') {
+                    unitModel.type = 'INCOME_NEXT';
+                    unitModel.budgetId = null;
+                }
+                else if (typeof unit.type === 'string' && unit.transferAccountId) {
+                    const AccountLogic = require('./account');
+                    const transferAccount = await AccountLogic.get(unit.transferAccountId, options);
+                    if (!transferAccount || accountModel.document.id !== transferAccount.document.id) {
+                        throw new ErrorResponse(400, 'Not able to update transaction: unit[' + i + '] has invalid transferAccountId', {
+                            attributes: {
+                                units: 'unit[' + i + '] has invalid transferAccountId'
+                            }
+                        });
+                    }
+
+                    unitModel.type = 'TRANSFER';
+                    unitModel.transferAccountId = unit.transferAccountId;
+                }
+                else if (unit.budgetId) {
+                    const BudgetLogic = require('./budgets');
+                    const budget = await BudgetLogic.get(unit.budgetId, options);
+                    if (!budget || accountModel.document.id !== budget.category.document.id) {
+                        throw new ErrorResponse(400, 'Not able to update transaction: unit[' + i + '] has invalid budgetId', {
+                            attributes: {
+                                units: 'unit[' + i + '] has invalid budgetId'
+                            }
+                        });
+                    }
+
+                    unitModel.type = 'BUDGET';
+                    unitModel.budgetId = budget.id;
+                }
+                else {
+                    throw new ErrorResponse(
+                        400,
+                        'Not able to update transaction: unit[' + i + '] has no valid type or budgetId set',
+                        {
+                            attributes: {
+                                units: 'unit[' + i + ' has no budgetId'
+                            }
+                        }
+                    );
+                }
+
+                unitJobs.push(() => {
+                    unitModel.transactionId = model.id;
+                    return unitModel.save();
+                });
+            }));
 
             if (body.units.length > 0 && sum !== model.amount) {
                 throw new ErrorResponse(400, 'Not able to update transaction: sum of units is not same as amount!', {
@@ -254,8 +280,8 @@ class TransactionLogic extends BaseLogic {
 
             // start promises
             model.units = await Promise.all(unitJobs.map(e => e()));
-
-        } else {
+        }
+        else {
             await model.save();
         }
 
@@ -279,14 +305,24 @@ class TransactionLogic extends BaseLogic {
 
         // update account balance
         const AccountLogic = require('./account');
-        lastJobs.push(AccountLogic.sendUpdatedEvent(accountModel));
+        if(model.units && model.units.find(u => u.type === 'TRANSFER')) {
+            lastJobs.push((async () => {
+                const accounts = await AccountLogic.list({}, options);
+                await Promise.all(accounts.map(a => AccountLogic.sendUpdatedEvent(a)));
+            })());
+        }else {
+            lastJobs.push((async () => {
+                const account = await model.getAccount();
+                await AccountLogic.sendUpdatedEvent(account);
+            })());
+        }
 
 
         await Promise.all(lastJobs);
         return {model};
     }
 
-    static get (id, options) {
+    static async get (id, options) {
         const DatabaseHelper = require('../helpers/database');
         return this.getModel().findOne({
             where: {
@@ -295,13 +331,13 @@ class TransactionLogic extends BaseLogic {
             include: [
                 {
                     model: DatabaseHelper.get('account'),
-                    attributes: ['pluginInstanceId'],
+                    attributes: ['pluginInstanceId', 'documentId'],
                     include: [{
                         model: DatabaseHelper.get('document'),
                         attributes: ['id'],
                         include: [{
                             model: DatabaseHelper.get('user'),
-                            attributes: [],
+                            attributes: ['id'],
                             where: {
                                 id: options.session.userId
                             }
@@ -310,12 +346,16 @@ class TransactionLogic extends BaseLogic {
                 },
                 {
                     model: DatabaseHelper.get('unit')
+                },
+                {
+                    model: DatabaseHelper.get('payee'),
+                    attribute: ['id', 'name']
                 }
             ]
         });
     }
 
-    static list (params, options) {
+    static async list (params, options) {
         const moment = require('moment');
         const DatabaseHelper = require('../helpers/database');
 
@@ -323,7 +363,7 @@ class TransactionLogic extends BaseLogic {
             include: [
                 {
                     model: DatabaseHelper.get('account'),
-                    attributes: [],
+                    attributes: ['documentId'],
                     required: true,
                     include: [{
                         model: DatabaseHelper.get('document'),
@@ -334,6 +374,9 @@ class TransactionLogic extends BaseLogic {
                 },
                 {
                     model: DatabaseHelper.get('unit')
+                },
+                {
+                    model: DatabaseHelper.get('payee')
                 }
             ],
             order: [
@@ -386,11 +429,10 @@ class TransactionLogic extends BaseLogic {
         return this.getModel().findAll(sql);
     }
 
-    static async update (model, body) {
+    static async update (model, body, options) {
         const moment = require('moment');
         const DatabaseHelper = require('../helpers/database');
 
-        const checks = [];
         let timeMoment = moment(model.time);
         let recalculateFrom = null;
 
@@ -401,7 +443,8 @@ class TransactionLogic extends BaseLogic {
 
             if (timeMoment.isBefore(recalculateFrom)) {
                 recalculateFrom = moment(timeMoment).startOf('month');
-            } else {
+            }
+            else {
                 recalculateFrom = moment(timeMoment).startOf('month');
             }
         }
@@ -428,20 +471,14 @@ class TransactionLogic extends BaseLogic {
 
         // Payee
         if (body.payeeId !== model.payeeId) {
-            checks.push(
-                DatabaseHelper.get('payee')
-                    .findByPk(body.payeeId)
-                    .then(function (payee) {
-                        if (!payee) {
-                            throw new ErrorResponse(400, 'Not able to create transaction: linked payee not found.');
-                        }
+            const PayeeLogic = require('./payee');
+            const payee = await PayeeLogic.get(body.payeeId, {session: options.session});
+            if (!payee) {
+                throw new ErrorResponse(400, 'Not able to create transaction: linked payee not found.');
+            }
 
-                        model.payeeId = payee.id;
-                    })
-                    .catch(e => {
-                        throw e;
-                    })
-            );
+            model.payeeId = payee.id;
+            model.payee = payee;
         }
 
 
@@ -531,176 +568,157 @@ class TransactionLogic extends BaseLogic {
             });
         }
         if (body.accountId !== undefined && body.accountId !== model.accountId) {
-            checks.push(
-                DatabaseHelper.get('account')
-                    .findOne({
-                        where: {id: body.accountId},
-                        attributes: ['id', 'pluginInstanceId']
-                    })
-                    .then(function (account) {
-                        if (account.pluginInstanceId) {
-                            throw new ErrorResponse(400, 'Not able to update transaction: account can not be changed to a managed one!', {
-                                attributes: {
-                                    accountId: 'Not allowed to change, because new account is managed by a plugin'
-                                }
-                            });
-                        }
+            const AccountLogic = require('./account');
+            const accountModel = await AccountLogic.get(body.accountId, options);
+            if(!accountModel) {
+                throw new ErrorResponse(400, 'Not able to update transaction: account can not be changed to a non existing one!', {
+                    attributes: {
+                        accountId: 'Not allowed to change, because new account not existing'
+                    }
+                });
+            }
+            if (accountModel.pluginInstanceId) {
+                throw new ErrorResponse(400, 'Not able to update transaction: account can not be changed to a managed one!', {
+                    attributes: {
+                        accountId: 'Not allowed to change, because new account is managed by a plugin'
+                    }
+                });
+            }
 
-                        model.accountId = account.id;
-                        return Promise.resolve();
-                    })
-                    .catch(e => {
-                        throw e;
-                    })
-            );
+            model.accountId = accountModel.id;
 
             if (!recalculateFrom) {
                 recalculateFrom = moment(timeMoment).startOf('month');
             }
         }
 
-        // Units / Budget
-        if (body.units !== undefined) {
-            const units = [];
+        // units
+        if (body.units) {
             const unitJobs = [];
             let sum = 0;
 
-            body.units.forEach((unit, i) => {
-                if (!unit.budgetId && !unit.amount) {
+            await Promise.all(body.units.map(async (unit, i) => {
+                let unitModel = DatabaseHelper.get('unit').build();
+                if (unit.id) {
+                    unitModel = await DatabaseHelper.get('unit').findOne({
+                        where: {
+                            id: unit.id,
+                            transactionId: model.id
+                        }
+                    });
+                    if (!unitModel) {
+                        throw new ErrorResponse(400, 'Not able to update transaction: unit[' + i + '] not found', {
+                            attributes: {
+                                units: 'unit[' + i + '.id seems to be incorrect'
+                            }
+                        });
+                    }
+                }
+
+                // ignore empty units
+                if (!unit.id && !unit.budgetId && !unit.amount) {
                     return;
                 }
 
-                if (!unit.budgetId) {
-                    throw new ErrorResponse(400, 'Not able to update transaction: unit[' + i + '] has no budgetId set', {
-                        attributes: {
-                            units: 'unit[' + i + ' has no budgetId'
+                // amount
+                if(unit.amount !== undefined) {
+                    let amount = parseInt(unit.amount, 10);
+                    sum += amount;
+
+                    if (!amount) {
+                        throw new ErrorResponse(400, 'Not able to update transaction: unit[' + i + '] has no amount set', {
+                            attributes: {
+                                units: 'unit[' + i + ' has no amount'
+                            }
+                        });
+                    }
+
+                    if (unit.amount !== unitModel.amount) {
+                        unitModel.amount = unit.amount;
+
+                        if (!recalculateFrom) {
+                            recalculateFrom = moment(timeMoment).startOf('month');
                         }
-                    });
+                    }
                 }
 
-                let amount = parseInt(unit.amount);
-                sum += amount;
-                if (!amount) {
-                    throw new ErrorResponse(400, 'Not able to update transaction: unit[' + i + '] has no amount set', {
-                        attributes: {
-                            units: 'unit[' + i + ' has no amount'
-                        }
-                    });
+                // memo
+                if(unit.memo !== undefined) {
+                    unitModel.memo = unit.memo || null;
+                    if (unitModel.memo && unitModel.memo.length > 255) {
+                        throw new ErrorResponse(400, 'Not able to update transaction: unit[' + i + '].memo is to long', {
+                            attributes: {
+                                units: 'unit[' + i + '.memo is to long'
+                            }
+                        });
+                    }
                 }
 
-                if (unit.memo && unit.memo.length > 255) {
-                    throw new ErrorResponse(400, 'Not able to update transaction: unit[' + i + '].memo is to long', {
-                        attributes: {
-                            units: 'unit[' + i + '.memo is to long'
-                        }
-                    });
+                if (typeof unit.type === 'string' && unit.type.toUpperCase() === 'INCOME') {
+                    unitModel.type = 'INCOME';
+                    unitModel.budgetId = null;
                 }
+                else if (typeof unit.type === 'string' && unit.type.toUpperCase() === 'INCOME_NEXT') {
+                    unitModel.type = 'INCOME_NEXT';
+                    unitModel.budgetId = null;
+                }
+                else if (typeof unit.type === 'string' && unit.transferAccountId) {
+                    const AccountLogic = require('./account');
 
-                if (unit.id) {
-                    unitJobs.push(
-                        DatabaseHelper
-                            .get('unit')
-                            .findOne({
-                                where: {
-                                    id: unit.id,
-                                    transactionId: model.id
-                                }
-                            })
-                            .then(unitModel => {
-                                if (!unitModel) {
-                                    throw new ErrorResponse(400, 'Not able to update transaction: unit[' + i + '] not found', {
-                                        attributes: {
-                                            units: 'unit[' + i + '.id seems to be incorrect'
-                                        }
-                                    });
-                                }
+                    const ownAccount = await AccountLogic.get(model.accountId, options);
+                    const transferAccount = await AccountLogic.get(unit.transferAccountId, options);
 
-                                if (unit.amount !== unitModel.amount) {
-                                    unitModel.amount = unit.amount;
+                    if (!transferAccount || ownAccount.document.id !== transferAccount.document.id) {
+                        throw new ErrorResponse(400, 'Not able to update transaction: unit[' + i + '] has invalid transferAccountId', {
+                            attributes: {
+                                units: 'unit[' + i + '] has invalid transferAccountId'
+                            }
+                        });
+                    }
 
-                                    if (!recalculateFrom) {
-                                        recalculateFrom = moment(timeMoment).startOf('month');
-                                    }
-                                }
+                    unitModel.type = 'TRANSFER';
+                    unitModel.transferAccountId = unit.transferAccountId;
+                }
+                else if (unit.budgetId && unit.budgetId !== unitModel.budgetId) {
+                    const BudgetLogic = require('./budgets');
+                    const budget = await BudgetLogic.get(unit.budgetId, options);
 
-                                unitModel.memo = unit.memo;
+                    const AccountLogic = require('./account');
+                    const account = await AccountLogic.get(model.accountId, options);
 
-                                if (unit.budgetId === 'income-0' && unitModel.incomeMonth !== 'this') {
-                                    unitModel.incomeMonth = 'this';
+                    if (!budget || account.document.id !== budget.category.document.id) {
+                        throw new ErrorResponse(400, 'Not able to update transaction: unit[' + i + '] has invalid budgetId', {
+                            attributes: {
+                                units: 'unit[' + i + '] has invalid budgetId'
+                            }
+                        });
+                    }
 
-                                    if (!recalculateFrom) {
-                                        recalculateFrom = moment(timeMoment).startOf('month');
-                                    }
-                                }
-                                else if (unit.budgetId === 'income-1' && unitModel.incomeMonth !== 'next') {
-                                    unitModel.incomeMonth = 'next';
-
-                                    if (!recalculateFrom) {
-                                        recalculateFrom = moment(timeMoment).startOf('month');
-                                    }
-                                }
-                                else if (unit.budgetId !== unit.budgetId) {
-                                    unitModel.incomeMonth = null;
-                                    unitModel.budgetId = unit.budgetId;
-
-                                    if (!recalculateFrom) {
-                                        recalculateFrom = moment(timeMoment).startOf('month');
-                                    }
-                                }
-
-                                units.push(unitModel);
-                                return unitModel.save();
-                            })
-                            .catch(e => {
-                                throw e;
-                            })
+                    unitModel.type = 'BUDGET';
+                    unitModel.budgetId = budget.id;
+                }
+                else if(!unit.budgetId) {
+                    throw new ErrorResponse(
+                        400,
+                        'Not able to update transaction: unit[' + i + '] has no valid type or budgetId set',
+                        {
+                            attributes: {
+                                units: 'unit[' + i + ' has no budgetId',
+                                unit
+                            }
+                        }
                     );
                 }
-                else if (unit.budgetId === 'income-0' || unit.budgetId === 'income-1') {
-                    unitJobs.push(
-                        DatabaseHelper
-                            .get('unit')
-                            .create({
-                                amount: unit.amount,
-                                transactionId: model.id,
-                                budgetId: null,
-                                incomeMonth: unit.budgetId === 'income-0' ? 'this' : 'next'
-                            })
-                            .then(unit => {
-                                units.push(unit);
 
-                                if (!recalculateFrom) {
-                                    recalculateFrom = moment(timeMoment).startOf('month');
-                                }
-                            })
-                            .catch(e => {
-                                throw e;
-                            })
-                    );
+                if (!recalculateFrom) {
+                    recalculateFrom = moment(timeMoment).startOf('month');
                 }
-                else {
-                    unitJobs.push(
-                        DatabaseHelper
-                            .get('unit')
-                            .create({
-                                amount: unit.amount,
-                                transactionId: model.id,
-                                budgetId: unit.budgetId,
-                                incomeMonth: null
-                            })
-                            .then(unit => {
-                                units.push(unit);
 
-                                if (!recalculateFrom) {
-                                    recalculateFrom = moment(timeMoment).startOf('month');
-                                }
-                            })
-                            .catch(e => {
-                                throw e;
-                            })
-                    );
-                }
-            });
+                unitJobs.push(() => {
+                    unitModel.transactionId = model.id;
+                    return unitModel.save();
+                });
+            }));
 
             if (body.units.length > 0 && sum !== model.amount) {
                 throw new ErrorResponse(400, 'Not able to update transaction: sum of units is not same as amount!', {
@@ -711,31 +729,24 @@ class TransactionLogic extends BaseLogic {
                 });
             }
 
-            model.units.forEach(unitModel => {
-                if (!_.find(body.units, u => u.id === unitModel.id)) {
-                    unitJobs.push(unitModel.destroy());
-                }
-            });
-
-            checks.push(
-                Promise.all(unitJobs)
-                    .then(() => {
-                        model.units = units;
-                    })
-                    .catch(e => {
-                        throw e;
-                    })
-            );
-        }
-
-
-        if (checks.length === 0) {
             await model.save();
-            return {model};
+
+            // delete old units
+            await Promise.all(model.units.map(unitModel => {
+                if (!_.find(body.units, u => u.id === unitModel.id)) {
+                    return unitModel.destroy();
+                }
+
+                return Promise.resolve();
+            }));
+
+            // start promises
+            model.units = await Promise.all(unitJobs.map(e => e()));
+        }
+        else {
+            await model.save();
         }
 
-        await Promise.all(checks);
-        await model.save();
 
 
         const lastJobs = [];
@@ -760,18 +771,27 @@ class TransactionLogic extends BaseLogic {
         }
 
         // update account balance
-        lastJobs.push((async () => {
-            const AccountLogic = require('./account');
-            const account = await model.getAccount();
-            AccountLogic.sendUpdatedEvent(account);
-        })());
+        if(model.units.find(u => u.type === 'TRANSFER')) {
+            lastJobs.push((async () => {
+                const AccountLogic = require('./account');
+                const accounts = await AccountLogic.list({}, options);
+
+                accounts.forEach(a => AccountLogic.sendUpdatedEvent(a));
+            })());
+        }else {
+            lastJobs.push((async () => {
+                const AccountLogic = require('./account');
+                const account = await model.getAccount();
+                AccountLogic.sendUpdatedEvent(account);
+            })());
+        }
 
 
         await Promise.all(lastJobs);
         return {model};
     }
 
-    static async delete (model) {
+    static async delete (model, options) {
         if (model.account.pluginInstanceId) {
             throw new ErrorResponse(400, 'Not able to destroy transaction: managed by transaction');
         }
@@ -793,8 +813,13 @@ class TransactionLogic extends BaseLogic {
 
         // update account balance
         const AccountLogic = require('./account');
-        const account = await model.getAccount();
-        AccountLogic.sendUpdatedEvent(account);
+        if(model.units.find(u => u.type === 'TRANSFER')) {
+            const accounts = await AccountLogic.list({}, options);
+            accounts.forEach(a => AccountLogic.sendUpdatedEvent(a));
+        }else {
+            const account = await model.getAccount();
+            AccountLogic.sendUpdatedEvent(account);
+        }
 
         return model;
     }
@@ -850,7 +875,7 @@ class TransactionLogic extends BaseLogic {
             }
         });
         await Promise.all(toDestroy.map(async transaction => {
-            if(transaction.isReconciling) {
+            if (transaction.isReconciling) {
                 return Promise.resolve();
             }
 
@@ -1057,7 +1082,8 @@ class TransactionLogic extends BaseLogic {
                 if (best.id && (best.count >= 3 || payees.length === 1)) {
                     log.debug('Use payee#' + best.id + ' as payee');
                     newTransaction.payeeId = best.id;
-                } else {
+                }
+                else {
                     log.debug('No unique payee found (' + JSON.stringify(best) + ')');
                 }
             })());
@@ -1076,7 +1102,7 @@ class TransactionLogic extends BaseLogic {
                 }
                 catch (err) {
                     log.info('Unable to load metadata: %s', err.toString());
-                    log.error(err);
+                    log.warn(err);
                 }
             })()));
         })());
@@ -1092,14 +1118,16 @@ class TransactionLogic extends BaseLogic {
             }
             else if (units.length > 1) {
                 const diff = newTransaction.amount - units.reduce((a, b) => a + b.amount, 0);
-                const unit = await DatabaseHelper.get('unit').create({
-                    amount: diff,
-                    budgetId: null,
-                    transactionId: newTransaction.id,
-                    incomeMonth: null
-                });
 
-                await newTransaction.addUnit(unit);
+                if (diff !== 0) {
+                    const unit = await DatabaseHelper.get('unit').create({
+                        transactionId: newTransaction.id,
+                        amount: diff,
+                        type: null
+                    });
+
+                    await newTransaction.addUnit(unit);
+                }
             }
         }
 

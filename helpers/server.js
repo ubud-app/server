@@ -104,9 +104,9 @@ class ServerHelper {
     }
 
     /**
-     * Tries to get the directory of dwimm-client and serve it's
+     * Tries to get the directory of ubud-client and serve it's
      * static files by our server. Woun't do anything in case
-     * client-web is not installed within our scope…
+     * client is not installed within our scope…
      */
     static serveUI () {
         try {
@@ -115,12 +115,39 @@ class ServerHelper {
             if (web) {
 
                 // static files
-                app.use(express.static(web.static));
+                app.use(express.static(web.static, {
+                    etag: false,
+                    maxage: 5 * 60 * 1000,
+                    setHeaders: function (res) {
+                        if (ConfigHelper.getClient() && ConfigHelper.getClient().timestamp) {
+                            res.setHeader('Last-Modified', ConfigHelper.getClient().timestamp);
+                        }
+                        else {
+                            res.removeHeader('Last-Modified');
+                        }
 
-                // default route
-                app.use(function (req, res) {
-                    res.sendFile(web.static + '/index.html');
-                });
+                        let server = 'ubud Server';
+                        if (ConfigHelper.getVersion()) {
+                            server += ' ' + ConfigHelper.getVersion();
+                        }
+                        if (ConfigHelper.getClient()) {
+                            server += ' with Client';
+                        }
+                        if (ConfigHelper.getClient() && ConfigHelper.getClient().version) {
+                            server += ' ' + ConfigHelper.getClient().version;
+                        }
+
+                        res.setHeader('x-powered-by', server);
+                    }
+                }));
+
+                // default language
+                if (web.languages && Array.isArray(web.languages)) {
+                    app.use((req, res) => {
+                        const language = req.acceptsLanguages(web.languages) || 'en-US';
+                        res.sendFile(`${web.static}/${language}/index.html`);
+                    });
+                }
             }
         }
         catch (err) {
@@ -140,8 +167,8 @@ class ServerHelper {
         const methods = allMethods[route];
         const regex = Logic.getPathForRoute(route);
 
-        methods.forEach(function (method) {
-            app[method](regex, function (req, res) {
+        methods.forEach(method => {
+            app[method](regex, (req, res) => {
                 new HTTPRequestHandler({Logic, route, req, res}).run();
             });
         });
@@ -254,20 +281,18 @@ class ServerHelper {
      *
      * @returns {Promise}
      */
-    static migrateDatabaseIfRequired () {
-        return DatabaseHelper.getMigrator().up()
-            .then(migrations => {
-                if (migrations.length > 0) {
-                    log.info('Executed %s migrations.\n - %s', migrations.length, migrations.map(m => m.file).join('\n - '));
-                }
-
-                return Promise.resolve();
-            })
-            .catch(e => {
-                log.error(e);
-                log.error(new Error('Unable to execute pending database transactions, stop server…'));
-                process.exit(1);
-            });
+    static async migrateDatabaseIfRequired () {
+        try {
+            const migrations = await DatabaseHelper.getMigrator().up();
+            if (migrations.length > 0) {
+                log.info('Executed %s migrations.\n - %s', migrations.length, migrations.map(m => m.file).join('\n - '));
+            }
+        }
+        catch (e) {
+            log.error(e);
+            log.error(new Error('Unable to execute pending database transactions, stop server…'));
+            process.exit(1);
+        }
     }
 
     /**
@@ -276,59 +301,49 @@ class ServerHelper {
      *
      * @returns {Promise}
      */
-    static createDefaultUserIfRequired () {
+    static async createDefaultUserIfRequired () {
         const crypto = require('crypto');
         const bcrypt = require('bcrypt');
         const user = DatabaseHelper.get('user');
-        let password;
 
-        return user.destroy({where: {email: 'setup@dwimm.org'}})
-            .then(function () {
-                return user.count();
-            })
-            .then(function (count) {
-                if (count > 0) {
-                    throw false; // -> "abort promise"
+        await user.destroy({
+            where: {
+                email: 'setup@ubud.club'
+            }
+        });
+
+        const count = await user.count();
+        if (count > 0) {
+            return;
+        }
+
+        const password = await new Promise((resolve, reject) => {
+            crypto.randomBytes(16, (err, buffer) => {
+                if (err) {
+                    reject(err);
                 }
-
-                return new Promise((resolve, reject) => {
-                    crypto.randomBytes(16, (err, buffer) => {
-                        if (err) {
-                            reject(err);
-                        } else {
-                            resolve(buffer.toString('hex'));
-                        }
-                    });
-                });
-            })
-            .then(function (random) {
-                password = random;
-                return bcrypt.hash(random, 10);
-            })
-            .then(function (hash) {
-                return DatabaseHelper.get('user').create({
-                    email: 'setup@dwimm.org',
-                    password: hash,
-                    isAdmin: true,
-                    needsPasswordChange: true
-                });
-            })
-            .then(function () {
-                let s = '\n\n\n##########################################\n\n';
-                s += 'Hey buddy,\n\nI just created a new admin user for you. \nUse these credentials to login:\n\n';
-                s += 'Email: setup@dwimm.org\n';
-                s += 'Password: ' + password + '\n\n';
-                s += 'Cheers, \nyour lovely DWIMM server :)\n\n';
-                s += '##########################################\n\n\n';
-
-                log.info(s);
-                return Promise.resolve();
-            })
-            .catch(function (err) {
-                if (err !== false) {
-                    throw err;
+                else {
+                    resolve(buffer.toString('hex'));
                 }
             });
+        });
+
+        const hash = await bcrypt.hash(password, 10);
+        await DatabaseHelper.get('user').create({
+            email: 'setup@ubud.club',
+            password: hash,
+            isAdmin: true,
+            needsPasswordChange: true
+        });
+
+        let s = '\n\n\n##########################################\n\n';
+        s += 'Hey buddy,\n\nI just created a new admin user for you. \nUse these credentials to login:\n\n';
+        s += 'Email: setup@ubud.club\n';
+        s += 'Password: ' + password + '\n\n';
+        s += 'Cheers, \nyour lovely ubud server :)\n\n';
+        s += '##########################################\n\n\n';
+
+        log.info(s);
     }
 }
 

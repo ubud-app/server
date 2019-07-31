@@ -25,6 +25,11 @@ module.exports = class UserModelDefinition {
                 allowNull: false,
                 defaultValue: false
             },
+            acceptedTermVersion: {
+                type: DataTypes.INTEGER.UNSIGNED,
+                allowNull: true,
+                defaultValue: null
+            },
             otpKey: {
                 type: DataTypes.STRING,
                 allowNull: true

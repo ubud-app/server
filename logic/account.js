@@ -15,23 +15,60 @@ class AccountLogic extends BaseLogic {
 
     static async format(account) {
         const DatabaseHelper = require('../helpers/database');
-        const info = await DatabaseHelper.get('transaction').findOne({
-            attributes: [
-                [DatabaseHelper.sum('amount'), 'balance'],
-                [DatabaseHelper.count('id'), 'transactions']
-            ],
-            where: {
-                accountId: account.id
-            }
-        });
+
+        const [transactionCount, transactionsWithoutUnits, notTransfer, transferOn, transferOff] = await Promise.all([
+            DatabaseHelper.get('transaction').findOne({
+                attributes: [
+                    [DatabaseHelper.count('id'), 'value']
+                ],
+                where: {
+                    accountId: account.id
+                }
+            }),
+            DatabaseHelper.query(
+                'SELECT SUM(`amount`) AS `value` ' +
+                'FROM `transactions` AS `transaction` ' +
+                'WHERE ' +
+                '  (SELECT COUNT(*) FROM `units` WHERE `units`.`transactionId` = `transaction`.`id`) = 0 AND ' +
+                '  `accountId` = "' + account.id + '";'
+            ),
+            DatabaseHelper.query(
+                'SELECT SUM(`amount`) AS `value` ' +
+                'FROM `units` AS `unit` ' +
+                'WHERE ' +
+                '  `type` != "TRANSFER" AND ' +
+                '  `transactionId` IN (SELECT `id` FROM `transactions` WHERE `accountId` = "' + account.id + '");'
+            ),
+            DatabaseHelper.query(
+                'SELECT SUM(`amount`) AS `value` ' +
+                'FROM `units` AS `unit` ' +
+                'WHERE ' +
+                '  `type` = "TRANSFER" AND ' +
+                '  `transactionId` IN (SELECT `id` FROM `transactions` WHERE `accountId` = "' + account.id + '");'
+            ),
+            DatabaseHelper.get('unit').findOne({
+                attributes: [
+                    [DatabaseHelper.sum('amount'), 'value']
+                ],
+                where: {
+                    type: 'TRANSFER',
+                    transferAccountId: account.id
+                }
+            })
+        ]);
 
         return {
             id: account.id,
             name: account.name,
             type: account.type,
             number: account.number,
-            balance: parseInt(info.dataValues.balance, 10) || 0,
-            transactions: parseInt(info.dataValues.transactions, 10) || 0,
+            balance: (
+                (parseInt(notTransfer[0].value, 10) || 0) +
+                (parseInt(transactionsWithoutUnits[0].value, 10) || 0) +
+                (parseInt(transferOn[0].value, 10) || 0) -
+                (parseInt(transferOff.dataValues.value, 10) || 0)
+            ),
+            transactions: parseInt(transactionCount.dataValues.value, 10) || 0,
             documentId: account.documentId,
             pluginInstanceId: account.pluginInstanceId
         };
@@ -41,7 +78,7 @@ class AccountLogic extends BaseLogic {
         return ['checking', 'savings', 'creditCard', 'cash', 'paypal', 'mortgage', 'asset', 'loan'];
     }
 
-    static create(body, options) {
+    static async create(body, options) {
         const DatabaseHelper = require('../helpers/database');
         const model = this.getModel().build();
 
@@ -75,35 +112,29 @@ class AccountLogic extends BaseLogic {
         model.number = body.number || null;
         model.hidden = !!body.hidden;
 
-        return DatabaseHelper.get('document')
-            .findOne({
-                where: {id: body.documentId},
-                attributes: ['id'],
-                include: [{
-                    model: DatabaseHelper.get('user'),
-                    attributes: [],
-                    where: {
-                        id: options.session.userId
-                    }
-                }]
-            })
-            .then(function (documentModel) {
-                if (!documentModel) {
-                    throw new ErrorResponse(401, 'Not able to create account: linked document not found.');
+        const documentModel = await DatabaseHelper.get('document').findOne({
+            where: {id: body.documentId},
+            attributes: ['id'],
+            include: [{
+                model: DatabaseHelper.get('user'),
+                attributes: [],
+                where: {
+                    id: options.session.userId
                 }
+            }]
+        });
 
-                model.documentId = documentModel.id;
-                return model.save();
-            })
-            .then(function (model) {
-                return {model};
-            })
-            .catch(e => {
-                throw e;
-            });
+        if (!documentModel) {
+            throw new ErrorResponse(401, 'Not able to create account: linked document not found.');
+        }
+
+        model.documentId = documentModel.id;
+        await model.save();
+
+        return {model};
     }
 
-    static get(id, options) {
+    static async get(id, options) {
         const DatabaseHelper = require('../helpers/database');
         return this.getModel().findOne({
             where: {
@@ -111,13 +142,13 @@ class AccountLogic extends BaseLogic {
             },
             include: [{
                 model: DatabaseHelper.get('document'),
-                attributes: [],
+                attributes: ['id'],
                 include: DatabaseHelper.includeUserIfNotAdmin(options.session)
             }]
         });
     }
 
-    static list(params, options) {
+    static async list(params, options) {
         const DatabaseHelper = require('../helpers/database');
 
         const sql = {

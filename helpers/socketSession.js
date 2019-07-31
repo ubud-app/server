@@ -23,48 +23,50 @@ class SocketSession {
      * @param {String} data.secret Session secret
      * @returns {Promise}
      */
-    authenticate(data) {
-        const s = this;
-        let session;
-
+    async authenticate(data) {
         if (!data.id) {
-            return Promise.reject(new ErrorResponse(401, 'Error in `auth` data: attribute `id` missing…'));
+            throw new ErrorResponse(401, 'Error in `auth` data: attribute `id` missing…');
         }
         if (!data.secret) {
-            return Promise.reject(new ErrorResponse(401, 'Error in `auth` data: attribute `secret` missing…'));
+            throw new ErrorResponse(401, 'Error in `auth` data: attribute `secret` missing…');
         }
 
-        return DatabaseHelper.get('session')
-            .findOne({
-                where: {
-                    id: data.id || data.name
+        const session = await DatabaseHelper.get('session').findOne({
+            where: {
+                id: data.id || data.name
+            },
+            include: [{
+                model: DatabaseHelper.get('user')
+            }]
+        });
+        if (!session) {
+            throw new ErrorResponse(401, 'Not able to authorize: Is session id and secret correct?');
+        }
+        if (session.mobilePairing) {
+            throw new ErrorResponse(401, 'Not able to authorize: mobile auth flow not yet implemented for sockets');
+        }
+
+        const isSessionCorrect = await bcrypt.compare(data.secret, session.secret);
+        if (!isSessionCorrect) {
+            throw new ErrorResponse(401, 'Not able to authorize: Is session id and secret correct?');
+        }
+
+        const RepositoryHelper = require('../helpers/repository');
+        const terms = await RepositoryHelper.getTerms();
+        if(!session.user.acceptedTermVersion || session.user.acceptedTermVersion !== terms.version) {
+            throw new ErrorResponse(401, 'Not able to login: User has not accept the current terms!', {
+                attributes: {
+                    acceptedTerms: 'Is required to be set to the current term version.'
                 },
-                include: [{
-                    model: DatabaseHelper.get('user')
-                }]
-            })
-            .then(function (_session) {
-                session = _session;
-                if (!session) {
-                    throw new ErrorResponse(401, 'Not able to authorize: Is session id and secret correct?');
+                extra: {
+                    tos: terms.tos.defaultUrl,
+                    privacy: terms.privacy.defaultUrl
                 }
-                if (session.mobilePairing) {
-                    throw new ErrorResponse(401, 'Not able to authorize: mobile auth flow not implemented for sockets');
-                }
-
-                return bcrypt.compare(data.secret, session.secret);
-            })
-            .then(function (isSessionCorrect) {
-                if (!isSessionCorrect) {
-                    throw new ErrorResponse(401, 'Not able to authorize: Is session id and secret correct?');
-                }
-
-                s.session = session;
-                return session;
-            })
-            .catch(m => {
-                throw m;
             });
+        }
+
+        this.session = session;
+        return session;
     }
 
     /**
@@ -85,7 +87,7 @@ class SocketSession {
 
     /**
      * Sets the session model
-     * @returns {null}
+     * @returns {SocketSession}
      */
     setSessionModel(session) {
         this.session = session;

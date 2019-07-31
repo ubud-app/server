@@ -2,10 +2,12 @@
 
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
+const { pwnedPassword } = require('hibp');
 const mailValidator = require('email-validator');
 
 const BaseLogic = require('./_');
 const ErrorResponse = require('../helpers/errorResponse');
+const RepositoryHelper = require('../helpers/repository');
 
 class UserLogic extends BaseLogic {
     static getModelName() {
@@ -16,13 +18,18 @@ class UserLogic extends BaseLogic {
         return 'users';
     }
 
-    static format(user, secrets) {
+    static async format(user, secrets) {
+        const terms = await RepositoryHelper.getTerms();
         const r = {
             id: user.id,
             email: user.email,
             isAdmin: user.isAdmin,
             otpEnabled: user.otpEnabled,
-            needsPasswordChange: user.needsPasswordChange
+            needsPasswordChange: user.needsPasswordChange,
+            terms: {
+                accepted: user.acceptedTermVersion,
+                current: terms
+            }
         };
 
         if (secrets.password) {
@@ -32,7 +39,7 @@ class UserLogic extends BaseLogic {
         return r;
     }
 
-    static create(attributes, options) {
+    static async create(attributes, options) {
         if (!options.session.user.isAdmin) {
             throw new ErrorResponse(403, 'You need admin privileges to create new users…');
         }
@@ -59,7 +66,7 @@ class UserLogic extends BaseLogic {
             });
         }
 
-        return new Promise((resolve, reject) => {
+        const random = await new Promise((resolve, reject) => {
             crypto.randomBytes(16, (err, buffer) => {
                 if (err) {
                     reject(err);
@@ -67,43 +74,39 @@ class UserLogic extends BaseLogic {
                     resolve(buffer.toString('hex'));
                 }
             });
-        })
-            .then(function (random) {
-                secrets.password = random;
-                return bcrypt.hash(random, 10);
-            })
-            .then(function (hash) {
-                model.password = hash;
-                return model.save();
-            })
-            .then(function (model) {
-                return {model, secrets};
-            })
-            .catch(function (err) {
-                if (err.toString().indexOf('SequelizeUniqueConstraintError') > -1) {
-                    throw new ErrorResponse(400, 'User with this email address already exists…', {
-                        attributes: {
-                            email: 'Already exists'
-                        }
-                    });
-                }
+        });
 
-                throw err;
-            })
-            .catch(e => {
-                throw e;
-            });
+        secrets.password = random;
+        const hash = await bcrypt.hash(random, 10);
+        model.password = hash;
+
+        try {
+            await model.save();
+        }
+        catch(err) {
+            if (err.toString().indexOf('SequelizeUniqueConstraintError') > -1) {
+                throw new ErrorResponse(400, 'User with this email address already exists…', {
+                    attributes: {
+                        email: 'Already exists'
+                    }
+                });
+            }
+
+            throw err;
+        }
+
+        return {model, secrets};
     }
 
-    static get(id, options) {
+    static async get(id, options) {
         if (options.session.user.isAdmin || id === options.session.userId) {
             return this.getModel().findByPk(id);
         }
 
-        return Promise.resolve(null);
+        return null;
     }
 
-    static list(params, options) {
+    static async list(params, options) {
         const req = {};
 
         if (!options.session.user.isAdmin) {
@@ -115,64 +118,62 @@ class UserLogic extends BaseLogic {
         return this.getModel().findAll(req);
     }
 
-    static update(model, body, options) {
-        return new Promise(function (cb) {
-            if (body.email === undefined) {
-                throw false;
-            }
-            if (!options.session.user.isAdmin && model.id !== options.session.userId) {
-                throw new ErrorResponse(403, 'You are not allowed to update other people\'s email address!');
-            }
+    static async update(model, body, options) {
 
-            model.email = body.email;
+        // email
+        if (body.email === undefined) {
+            throw false;
+        }
+        if (!options.session.user.isAdmin && model.id !== options.session.userId) {
+            throw new ErrorResponse(403, 'You are not allowed to update other people\'s email address!');
+        }
 
-            if (!mailValidator.validate(model.email)) {
-                throw new ErrorResponse(400, 'Email doesn\'t seem to be valid…', {
+        model.email = body.email;
+        if (!mailValidator.validate(model.email)) {
+            throw new ErrorResponse(400, 'Email doesn\'t seem to be valid…', {
+                attributes: {
+                    email: 'Is not valid!'
+                }
+            });
+        }
+
+
+        // password
+        if (model.id !== options.session.userId && body.password !== undefined) {
+            throw new ErrorResponse(403, 'You are not allowed to update other people\'s password!');
+        }
+        if (body.password !== undefined) {
+            const [hash, count] =  await Promise.all([
+                bcrypt.hash(body.password, 10),
+                pwnedPassword(body.password)
+            ]);
+
+            if(count > 0) {
+                throw new ErrorResponse(400, 'Password is not secure…', {
                     attributes: {
-                        email: 'Is not valid!'
+                        password: `Seems not to be secure. Password is listed on haveibeenpwned.com ${count} times.`
                     }
                 });
             }
 
-            cb();
-        })
-            .then(function () {
-                if (model.id !== options.session.userId && body.password !== undefined) {
-                    throw new ErrorResponse(403, 'You are not allowed to update other people\'s password!');
-                }
+            model.password = hash;
+            model.needsPasswordChange = false;
+        }
 
-                if (body.password === undefined) {
-                    return Promise.resolve();
-                }
 
-                return bcrypt
-                    .hash(body.password, 10)
-                    .then(function (hash) {
-                        model.password = hash;
-                        model.needsPasswordChange = false;
+        // isAdmin
+        if (options.session.user.isAdmin && body.isAdmin !== undefined && !!body.isAdmin !== model.isAdmin) {
+            model.isAdmin = !!body.isAdmin;
+        }
+        else if (body.isAdmin !== undefined && !!body.isAdmin !== model.isAdmin) {
+            throw new ErrorResponse(403, 'You are not allowed to update other people\'s admin privilege!');
+        }
 
-                        return Promise.resolve();
-                    });
-            })
-            .then(function () {
-                if (options.session.user.isAdmin && body.isAdmin !== undefined && !!body.isAdmin !== model.isAdmin) {
-                    model.isAdmin = !!body.isAdmin;
-                }
-                else if (body.isAdmin !== undefined && !!body.isAdmin !== model.isAdmin) {
-                    throw new ErrorResponse(403, 'You are not allowed to update other people\'s admin privilege!');
-                }
-
-                return model.save();
-            })
-            .then(model => {
-                return {model};
-            })
-            .catch(err => {
-                throw err;
-            });
+        await model.save();
+        return {model};
     }
 
-    static delete(model, options) {
+    static async delete(model, options) {
         if (model.id === options.session.userId) {
             throw new ErrorResponse(400, 'Sorry, but you can\'t delete yourself…');
         }

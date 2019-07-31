@@ -27,7 +27,7 @@ class SessionLogic extends BaseLogic {
         return j;
     }
 
-    static create (attributes, options) {
+    static async create (attributes, options) {
         const ErrorResponse = require('../helpers/errorResponse');
         const DatabaseHelper = require('../helpers/database');
         const bcrypt = require('bcrypt');
@@ -74,7 +74,7 @@ class SessionLogic extends BaseLogic {
             model.mobilePairing = true;
 
             const crypto = require('crypto');
-            return new Promise((resolve, reject) => {
+            const random = await new Promise((resolve, reject) => {
                 crypto.randomBytes(32, (err, buffer) => {
                     if (err) {
                         reject(err);
@@ -82,74 +82,76 @@ class SessionLogic extends BaseLogic {
                         resolve(buffer.toString('hex'));
                     }
                 });
-            })
-                .then(function (random) {
-                    secrets.token = random;
-                    return bcrypt.hash(random, 10);
-                })
-                .then(function (hash) {
-                    model.secret = hash;
-                    return model.save();
-                })
-                .then(function (model) {
-                    return {model, secrets};
-                })
-                .catch(e => {
-                    throw e;
-                });
+            });
+
+            secrets.token = random;
+
+            const hash = await bcrypt.hash(random, 10);
+            model.secret = hash;
+
+            await model.save();
+            return {model, secrets};
         }
 
 
         // logged out user: login
-        return DatabaseHelper.get('user')
-            .findOne({
-                where: {
-                    email: options.session.name
-                }
-            })
-            .then(function (userModel) {
-                if (!userModel) {
-                    throw new ErrorResponse(401, 'Not able to authorize: Is username / password correct?');
-                }
+        const userModel = await DatabaseHelper.get('user').findOne({
+            where: {
+                email: options.session.name
+            }
+        });
+        if (!userModel) {
+            throw new ErrorResponse(401, 'Not able to authorize: Is username / password correct?');
+        }
 
-                model.userId = userModel.id;
-                model.user = userModel;
-                return bcrypt.compare(options.session.pass, userModel.password);
-            })
-            .then(function (passwordCorrect) {
-                if (!passwordCorrect) {
-                    throw new ErrorResponse(401, 'Not able to authorize: Is username / password correct?');
-                }
+        model.userId = userModel.id;
+        model.user = userModel;
 
-                const crypto = require('crypto');
-                return new Promise((resolve, reject) => {
-                    crypto.randomBytes(32, (err, buffer) => {
-                        if (err) {
-                            reject(err);
-                        } else {
-                            resolve(buffer.toString('hex'));
-                        }
-                    });
-                });
-            })
-            .then(function (random) {
-                secrets.token = random;
-                return bcrypt.hash(random, 10);
-            })
-            .then(function (hash) {
-                model.secret = hash;
-                options.setSession(model);
-                return model.save();
-            })
-            .then(function (model) {
-                return {model, secrets};
-            })
-            .catch(e => {
-                throw e;
+        const passwordCorrect = await bcrypt.compare(options.session.pass, userModel.password);
+        if (!passwordCorrect) {
+            throw new ErrorResponse(401, 'Not able to authorize: Is username / password correct?');
+        }
+
+        const RepositoryHelper = require('../helpers/repository');
+        const terms = await RepositoryHelper.getTerms();
+        if(attributes.acceptedTerms) {
+            userModel.acceptedTermVersion = terms.version;
+            await userModel.save();
+        }
+        if(!userModel.acceptedTermVersion || userModel.acceptedTermVersion !== terms.version) {
+            throw new ErrorResponse(401, 'Not able to login: User has not accept the current terms!', {
+                attributes: {
+                    acceptedTerms: 'Is required to be set to the current term version.'
+                },
+                extra: {
+                    tos: terms.tos.defaultUrl,
+                    privacy: terms.privacy.defaultUrl
+                }
             });
+        }
+
+        const crypto = require('crypto');
+        const random = await new Promise((resolve, reject) => {
+            crypto.randomBytes(32, (err, buffer) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(buffer.toString('hex'));
+                }
+            });
+        });
+
+        const hash = await bcrypt.hash(random, 10);
+        model.secret = hash;
+        secrets.token = random;
+
+        options.setSession(model);
+        await model.save();
+
+        return {model, secrets};
     }
 
-    static get (id, options) {
+    static async get (id, options) {
         return this.getModel().findOne({
             where: {
                 id: id,
@@ -158,7 +160,7 @@ class SessionLogic extends BaseLogic {
         });
     }
 
-    static list (params, options) {
+    static async list (params, options) {
         return this.getModel().findAll({
             where: {
                 userId: options.session.userId

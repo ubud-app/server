@@ -39,19 +39,8 @@ class SocketRequestHandler {
 
         try {
             this.checkSession()
-                .then(session => {
-                    if(!process.env.DEBUG_SLOWDOWN) {
-                        return Promise.resolve(session);
-                    }
-
-                    return new Promise(resolve => {
-                        setTimeout(() => {
-                            resolve(session);
-                        }, 5000);
-                    });
-                })
-                .then((session) => this.runLogic(session))
-                .then((response) => this.success(response), (error) => this.error(error))
+                .then(session => this.runLogic(session))
+                .then(response => this.success(response), error => this.error(error))
                 .catch(function (err) {
                     log.error(err);
 
@@ -165,11 +154,7 @@ class SocketRequestHandler {
             });
         }
         if (err instanceof ErrorResponse) {
-            cb({
-                error: err.status,
-                message: err.message,
-                attributes: err.options.attributes || {}
-            });
+            cb(err.toJSON());
             return;
         }
 

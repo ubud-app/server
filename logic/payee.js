@@ -21,7 +21,7 @@ class PayeeLogic extends BaseLogic {
         };
     }
 
-    static create(body, options) {
+    static async create(body, options) {
         const DatabaseHelper = require('../helpers/database');
         const model = this.getModel().build();
 
@@ -41,29 +41,22 @@ class PayeeLogic extends BaseLogic {
             });
         }
 
-        return DatabaseHelper.get('document')
-            .findOne({
-                where: {id: body.documentId},
-                attributes: ['id'],
-                include: DatabaseHelper.includeUserIfNotAdmin(options.session)
-            })
-            .then(function (documentModel) {
-                if (!documentModel) {
-                    throw new ErrorResponse(401, 'Not able to create account: linked document not found.');
-                }
+        const documentModel = await DatabaseHelper.get('document').findOne({
+            where: {id: body.documentId},
+            attributes: ['id'],
+            include: DatabaseHelper.includeUserIfNotAdmin(options.session)
+        });
+        if (!documentModel) {
+            throw new ErrorResponse(401, 'Not able to create account: linked document not found.');
+        }
 
-                model.documentId = documentModel.id;
-                return model.save();
-            })
-            .then(function (model) {
-                return {model};
-            })
-            .catch(e => {
-                throw e;
-            });
+        model.documentId = documentModel.id;
+        await model.save();
+
+        return {model};
     }
 
-    static get(id, options) {
+    static async get(id, options) {
         const DatabaseHelper = require('../helpers/database');
         return this.getModel().findOne({
             where: {
@@ -71,13 +64,14 @@ class PayeeLogic extends BaseLogic {
             },
             include: [{
                 model: DatabaseHelper.get('document'),
-                attributes: [],
+                attributes: ['id'],
+                required: true,
                 include: DatabaseHelper.includeUserIfNotAdmin(options.session)
             }]
         });
     }
 
-    static list(params, options) {
+    static async list(params, options) {
         const DatabaseHelper = require('../helpers/database');
         const moment = require('moment');
 
@@ -86,14 +80,7 @@ class PayeeLogic extends BaseLogic {
                 model: DatabaseHelper.get('document'),
                 attributes: ['id'],
                 required: true,
-                include: options.session.user.isAdmin ? [] : [{
-                    model: DatabaseHelper.get('user'),
-                    attributes: [],
-                    required: true,
-                    where: {
-                        id: options.session.userId
-                    }
-                }]
+                include: DatabaseHelper.includeUserIfNotAdmin(options.session)
             }],
             order: [
                 ['name', 'ASC']

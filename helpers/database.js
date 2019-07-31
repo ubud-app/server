@@ -20,14 +20,13 @@ try {
         },
         define: {
             timestamps: true,
-            charset: 'utf8',
-            collate: 'utf8_general_ci'
+            charset: 'utf8mb4',
+            collate: 'utf8mb4_general_ci'
         },
         pool: {
             maxConnections: 5,
             maxIdleTime: 30
-        },
-        operatorsAliases: false
+        }
     });
 }
 catch (err) {
@@ -130,6 +129,9 @@ models.unit.belongsTo(models.transaction, {foreignKey: {allowNull: false}, onDel
 
 models.budget.hasOne(models.unit, {onDelete: 'CASCADE'});
 models.unit.belongsTo(models.budget, {onDelete: 'CASCADE'});
+
+models.account.hasMany(models.unit, {as: 'transferUnits', foreignKey: 'transferAccountId', onDelete: 'CASCADE'});
+models.unit.belongsTo(models.account, {as: 'transferAccounts', foreignKey: 'transferAccountId', onDelete: 'CASCADE'});
 
 models.document.hasMany(models.category, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 models.category.belongsTo(models.document, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});

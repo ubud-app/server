@@ -19,7 +19,7 @@ let plugins = [];
  * @class PluginHelper
  */
 class PluginHelper {
-    static async initialize() {
+    static async initialize () {
         if (initialized) {
             return;
         }
@@ -38,7 +38,7 @@ class PluginHelper {
         plugins = models.map(plugin => new PluginInstance(plugin, pluginEvents));
     }
 
-    static async listPlugins() {
+    static async listPlugins () {
         return plugins;
     }
 
@@ -67,25 +67,20 @@ class PluginHelper {
      *    - Valid: go to ready state
      *    - Invalid: go to waiting for configuration state
      *
-     * @param {string} type Plugin type, for example "@dwimm/plugin-n26" or "~/my-plugin"
+     * @param {string} type Plugin type, for example "@ubud-app/plugin-n26" or "~/my-plugin"
      * @param {Sequelize.Model} document
      * @param {object} [options]
      * @param {boolean} [options.dontLoad] Don't load plugin instance. Method will return null then.
      * @returns {Promise.<PluginInstance>}
      */
-    static async installPlugin(type, document, options) {
+    static async installPlugin (type, document, options) {
         options = options || {};
 
         /*
          *  npm install
          */
-        try {
-            type = await this._runPackageInstall(type);
-            log.debug('%s: installed successfully', type);
-        }
-        catch (err) {
-            throw err;
-        }
+        type = await this._runPackageInstall(type);
+        log.debug('%s: installed successfully', type);
 
 
         /*
@@ -99,13 +94,13 @@ class PluginHelper {
 
             // remove plugin again
             // @todo only if not used otherwise
-            await this._runPackageRemove(type)
-                .then(() => {
-                    log.debug('%s: removed successfully', type);
-                })
-                .catch(err => {
-                    log.warn('%s: unable to remove plugin: %s', type, err);
-                });
+            try {
+                await this._runPackageRemove(type);
+                log.debug('%s: removed successfully', type);
+            }
+            catch (err) {
+                log.warn('%s: unable to remove plugin: %s', type, err);
+            }
 
             throw err;
         }
@@ -115,7 +110,7 @@ class PluginHelper {
          *  add instance to database
          */
         const model = await DatabaseHelper.get('plugin-instance').create({type, documentId: document.id});
-        if(options.dontLoad) {
+        if (options.dontLoad) {
             return null;
         }
 
@@ -132,7 +127,7 @@ class PluginHelper {
      * @param {PluginInstance} instance
      * @returns {Promise.<void>}
      */
-    static async removePlugin(instance) {
+    static async removePlugin (instance) {
         // stop plugin
         await instance.destroy();
 
@@ -141,7 +136,7 @@ class PluginHelper {
 
         // remove plugin from index
         const i = plugins.indexOf(instance);
-        if(i !== -1) {
+        if (i !== -1) {
             plugins.splice(i, 1);
         }
 
@@ -153,7 +148,7 @@ class PluginHelper {
         });
 
         // remove package if not used anymore
-        if(!usages) {
+        if (!usages) {
             await this._runPackageRemove(instance.type());
         }
     }
@@ -165,44 +160,91 @@ class PluginHelper {
      *
      * @returns {EventEmitter}
      */
-    static events() {
+    static events () {
         return pluginEvents;
     }
 
 
-    static async _runPackageInstall(type) {
-        const exec = require('promised-exec');
-        const escape = require('shell-escape');
+    static async _runPackageInstall (type) {
         let res;
 
         try {
-            // use --save because of https://github.com/npm/npm/issues/17379
-            res = await exec(escape(['npm', 'install', type, '--save']));
+            res = await this._runPackageRunQueue(['npm', 'install', '--ignore-scripts', '--production', type]);
         }
-        catch(err) {
-            log.error(err.string);
+        catch (err) {
+            log.error(err);
             throw new Error('Unable to install required package via npm`: ' + err.string);
         }
 
         const id = res.split('\n').find(l => l.trim().substr(0, 1) === '+');
         if (!id) {
-            throw new Error('Plugin installed, but unable to get plugin name. Output was `' + res + '`');
+            throw new Error(`Plugin installed, but unable to get plugin name. Output was \`${res}\``);
         }
 
         return id.substr(2, id.lastIndexOf('@') - 2).trim();
     }
 
-    static async _runPackageRemove(type) {
-        const exec = require('promised-exec');
-        const escape = require('shell-escape');
+    static async _runPackageRemove (type) {
+        await this._runPackageRunQueue(['npm', 'remove', type]);
+    }
 
-        return exec(escape(['npm', 'remove', type, '--save']))
-            .then(() => {
-                return Promise.resolve();
+    static async _runPackageRunQueue (command) {
+        const id = command.join(' ');
+        log.debug('_runPackageRunQueue: %s: add', id);
+
+        this._runPackageRunQueue.q = this._runPackageRunQueue.q || [];
+        this._runPackageRunQueue.e = this._runPackageRunQueue.e || new EventEmitter();
+
+        // already in queue?
+        const i = this._runPackageRunQueue.q.find(i => i[0] === id);
+        if (i) {
+            log.debug('_runPackageRunQueue: %s: already in queue', id);
+            return i[2];
+        }
+
+        // add to queue
+        const item = [
+            id,
+            command,
+            new Promise(resolve => {
+                const l = _id => {
+                    if (_id === id) {
+                        this._runPackageRunQueue.e.off('start', l);
+                        resolve();
+                    }
+                };
+                this._runPackageRunQueue.e.on('start', l);
+            }).then(() => {
+                log.debug('_runPackageRunQueue: %s: running', id);
+
+                const exec = require('promised-exec');
+                const escape = require('shell-escape');
+
+                return exec(escape(command));
+            }).finally(() => {
+                log.debug('_runPackageRunQueue: %s: done', id);
+                const i = this._runPackageRunQueue.q.indexOf(item);
+                if(i >= 0) {
+                    log.debug('_runPackageRunQueue: %s: remove queue item', id);
+                    this._runPackageRunQueue.q.splice(i, 1);
+                }
+                if(this._runPackageRunQueue.q.length > 0) {
+                    setTimeout(() => {
+                        log.debug('_runPackageRunQueue: %s: start next item: %s', id, this._runPackageRunQueue.q[0][0]);
+                        this._runPackageRunQueue.e.emit('start', this._runPackageRunQueue.q[0][0]);
+                    }, 5000);
+                }
             })
-            .catch(e => {
-                throw e;
-            });
+        ];
+        this._runPackageRunQueue.q.push(item);
+        log.debug('_runPackageRunQueue: %s: added, now %i items in queue', id, this._runPackageRunQueue.q.length);
+
+        if (this._runPackageRunQueue.q.length === 1) {
+            log.debug('_runPackageRunQueue: %s: kickstart queue', id);
+            this._runPackageRunQueue.e.emit('start', this._runPackageRunQueue.q[0][0]);
+        }
+
+        return item[2];
     }
 }
 

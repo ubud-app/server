@@ -34,108 +34,70 @@ class BaseLogic {
         /* eslint-enable security/detect-non-literal-regexp */
     }
 
-    static serveCreate(options) {
-        const l = this;
-        if (!l.create) {
+    static async serveCreate(options) {
+        if (!this.create) {
             throw new ErrorResponse(501, 'Not implemented yet!');
         }
 
-        return l.create(options.body, options)
-            .then(({model, secrets}) => {
-                return l.format(model, secrets || {}, options);
-            })
-            .catch(function (err) {
-                throw err;
-            });
+        const {model, secrets} = await this.create(options.body, options);
+        return this.format(model, secrets || {}, options);
     }
 
-    static serveGet(options) {
-        const l = this;
-        if (!l.get) {
+    static async serveGet(options) {
+        if (!this.get) {
             throw new ErrorResponse(501, 'Not implemented yet!');
         }
 
-        return l.get(options.id, options)
-            .then(function (model) {
-                if (!model) {
-                    throw new ErrorResponse(404, 'Not Found');
-                }
-                return l.format(model, {}, options);
-            })
-            .catch(function (err) {
-                throw err;
-            });
+        const model = await this.get(options.id, options);
+        if (!model) {
+            throw new ErrorResponse(404, 'Not Found');
+        }
+
+        return this.format(model, {}, options);
     }
 
-    static serveList(options) {
-        const l = this;
-        if (!l.list) {
+    static async serveList(options) {
+        if (!this.list) {
             throw new ErrorResponse(501, 'Not implemented yet!');
         }
 
-        return l.list(options.params, options)
-            .then(function (models) {
-                return Promise.all(models.map(model => l.format(model, {}, options)));
-            })
-            .catch(function (err) {
-                throw err;
-            });
+        const models = await this.list(options.params, options);
+        return Promise.all(models.map(model =>
+            this.format(model, {}, options)
+        ));
     }
 
-    static serveUpdate(options) {
-        const l = this;
-
-        return new Promise(function (cb) {
-            if (!l.update || !l.get) {
-                throw new ErrorResponse(501, 'Not implemented yet!');
-            }
-            if (!options.id) {
-                throw new ErrorResponse(400, 'You need an ID to make an update!');
-            }
-
-            cb();
-        })
-            .then(function () {
-                return l.get(options.id, options);
-            })
-            .then(function (model) {
-                if (!model) {
-                    throw new ErrorResponse(404, 'Not Found');
-                }
-
-                return l.update(model, options.body, options);
-            })
-            .then(({model, secrets}) => {
-                return l.format(model, secrets || {}, options);
-            })
-            .catch(function (err) {
-                throw err;
-            });
-    }
-
-    static serveDelete(options) {
-        const l = this;
-
+    static async serveUpdate(options) {
+        if (!this.update || !this.get) {
+            throw new ErrorResponse(501, 'Not implemented yet!');
+        }
         if (!options.id) {
             throw new ErrorResponse(400, 'You need an ID to make an update!');
         }
-        if (!l.delete) {
+
+        const before = await this.get(options.id, options);
+        if (!before) {
+            throw new ErrorResponse(404, 'Not Found');
+        }
+
+        const {model, secrets} = await this.update(before, options.body, options);
+        return this.format(model, secrets || {}, options);
+    }
+
+    static async serveDelete(options) {
+        if (!options.id) {
+            throw new ErrorResponse(400, 'You need an ID to make an update!');
+        }
+        if (!this.delete) {
             throw new ErrorResponse(501, 'Not implemented yet!');
         }
 
-        return l.get(options.id, options)
-            .then(function (model) {
-                if (!model) {
-                    throw new ErrorResponse(404, 'Not Found');
-                }
-                return model;
-            })
-            .then(model => {
-                l.delete(model, options);
-            })
-            .catch(e => {
-                throw e;
-            });
+        const model = await this.get(options.id, options);
+        if (!model) {
+            throw new ErrorResponse(404, 'Not Found');
+        }
+
+        await this.delete(model, options);
     }
 }
 

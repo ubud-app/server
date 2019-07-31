@@ -10,16 +10,22 @@ module.exports = PluginTools;
  */
 class PluginRunner {
     static async initialize () {
-        process.title = 'dwimm-plugin';
+        process.title = 'ubud-plugin';
 
         const job = await this.getJobDescription();
-        process.title = 'dwimm-plugin (' + job.type + ')';
+        process.title = 'ubud-plugin (' + job.type + ')';
         PluginTools._runner = this;
         PluginTools._config = job.config;
 
-        /* eslint-disable security/detect-non-literal-require */
-        job.plugin = require(job.type);
-        /* eslint-enable security/detect-non-literal-require */
+        try {
+            /* eslint-disable security/detect-non-literal-require */
+            job.plugin = require(job.type);
+            /* eslint-enable security/detect-non-literal-require */
+        }
+        catch(err) {
+            err.message = 'Unable to execute plugin: ' + err.message;
+            throw err;
+        }
 
         if (job.method === 'check') {
             return this.check(job);
@@ -256,7 +262,7 @@ class PluginRunner {
         const moment = require('moment');
         const transactions = await job.plugin.getTransactions(
             job.params.accountId,
-            moment(job.since)
+            moment(job.params.since)
         );
 
         return transactions.map(transaction => {

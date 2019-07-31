@@ -62,7 +62,7 @@ commander
             }
 
             await PluginHelper.installPlugin(plugin, document, {dontLoad: true});
-            log.info('Plugin installed successfully. Please restart dwimm-server to apply changes.');
+            log.info('Plugin installed successfully. Please restart ubud-server to apply changes.');
         });
     });
 

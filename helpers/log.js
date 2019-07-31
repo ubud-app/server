@@ -1,7 +1,7 @@
 'use strict';
 
 const bunyan = require('bunyan');
-const raven = require('raven');
+const Sentry = require('@sentry/node');
 const _ = require('underscore');
 const os = require('os');
 const util = require('util');
@@ -11,12 +11,11 @@ const ConfigHelper = require('./config');
 
 // bunyan logger
 const logger = bunyan.createLogger({
-    name: 'dwimm-server',
+    name: 'ubud-server',
     level: 'trace',
     serializers: {req: bunyan.stdSerializers.req}
 });
 
-const clients = {};
 const globalTags = {};
 
 // add global tags
@@ -26,7 +25,7 @@ globalTags.version = ConfigHelper.getVersion();
 
 // initialize sentry instance
 if (ConfigHelper.getSentryDSN()) {
-    clients.sentry = new raven.Client(ConfigHelper.getSentryDSN());
+    Sentry.init({dsn: ConfigHelper.getSentryDSN()});
 }
 
 
@@ -90,7 +89,7 @@ class LogHelper {
             return null;
         }
         for (i in s.args) {
-            if (s.args.hasOwnProperty(i)) {
+            if (Object.prototype.hasOwnProperty.call(s.args, i)) {
                 t.argument = s.args[i];
                 i = parseInt(i, 10);
 
@@ -129,14 +128,15 @@ class LogHelper {
 
         // sentry
         if (s.report && !ConfigHelper.isDev() && ConfigHelper.getSentryDSN()) {
-            clients.sentry[s.level === 'error' ? 'captureException' : 'captureMessage'](s.error, {
-                level: s.level,
-                extra: _.extend({}, s.extra, {
-                    id: s.id,
-                    module: s.module,
-                    machine: os.hostname() + ':' + ConfigHelper.getPort(),
-                    user: s.user
-                })
+            Sentry.configureScope(scope => {
+                scope.setExtra('machine', os.hostname() + ':' + ConfigHelper.getPort());
+                scope.setTag('module', s.module);
+                scope.addTag('id', s.id);
+                scope.addTag('level', s.level);
+                scope.setUser(s.user);
+
+                Sentry[s.level === 'error' ? 'captureException' : 'captureMessage'](s.error);
+                scope.clear();
             });
         }
 

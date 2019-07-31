@@ -21,11 +21,12 @@ class BudgetLogic extends BaseLogic {
             hidden: budget.hidden,
             overspending: budget.overspending,
             pluginInstanceId: budget.pluginInstanceId,
-            categoryId: budget.categoryId
+            categoryId: budget.categoryId,
+            documentId: budget.category.document.id
         };
     }
 
-    static create(body, options) {
+    static async create(body, options) {
         const DatabaseHelper = require('../helpers/database');
         const model = this.getModel().build();
 
@@ -47,33 +48,27 @@ class BudgetLogic extends BaseLogic {
 
         model.goal = parseInt(body.goal, 10) || null;
 
-        return DatabaseHelper.get('category')
-            .findOne({
-                where: {id: body.categoryId},
+        const categoryModel = await DatabaseHelper.get('category').findOne({
+            where: {id: body.categoryId},
+            attributes: ['id'],
+            include: [{
+                model: DatabaseHelper.get('document'),
                 attributes: ['id'],
-                include: [{
-                    model: DatabaseHelper.get('document'),
-                    attributes: [],
-                    include: DatabaseHelper.includeUserIfNotAdmin(options.session)
-                }]
-            })
-            .then(function (categoryModel) {
-                if (!categoryModel) {
-                    throw new ErrorResponse(400, 'Not able to create budget: linked category not found.');
-                }
+                include: DatabaseHelper.includeUserIfNotAdmin(options.session)
+            }]
+        });
+        if (!categoryModel) {
+            throw new ErrorResponse(400, 'Not able to create budget: linked category not found.');
+        }
 
-                model.categoryId = categoryModel.id;
-                return model.save();
-            })
-            .then(function (model) {
-                return {model};
-            })
-            .catch(e => {
-                throw e;
-            });
+        model.categoryId = categoryModel.id;
+        model.category = categoryModel;
+        await model.save();
+
+        return {model};
     }
 
-    static get(id, options) {
+    static async get(id, options) {
         const DatabaseHelper = require('../helpers/database');
         return this.getModel().findOne({
             where: {
@@ -81,27 +76,27 @@ class BudgetLogic extends BaseLogic {
             },
             include: [{
                 model: DatabaseHelper.get('category'),
-                attributes: [],
+                attributes: ['id'],
                 include: [{
                     model: DatabaseHelper.get('document'),
-                    attributes: [],
+                    attributes: ['id'],
                     include: DatabaseHelper.includeUserIfNotAdmin(options.session)
                 }]
             }]
         });
     }
 
-    static list(params, options) {
+    static async list(params, options) {
         const DatabaseHelper = require('../helpers/database');
 
         const sql = {
             include: [{
                 model: DatabaseHelper.get('category'),
-                attributes: [],
+                attributes: ['id'],
                 required: true,
                 include: [{
                     model: DatabaseHelper.get('document'),
-                    attributes: [],
+                    attributes: ['id'],
                     required: true,
                     include: options.session.user.isAdmin ? [] : [{
                         model: DatabaseHelper.get('user'),
@@ -119,7 +114,7 @@ class BudgetLogic extends BaseLogic {
         };
 
         _.each(params, (id, k) => {
-            if (k === 'categorie') {
+            if (k === 'category') {
                 sql.include[0].where = {id};
             }
             else if (k === 'document') {
@@ -177,36 +172,29 @@ class BudgetLogic extends BaseLogic {
             return model.save();
         }
 
-        return DatabaseHelper.get('category')
-            .findOne({
-                where: {id: body.categoryId},
-                attributes: ['id'],
+        const categoryModel = await DatabaseHelper.get('category').findOne({
+            where: {id: body.categoryId},
+            attributes: ['id'],
+            include: [{
+                model: DatabaseHelper.get('document'),
+                attributes: [],
                 include: [{
-                    model: DatabaseHelper.get('document'),
+                    model: DatabaseHelper.get('user'),
                     attributes: [],
-                    include: [{
-                        model: DatabaseHelper.get('user'),
-                        attributes: [],
-                        where: {
-                            id: options.session.userId
-                        }
-                    }]
+                    where: {
+                        id: options.session.userId
+                    }
                 }]
-            })
-            .then(function (categoryModel) {
-                if (!categoryModel) {
-                    throw new ErrorResponse(400, 'Not able to update budget: linked category not found.');
-                }
+            }]
+        });
+        if (!categoryModel) {
+            throw new ErrorResponse(400, 'Not able to update budget: linked category not found.');
+        }
 
-                model.categoryId = categoryModel.id;
-                return model.save();
-            })
-            .then(function (model) {
-                return {model};
-            })
-            .catch(e => {
-                throw e;
-            });
+        model.categoryId = categoryModel.id;
+        await model.save();
+
+        return {model};
     }
 
     static delete() {

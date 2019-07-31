@@ -17,26 +17,29 @@ catch (err) {
 // Database Connection URI
 database = process.env['DATABASE'];
 if (!database) {
-    database = 'mysql://localhost/dwimm';
+    database = 'mysql://localhost/ubud';
 }
 
 // Sentry DSN
 sentryDSN = process.env['SENTRY_DSN'];
 if(sentryDSN === undefined) {
-    sentryDSN = 'https://aeb063cd52664d62bcb7d3324e6e9e89:d3655f9062844f43944ff508822cb58f@sentry.sebbo.net/5';
+    sentryDSN = 'https://3b91ffab25f54a4cbe71c6b9321f0639@sentry.sebbo.net/9';
 }
 
 // Client / UI
 try {
     const path = require('path');
+    const fs = require('fs');
 
-    ui = require('@dwimm/client-web');
+    ui = require('@ubud-app/client');
 
     ui.static = path.resolve(ui.static);
 
-    /* eslint-disable security/detect-non-literal-require */
-    ui.version = require(path.resolve(ui.all + '/../package.json')).version;
-    /* eslint-enable security/detect-non-literal-require */
+    const packageJson = path.resolve(ui.all + '/../package.json');
+    const stats = fs.statSync(packageJson);
+    ui.timestamp = stats.mtime;
+
+    ui.version = require(packageJson).version;  // eslint-disable-line security/detect-non-literal-require
 }
 catch(err) {
     // do nothing
@@ -100,6 +103,15 @@ class ConfigHelper {
      */
     static getClient() {
         return ui;
+    }
+
+    /**
+     * True, if app runs next channel instead of latest,
+     * applies not for plugins.
+     * @returns {boolean}
+     */
+    static isNext() {
+        return !!process.env.NEXT;
     }
 }
 

@@ -21,7 +21,7 @@ class CategoryLogic extends BaseLogic {
         };
     }
 
-    static create(body, options) {
+    static async create(body, options) {
         const DatabaseHelper = require('../helpers/database');
         const model = this.getModel().build();
 
@@ -69,7 +69,7 @@ class CategoryLogic extends BaseLogic {
             });
     }
 
-    static get(id, options) {
+    static async get(id, options) {
         const DatabaseHelper = require('../helpers/database');
         return this.getModel().findOne({
             where: {
@@ -83,7 +83,7 @@ class CategoryLogic extends BaseLogic {
         });
     }
 
-    static list(params, options) {
+    static async list(params, options) {
         const DatabaseHelper = require('../helpers/database');
 
         const sql = {
@@ -140,27 +140,21 @@ class CategoryLogic extends BaseLogic {
         return {model};
     }
 
-    static delete(model) {
+    static async delete(model) {
         const DatabaseHelper = require('../helpers/database');
-
-        return DatabaseHelper.get('budget').count({
+        const count = await DatabaseHelper.get('budget').count({
             where: {
                 categoryId: model.id
             }
-        })
-            .then(count => {
-                if (count > 0) {
-                    throw new ErrorResponse(
-                        501,
-                        'It\'s not allowed to delete categories which still have budgets.'
-                    );
-                }
+        });
+        if (count > 0) {
+            throw new ErrorResponse(
+                501,
+                'It\'s not allowed to delete categories which still have budgets.'
+            );
+        }
 
-                model.destroy();
-            })
-            .catch(e => {
-                throw e;
-            });
+        await model.destroy();
     }
 }
 

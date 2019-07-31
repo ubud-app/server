@@ -70,16 +70,13 @@ class PluginInstance extends EventEmitter {
         log.debug('Initialize Plugin %s', this._model.id);
 
         try {
-            /* eslint-disable security/detect-non-literal-require */
-            this._version = require(this._model.type + '/package.json').version.toString();
-            /* eslint-enable security/detect-non-literal-require */
+            this._version = require(this._model.type + '/package.json').version.toString(); // eslint-disable-line security/detect-non-literal-require
         }
         catch (err) {
-            log.warn('Unable to get version of plugin %s, try to install it…', this._model.type);
-
-            const PluginHelper = require('./index');
+            log.warn('Unable to get version of plugin %s, try to install it…', this.type());
 
             try {
+                const PluginHelper = require('./index');
                 await PluginHelper._runPackageInstall(this.type());
             }
             catch (err) {
@@ -89,26 +86,35 @@ class PluginInstance extends EventEmitter {
             }
 
             try {
-                /* eslint-disable security/detect-non-literal-require */
-                this._version = require(this._model.type + '/package.json').version.toString();
-                /* eslint-enable security/detect-non-literal-require */
+                this._version = require(this.type() + '/package.json').version.toString(); // eslint-disable-line security/detect-non-literal-require
             }
             catch (err) {
-                log.warn('Unable to get version of plugin %s, is it installed?', this._model.type);
-                log.fatal(err);
-                process.exit(1);
+                log.warn('Unable to get version of plugin %s directly, try fallback hack…', this.type());
+
+                try {
+                    const fs = require('fs');
+                    const file = require.resolve(this.type())
+                        .split(`/${this.type()}/`)[0] + `/${this.type()}/package.json`;
+                    this._version = JSON.parse(fs.readFileSync(file, {encoding: 'utf8'})).version.toString();
+                }
+                catch (err) {
+                    log.warn('Unable to get version of plugin %s, is it installed?', this.type());
+                    log.fatal(err);
+                    process.exit(1);
+                }
             }
+
+            log.warn('Okay, got it now, version of %s is %s', this.type(), this._version);
         }
 
+        // get plugin information
         try {
-            /* eslint-disable security/detect-non-literal-require */
-            this._metainfo = require(this._model.type + '/.dwimm-plugin.json');
-            /* eslint-enable security/detect-non-literal-require */
+            const RepositoryHelper = require('../repository');
+            this._metainfo = await RepositoryHelper.getPluginById(this.type());
         }
         catch (err) {
             log.warn('Unable to get metadata of plugin %s…', this._model.type);
-            log.fatal(err);
-            process.exit(1);
+            log.warn(err);
         }
 
         // get configuration from database
@@ -205,7 +211,7 @@ class PluginInstance extends EventEmitter {
      * Get the type identifier of this plugin, this
      * mostly equals to the npm package name.
      *
-     * @example "@dwimm/package-dummy"
+     * @example "@ubud-app/package-dummy"
      * @returns {string}
      */
     type () {
@@ -612,7 +618,6 @@ class PluginInstance extends EventEmitter {
             transaction => TransactionLogic.getModel().build({
                 accountId: accountModel.id,
                 pluginsOwnId: transaction.id,
-                memo: transaction.memo,
                 amount: transaction.amount,
                 time: moment(transaction.time).toJSON(),
                 pluginsOwnPayeeId: transaction.payeeId,
@@ -628,24 +633,16 @@ class PluginInstance extends EventEmitter {
 
 
         // create balance transaction
-        const info = await TransactionLogic.getModel().findOne({
-            attributes: [
-                [DatabaseHelper.sum('amount'), 'balance']
-            ],
-            where: {
-                accountId: accountModel.id
-            },
-            raw: true
-        });
+        const accountJson = await AccountLogic.format(accountModel);
 
         log.debug(
-            'Plugin %s: Balance after sync in DWIMM: %s, should be %s.',
+            'Plugin %s: Balance after sync in ubud: %s, should be %s.',
             this.id().substr(0, 5),
-            info.balance,
+            accountJson.balance,
             account.balance
         );
 
-        const balanceTransactionValue = (account.balance || 0) - info.balance;
+        const balanceTransactionValue = (account.balance || 0) - accountJson.balance;
         if (balanceTransactionValue !== 0) {
             log.debug('Plugin %s: Add balance transaction of %s', this.id().substr(0, 5), balanceTransactionValue);
 
@@ -654,12 +651,9 @@ class PluginInstance extends EventEmitter {
                 amount: balanceTransactionValue,
                 status: 'cleared',
                 accountId: accountModel.id,
-                units: [{
-                    amount: balanceTransactionValue,
-                    incomeMonth: 'this'
-                }],
+                units: [],
                 isReconciling: true
-            }, {include: [DatabaseHelper.get('unit')]});
+            });
         }
 
         await SummaryLogic.recalculateSummariesFrom(accountModel.documentId, syncBeginningFrom);
@@ -729,9 +723,7 @@ class PluginInstance extends EventEmitter {
                     m.units.map(unit => DatabaseHelper.get('unit').create({
                         amount: unit.amount,
                         memo: unit.memo,
-                        budgetId: null,
-                        transactionId: transactionModel.id,
-                        incomeMonth: null
+                        transactionId: transactionModel.id
                     }))
                 );
             }
@@ -934,7 +926,7 @@ class PluginInstance extends EventEmitter {
      * is forwared to the runner.
      *
      * @param {PluginInstance} [instance] Plugin Instance
-     * @param {string} type plugin to use, for example `@dwimm/plugin-dummy`
+     * @param {string} type plugin to use, for example `@ubud-app/plugin-dummy`
      * @param {string} method method to run, for example `check`
      * @param {object} [config]
      * @param {object} [params]
@@ -1009,8 +1001,7 @@ class PluginInstance extends EventEmitter {
 
                 const text = (stderr.join('\n').trim() || stdout.join('\n').trim() || 'Plugin died')
                     .replace(/^Error:/, '')
-                    .trim()
-                    .split('\n').join(' ');
+                    .trim();
 
                 if (instance) {
                     instance._errors[method] = text;
@@ -1223,7 +1214,7 @@ class PluginInstance extends EventEmitter {
     /**
      * Runs some basic checks on the plugin
      *
-     * @param {string} type plugin to use, for example `@dwimm/plugin-dummy`
+     * @param {string} type plugin to use, for example `@ubud-app/plugin-dummy`
      * @returns {Promise.<void>}
      */
     static async check (type) {
@@ -1234,15 +1225,6 @@ class PluginInstance extends EventEmitter {
         }
         catch (err) {
             throw new Error('Unable to parse plugin\'s package.json');
-        }
-
-        try {
-            /* eslint-disable security/detect-non-literal-require */
-            require(type + '/.dwimm-plugin.json');
-            /* eslint-enable security/detect-non-literal-require */
-        }
-        catch (err) {
-            throw new Error('Unable to parse plugin\'s .dwimm-plugin.json');
         }
 
         const response = await this.request(null, type, 'check');
