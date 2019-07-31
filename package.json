@@ -13,7 +13,11 @@
 		"check:eslint": "eslint ./",
 		"check:npm": "npm-check -s"
 	},
-	"author": "Sebastian Pekarek <mail@sebbo.net>",
+	"author": "Sebastian Pekarek <foricheeshaifaecixae@e.sebbo.net>",
+	"homepage": "https.//ubud.club",
+	"bugs": {
+		"url": "https://github.com/ubud-app/client/issues"
+	},
 	"dependencies": {
 		"@sentry/node": "^5.5.0",
 		"basic-auth": "^2.0.1",
