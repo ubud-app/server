@@ -95,7 +95,9 @@ class PluginInstance extends EventEmitter {
                     const fs = require('fs');
                     const file = require.resolve(this.type())
                         .split(`/${this.type()}/`)[0] + `/${this.type()}/package.json`;
-                    this._version = JSON.parse(fs.readFileSync(file, {encoding: 'utf8'})).version.toString();
+                    this._version = JSON.parse(
+                        fs.readFileSync(file, {encoding: 'utf8'}) // eslint-disable-line security/detect-non-literal-fs-filename
+                    ).version.toString();
                 }
                 catch (err) {
                     log.warn('Unable to get version of plugin %s, is it installed?', this.type());
@@ -537,7 +539,8 @@ class PluginInstance extends EventEmitter {
                 name: account.name,
                 type: account.type
             });
-        } else {
+        }
+        else {
             const transactions = await TransactionLogic.getModel().count({
                 where: {
                     accountId: account.id
@@ -933,9 +936,7 @@ class PluginInstance extends EventEmitter {
      * @returns {Promise<object|void>}
      */
     static async request (instance, type, method, config, params) {
-        /* eslint-disable security/detect-child-process */
-        const fork = require('child_process').fork;
-        /* eslint-enable security/detect-child-process */
+        const { fork } = require('child_process'); // eslint-disable-line security/detect-child-process
 
         if (instance && instance._shutdown) {
             throw new Error('Instance is shutting down…');
@@ -1219,9 +1220,12 @@ class PluginInstance extends EventEmitter {
      */
     static async check (type) {
         try {
-            /* eslint-disable security/detect-non-literal-require */
-            require(type + '/package.json');
-            /* eslint-enable security/detect-non-literal-require */
+            const util = require('util');
+            const fs = require('fs');
+            const readFile = util.promisify(fs.readFile); // eslint-disable-line security/detect-non-literal-fs-filename
+            const json = await readFile(type + '/package.json');
+
+            JSON.parse(json);
         }
         catch (err) {
             throw new Error('Unable to parse plugin\'s package.json');

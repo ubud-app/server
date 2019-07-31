@@ -18,9 +18,7 @@ class PluginRunner {
         PluginTools._config = job.config;
 
         try {
-            /* eslint-disable security/detect-non-literal-require */
-            job.plugin = require(job.type);
-            /* eslint-enable security/detect-non-literal-require */
+            job.plugin = require(job.type); // eslint-disable-line security/detect-non-literal-require
         }
         catch(err) {
             err.message = 'Unable to execute plugin: ' + err.message;

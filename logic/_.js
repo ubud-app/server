@@ -29,9 +29,7 @@ class BaseLogic {
             regex += '/?([a-zA-Z]*)$';
         }
 
-        /* eslint-disable security/detect-non-literal-regexp */
-        return new RegExp(regex, '');
-        /* eslint-enable security/detect-non-literal-regexp */
+        return new RegExp(regex, ''); // eslint-disable-line security/detect-non-literal-regexp
     }
 
     static async serveCreate(options) {
