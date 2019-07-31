@@ -18,7 +18,7 @@ pre_build_next:
     - ssh
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
-    - export OLDVERSION=$(npm view @ubud-app/client@next version)
+    - export OLDVERSION=$(npm view @ubud-app/server@next version)
     - jq -M ".version=\"$OLDVERSION\"" package.json|sponge package.json
     - npm --no-git-tag-version version prerelease
     - cp package.json package.new.json
