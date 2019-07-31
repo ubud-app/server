@@ -14,7 +14,7 @@
 		"check:npm": "npm-check -s"
 	},
 	"author": "Sebastian Pekarek <foricheeshaifaecixae@e.sebbo.net>",
-	"homepage": "https.//ubud.club",
+	"homepage": "https://ubud.club",
 	"bugs": {
 		"url": "https://github.com/ubud-app/client/issues"
 	},
