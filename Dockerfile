@@ -24,6 +24,9 @@ RUN apk add --no-cache --update \
 
 ADD "." "/usr/local/lib/node_modules/@ubud-app/server"
 
+RUN chown -R ubud:nogroup /usr/local/lib/node_modules && \
+    chown -R ubud:nogroup /usr/local/bin
+
 USER ubud
 WORKDIR "/usr/local/lib/node_modules/@ubud-app/server"
 
