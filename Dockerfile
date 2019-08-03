@@ -30,7 +30,8 @@ RUN cd "/@ubud-app/server" && \
     ln -s "/@ubud-app/server/bin/database" "/usr/local/bin/ubud-db" && \
     ln -s "/@ubud-app/server/bin/plugin" "/usr/local/bin/ubud-plugin" && \
     ln -s "/@ubud-app/server/bin/user" "/usr/local/bin/ubud-user" && \
-    ln -s "/@ubud-app/server/server.js" "/usr/local/bin/ubud-server"
+    ln -s "/@ubud-app/server/server.js" "/usr/local/bin/ubud-server" && \
+    chown -R ubud:ubud /@ubud-app/server/node_modules
 
 USER ubud
 WORKDIR "/@ubud-app/server"
