@@ -244,29 +244,6 @@ publish_docker_version:
   only:
     - tags
 
-private-deployment:
-  stage: publish
-  tags:
-    - matt.sebbo.net
-    - ssh
-  environment:
-    name: ubud.sebbo.net
-    url: https://ubud.sebbo.net/
-  script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
-    - docker pull "ubud/server:${CI_COMMIT_SHA}-next"
-    - docker stop "ubud" || true
-    - docker rm "ubud" || true
-    - docker create --restart "always" --name="ubud"
-        --link mariadb:db
-        -v "/etc/timezone:/etc/timezone:ro" -v "/etc/localtime:/etc/localtime:ro"
-        -e "DATABASE=${DEPLOYMENT_DATABASE}"
-        -p 127.0.0.1:10060:8080
-        "ubud/server:${CI_COMMIT_SHA}-next"
-    - docker start ubud
-  only:
-    - develop
-
 
 #
 # NOTIFY
@@ -282,3 +259,26 @@ notify:
   only:
     - develop
     - tags
+
+private-deployment:
+  stage: notify
+  tags:
+    - matt.sebbo.net
+    - ssh
+  environment:
+    name: ubud.sebbo.net
+    url: https://ubud.sebbo.net/
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
+    - docker pull "ubud/server:${CI_COMMIT_SHA}-next"
+    - docker stop "ubud" || true
+    - docker rm "ubud" || true
+    - docker create --restart "always" --name="ubud"
+      --link mariadb:db
+      -v "/etc/timezone:/etc/timezone:ro" -v "/etc/localtime:/etc/localtime:ro"
+      -e "DATABASE=${DEPLOYMENT_DATABASE}"
+      -p 127.0.0.1:10060:8080
+      "ubud/server:${CI_COMMIT_SHA}-next"
+    - docker start ubud
+  only:
+    - develop
