@@ -22,20 +22,16 @@ RUN apk add --no-cache --update \
     addgroup -g $GID ubud && \
     adduser -u $UID -G ubud -s /bin/sh -D ubud
 
-ADD "." "/usr/local/lib/node_modules/@ubud-app/server"
+ADD "." "/@ubud-app/server"
 
-RUN chown -R ubud:nogroup /usr/local/lib/node_modules && \
-    chown -R ubud:nogroup /usr/local/bin
+RUN cd "/@ubud-app/server" && \
+    npm ci && \
+    npm i "@ubud-app/client@$CLIENT_TAG" --no-save --no-audit --production && \
+    ln -s "/@ubud-app/server/bin/database" "/usr/local/bin/ubud-db" && \
+    ln -s "/@ubud-app/server/bin/plugin" "/usr/local/bin/ubud-plugin" && \
+    ln -s "/@ubud-app/server/bin/user" "/usr/local/bin/ubud-user" && \
+    ln -s "/@ubud-app/server/server.js" "/usr/local/bin/ubud-server"
 
 USER ubud
-WORKDIR "/usr/local/lib/node_modules/@ubud-app/server"
-
-RUN cd "/usr/local/lib/node_modules/@ubud-app/server" && \
-    npm ci && \
-    npm i -g @ubud-app/client@$CLIENT_TAG --no-audit && \
-    ln -s "/usr/local/lib/node_modules/@ubud-app/server/bin/database" "/usr/local/bin/ubud-db" && \
-    ln -s "/usr/local/lib/node_modules/@ubud-app/server/bin/plugin" "/usr/local/bin/ubud-plugin" && \
-    ln -s "/usr/local/lib/node_modules/@ubud-app/server/bin/user" "/usr/local/bin/ubud-user" && \
-    ln -s "/usr/local/lib/node_modules/@ubud-app/server/server.js" "/usr/local/bin/ubud-server"
-
+WORKDIR "/@ubud-app/server"
 CMD ubud-server
