@@ -106,7 +106,6 @@ build_next_arm32v7:
     - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
     - rm -f ./package.json
     - mv ./package.new.json ./package.json
-    - docker system prune -af
     - docker pull arm32v7/node:slim
     - docker build --no-cache
       --build-arg BASEIMAGE="arm32v7/node:slim"
@@ -130,7 +129,6 @@ build_arm32v7:
     - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
     - rm -f ./package.json
     - mv ./package.new.json ./package.json
-    - docker system prune -af
     - docker pull arm32v7/node:slim
     - docker build --no-cache
       --build-arg BASEIMAGE="arm32v7/node:slim"
