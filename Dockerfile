@@ -1,21 +1,26 @@
-ARG BASEIMAGE=node:slim
+ARG BASEIMAGE=multiarch/alpine:x86_64-latest-stable
 FROM $BASEIMAGE
 
+ARG UID=1000
+ARG GID=1000
 ARG CLIENT_TAG=latest
 ARG NODE_ENV=production
 ARG NEXT
 ARG SENTRY_DSN
+
 ENV SENTRY_DSN=$SENTRY_DSN
 ENV NEXT=$NEXT
 
-ADD "." "/usr/local/lib/node_modules/@ubud-app/server"
+RUN apk add --no-cache --update \
+    nodejs \
+    nodejs-npm \
+    libstdc++ \
+    python \
+    make \
+    gcc \
+    g++
 
-RUN apt-get update && \
-    apt-get install -y libexpat-dev python make gcc g++ libc-dev && \
-    apt-get clean && \
-    adduser --system --disabled-password ubud && \
-    chown -R ubud:nogroup /usr/local/lib/node_modules && \
-    chown -R ubud:nogroup /usr/local/bin
+ADD "." "/usr/local/lib/node_modules/@ubud-app/server"
 
 USER ubud
 WORKDIR "/usr/local/lib/node_modules/@ubud-app/server"
