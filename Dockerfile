@@ -26,6 +26,7 @@ ADD "." "/@ubud-app/server"
 
 RUN cd "/@ubud-app/server" && \
     npm ci && \
+    cd ../ && \
     npm i "@ubud-app/client@$CLIENT_TAG" --no-save --no-audit --production && \
     ln -s "/@ubud-app/server/bin/database" "/usr/local/bin/ubud-db" && \
     ln -s "/@ubud-app/server/bin/plugin" "/usr/local/bin/ubud-plugin" && \
