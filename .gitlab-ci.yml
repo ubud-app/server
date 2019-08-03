@@ -22,7 +22,7 @@ pre_build_next:
     - jq -M ".version=\"$OLDVERSION\"" package.json|sponge package.json
     - npm --no-git-tag-version version prerelease
     - cp package.json package.new.json
-    - docker pull multiarch/qemu-user-static:register --reset
+    - docker pull multiarch/qemu-user-static:register
     - docker pull multiarch/alpine:x86_64-latest-stable
     - docker run --rm --privileged multiarch/qemu-user-static:register --reset
     - docker build
