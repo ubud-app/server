@@ -18,7 +18,9 @@ RUN apk add --no-cache --update \
     python \
     make \
     gcc \
-    g++
+    g++ && \
+    addgroup -g $GID ubud && \
+    adduser -u $UID -G ubud -s /bin/sh -D ubud
 
 ADD "." "/usr/local/lib/node_modules/@ubud-app/server"
 
