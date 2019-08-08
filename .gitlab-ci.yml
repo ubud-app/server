@@ -45,9 +45,7 @@ pre_build:
     - matt.sebbo.net
     - ssh
   script:
-    - export OLDVERSION=$(npm view @ubud-app/server version)
-    - jq -M ".version=\"$OLDVERSION\"" package.json|sponge package.json
-    - npm --no-git-tag-version --force version from-git
+    - npm --no-git-tag-version version from-git
     - cp package.json package.new.json
   artifacts:
     paths:
