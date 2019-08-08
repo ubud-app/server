@@ -39,6 +39,23 @@ pre_build_next:
   except:
     - tags
 
+pre_build:
+  stage: pre-build
+  tags:
+    - matt.sebbo.net
+    - ssh
+  script:
+    - export OLDVERSION=$(npm view @ubud-app/server version)
+    - jq -M ".version=\"$OLDVERSION\"" package.json|sponge package.json
+    - npm --no-git-tag-version version from-git
+    - cp package.json package.new.json
+  artifacts:
+    paths:
+      - package.new.json
+    expire_in: 2 weeks
+  only:
+    - tags
+
 
 #
 # PRE-CHECK
