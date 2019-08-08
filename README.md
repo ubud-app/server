@@ -30,7 +30,7 @@ You need a database where all the data is stored. Currently MySQL and MariaDB ar
 
 ```
 # Download docker-compose.yml
-wget https://github.com/ubud-app/server/blob/develop/docker-compose.yml
+wget https://raw.githubusercontent.com/ubud-app/server/develop/docker-compose.yml
 
 # Edit environment variables
 nano docker-compose.yml

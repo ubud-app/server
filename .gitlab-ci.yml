@@ -18,12 +18,15 @@ pre_build_next:
     - ssh
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
-    - export OLDVERSION=$(npm view @ubud-app/client@next version)
+    - export OLDVERSION=$(npm view @ubud-app/server@next version)
     - jq -M ".version=\"$OLDVERSION\"" package.json|sponge package.json
     - npm --no-git-tag-version version prerelease
     - cp package.json package.new.json
-    - docker pull node:slim
-    - docker build --no-cache
+    - docker pull multiarch/qemu-user-static:register
+    - docker pull multiarch/alpine:x86_64-latest-stable
+    - docker run --rm --privileged multiarch/qemu-user-static:register --reset
+    - docker build
+        --build-arg BASEIMAGE="multiarch/alpine:x86_64-latest-stable"
         --build-arg NODE_ENV="develop"
         --build-arg CLIENT_TAG="next"
         --build-arg NEXT="1"
@@ -34,27 +37,6 @@ pre_build_next:
       - package.new.json
     expire_in: 2 weeks
   except:
-    - tags
-
-pre_build:
-  stage: pre-build
-  tags:
-    - matt.sebbo.net
-    - ssh
-  script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
-    - jq -M ".version=\"$CI_COMMIT_TAG\"" package.json|sponge package.json
-    - cp package.json package.new.json
-    - docker pull node:slim
-    - docker build --no-cache
-        --build-arg NODE_ENV="develop"
-        -t "docker.sebbo.net/ubud/server:${CI_COMMIT_SHA}" .
-    - docker push "docker.sebbo.net/ubud/server:${CI_COMMIT_SHA}"
-  artifacts:
-    paths:
-      - package.new.json
-    expire_in: 4 weeks
-  only:
     - tags
 
 
@@ -71,13 +53,15 @@ check_lint:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
     - docker pull "docker.sebbo.net/ubud/server:${CI_COMMIT_SHA}"
     - docker run --rm "docker.sebbo.net/ubud/server:${CI_COMMIT_SHA}" npm run check
+  except:
+    - tags
 
 
 #
 # BUILD
 #
 
-build_next:
+build_next_x86_64:
   stage: build
   tags:
     - matt.sebbo.net
@@ -86,17 +70,18 @@ build_next:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
     - rm -f ./package.json
     - mv ./package.new.json ./package.json
-    - docker pull node:slim
-    - docker build --no-cache
+    - docker pull multiarch/alpine:x86_64-latest-stable
+    - docker build
+      --build-arg BASEIMAGE="multiarch/alpine:x86_64-latest-stable"
       --build-arg NODE_ENV="production"
       --build-arg CLIENT_TAG="next"
       --build-arg NEXT="1"
-      -t "ubud/server:${CI_COMMIT_SHA}-next" .
-    - docker push "ubud/server:${CI_COMMIT_SHA}-next"
+      -t "ubud/server:${CI_COMMIT_SHA}-next-x86_64" .
+    - docker push "ubud/server:${CI_COMMIT_SHA}-next-x86_64"
   only:
     - develop
 
-build:
+build_x86_64:
   stage: build
   tags:
     - matt.sebbo.net
@@ -105,19 +90,19 @@ build:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
     - rm -f ./package.json
     - mv ./package.new.json ./package.json
-    - docker pull node:slim
-    - docker build --no-cache
+    - docker pull multiarch/alpine:x86_64-latest-stable
+    - docker build
+      --build-arg BASEIMAGE="multiarch/alpine:x86_64-latest-stable"
       --build-arg NODE_ENV="production"
-      -t "ubud/server:${CI_COMMIT_SHA}" .
-    - docker push "ubud/server:${CI_COMMIT_SHA}"
+      -t "ubud/server:${CI_COMMIT_SHA}-x86_64" .
+    - docker push "ubud/server:${CI_COMMIT_SHA}-x86_64"
   only:
     - tags
 
-build_next_arm32v7:
+build_next_arm64:
   stage: build
   tags:
-    - docker-host
-    - arm
+    - matt.sebbo.net
     - ssh
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
@@ -125,23 +110,21 @@ build_next_arm32v7:
     - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
     - rm -f ./package.json
     - mv ./package.new.json ./package.json
-    - docker system prune -f
-    - docker pull arm32v7/node:slim
-    - docker build --no-cache
-      --build-arg BASEIMAGE="arm32v7/node:slim"
+    - docker pull multiarch/alpine:arm64-latest-stable
+    - docker build
+      --build-arg BASEIMAGE="multiarch/alpine:arm64-latest-stable"
       --build-arg NODE_ENV="production"
       --build-arg CLIENT_TAG="next"
       --build-arg NEXT="1"
-      -t "ubud/server:${CI_COMMIT_SHA}-next-arm32v7" .
-    - docker push "ubud/server:${CI_COMMIT_SHA}-next-arm32v7"
+      -t "ubud/server:${CI_COMMIT_SHA}-next-arm64" .
+    - docker push "ubud/server:${CI_COMMIT_SHA}-next-arm64"
   only:
     - develop
 
-build_arm32v7:
+build_arm64:
   stage: build
   tags:
-    - docker-host
-    - arm
+    - matt.sebbo.net
     - ssh
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
@@ -149,13 +132,180 @@ build_arm32v7:
     - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
     - rm -f ./package.json
     - mv ./package.new.json ./package.json
-    - docker system prune -f
-    - docker pull arm32v7/node:slim
-    - docker build --no-cache
-      --build-arg BASEIMAGE="arm32v7/node:slim"
+    - docker pull multiarch/alpine:arm64-latest-stable
+    - docker build
+      --build-arg BASEIMAGE="multiarch/alpine:arm64-latest-stable"
       --build-arg NODE_ENV="production"
-      -t "ubud/server:${CI_COMMIT_SHA}-arm32v7" .
-    - docker push "ubud/server:${CI_COMMIT_SHA}-arm32v7"
+      -t "ubud/server:${CI_COMMIT_SHA}-arm64" .
+    - docker push "ubud/server:${CI_COMMIT_SHA}-arm64"
+  only:
+    - tags
+
+build_next_aarch64:
+  stage: build
+  tags:
+    - matt.sebbo.net
+    - ssh
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
+    - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+    - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
+    - rm -f ./package.json
+    - mv ./package.new.json ./package.json
+    - docker pull multiarch/alpine:aarch64-latest-stable
+    - docker build
+      --build-arg BASEIMAGE="multiarch/alpine:aarch64-latest-stable"
+      --build-arg NODE_ENV="production"
+      --build-arg CLIENT_TAG="next"
+      --build-arg NEXT="1"
+      -t "ubud/server:${CI_COMMIT_SHA}-next-aarch64" .
+    - docker push "ubud/server:${CI_COMMIT_SHA}-next-aarch64"
+  only:
+    - develop
+
+build_aarch64:
+  stage: build
+  tags:
+    - matt.sebbo.net
+    - ssh
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
+    - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+    - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
+    - rm -f ./package.json
+    - mv ./package.new.json ./package.json
+    - docker pull multiarch/alpine:aarch64-latest-stable
+    - docker build
+      --build-arg BASEIMAGE="multiarch/alpine:aarch64-latest-stable"
+      --build-arg NODE_ENV="production"
+      -t "ubud/server:${CI_COMMIT_SHA}-aarch64" .
+    - docker push "ubud/server:${CI_COMMIT_SHA}-aarch64"
+  only:
+    - tags
+
+build_next_amd64:
+  stage: build
+  tags:
+    - matt.sebbo.net
+    - ssh
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
+    - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+    - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
+    - rm -f ./package.json
+    - mv ./package.new.json ./package.json
+    - docker pull multiarch/alpine:amd64-latest-stable
+    - docker build
+      --build-arg BASEIMAGE="multiarch/alpine:amd64-latest-stable"
+      --build-arg NODE_ENV="production"
+      --build-arg CLIENT_TAG="next"
+      --build-arg NEXT="1"
+      -t "ubud/server:${CI_COMMIT_SHA}-next-amd64" .
+    - docker push "ubud/server:${CI_COMMIT_SHA}-next-amd64"
+  only:
+    - develop
+
+build_amd64:
+  stage: build
+  tags:
+    - matt.sebbo.net
+    - ssh
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
+    - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+    - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
+    - rm -f ./package.json
+    - mv ./package.new.json ./package.json
+    - docker pull multiarch/alpine:amd64-latest-stable
+    - docker build
+      --build-arg BASEIMAGE="multiarch/alpine:amd64-latest-stable"
+      --build-arg NODE_ENV="production"
+      -t "ubud/server:${CI_COMMIT_SHA}-amd64" .
+    - docker push "ubud/server:${CI_COMMIT_SHA}-amd64"
+  only:
+    - tags
+
+build_next_armhf:
+  stage: build
+  tags:
+    - matt.sebbo.net
+    - ssh
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
+    - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+    - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
+    - rm -f ./package.json
+    - mv ./package.new.json ./package.json
+    - docker pull multiarch/alpine:armhf-latest-stable
+    - docker build
+      --build-arg BASEIMAGE="multiarch/alpine:armhf-latest-stable"
+      --build-arg NODE_ENV="production"
+      --build-arg CLIENT_TAG="next"
+      --build-arg NEXT="1"
+      -t "ubud/server:${CI_COMMIT_SHA}-next-armhf" .
+    - docker push "ubud/server:${CI_COMMIT_SHA}-next-armhf"
+  only:
+    - develop
+
+build_armhf:
+  stage: build
+  tags:
+    - matt.sebbo.net
+    - ssh
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
+    - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+    - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
+    - rm -f ./package.json
+    - mv ./package.new.json ./package.json
+    - docker pull multiarch/alpine:armhf-latest-stable
+    - docker build
+      --build-arg BASEIMAGE="multiarch/alpine:armhf-latest-stable"
+      --build-arg NODE_ENV="production"
+      -t "ubud/server:${CI_COMMIT_SHA}-armhf" .
+    - docker push "ubud/server:${CI_COMMIT_SHA}-armhf"
+  only:
+    - tags
+
+build_next_i386:
+  stage: build
+  tags:
+    - matt.sebbo.net
+    - ssh
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
+    - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+    - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
+    - rm -f ./package.json
+    - mv ./package.new.json ./package.json
+    - docker pull multiarch/alpine:i386-latest-stable
+    - docker build
+      --build-arg BASEIMAGE="multiarch/alpine:i386-latest-stable"
+      --build-arg NODE_ENV="production"
+      --build-arg CLIENT_TAG="next"
+      --build-arg NEXT="1"
+      -t "ubud/server:${CI_COMMIT_SHA}-next-i386" .
+    - docker push "ubud/server:${CI_COMMIT_SHA}-next-i386"
+  only:
+    - develop
+
+build_i386:
+  stage: build
+  tags:
+    - matt.sebbo.net
+    - ssh
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
+    - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+    - npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
+    - rm -f ./package.json
+    - mv ./package.new.json ./package.json
+    - docker pull multiarch/alpine:i386-latest-stable
+    - docker build
+      --build-arg BASEIMAGE="multiarch/alpine:i386-latest-stable"
+      --build-arg NODE_ENV="production"
+      -t "ubud/server:${CI_COMMIT_SHA}-i386" .
+    - docker push "ubud/server:${CI_COMMIT_SHA}-i386"
   only:
     - tags
 
@@ -225,9 +375,19 @@ publish_docker_next:
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
     - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-    - docker manifest create "ubud/server:next" "ubud/server:${CI_COMMIT_SHA}-next" "ubud/server:${CI_COMMIT_SHA}-next-arm32v7"
-    - docker manifest annotate --arch "amd64" --os "linux" "ubud/server:next" "ubud/server:${CI_COMMIT_SHA}-next"
-    - docker manifest annotate --arch "arm" --os "linux" "ubud/server:next" "ubud/server:${CI_COMMIT_SHA}-next-arm32v7"
+    - docker manifest create "ubud/server:next"
+        "ubud/server:${CI_COMMIT_SHA}-next-x86_64"
+        "ubud/server:${CI_COMMIT_SHA}-next-arm64"
+        "ubud/server:${CI_COMMIT_SHA}-next-aarch64"
+        "ubud/server:${CI_COMMIT_SHA}-next-amd64"
+        "ubud/server:${CI_COMMIT_SHA}-next-armhf"
+        "ubud/server:${CI_COMMIT_SHA}-next-i386"
+    - docker manifest annotate --arch "amd64" --os "linux" "ubud/server:next" --variant "x86_64" "ubud/server:${CI_COMMIT_SHA}-next-x86_64"
+    - docker manifest annotate --arch "arm64" --os "linux" "ubud/server:next" "ubud/server:${CI_COMMIT_SHA}-next-arm64"
+    - docker manifest annotate --arch "arm64" --os "linux" "ubud/server:next" --variant "aarch64" "ubud/server:${CI_COMMIT_SHA}-next-aarch64"
+    - docker manifest annotate --arch "amd64" --os "linux" "ubud/server:next" "ubud/server:${CI_COMMIT_SHA}-next-amd64"
+    - docker manifest annotate --arch "arm" --os "linux" "ubud/server:next" "ubud/server:${CI_COMMIT_SHA}-next-armhf"
+    - docker manifest annotate --arch "386" --os "linux" "ubud/server:next" "ubud/server:${CI_COMMIT_SHA}-next-i386"
     - docker manifest push -p "ubud/server:next"
   only:
     - develop
@@ -240,9 +400,19 @@ publish_docker:
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
     - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-    - docker manifest create "ubud/server" "ubud/server:${CI_COMMIT_SHA}" "ubud/server:${CI_COMMIT_SHA}-arm32v7"
-    - docker manifest annotate --arch "amd64" --os "linux" "ubud/server" "ubud/server:${CI_COMMIT_SHA}"
-    - docker manifest annotate --arch "arm" --os "linux" "ubud/server" "ubud/server:${CI_COMMIT_SHA}-arm32v7"
+    - docker manifest create "ubud/server"
+        "ubud/server:${CI_COMMIT_SHA}-x86_64"
+        "ubud/server:${CI_COMMIT_SHA}-arm64"
+        "ubud/server:${CI_COMMIT_SHA}-aarch64"
+        "ubud/server:${CI_COMMIT_SHA}-amd64"
+        "ubud/server:${CI_COMMIT_SHA}-armhf"
+        "ubud/server:${CI_COMMIT_SHA}-i386"
+    - docker manifest annotate --arch "amd64" --os "linux" "ubud/server" --variant "x86_64" "ubud/server:${CI_COMMIT_SHA}-x86_64"
+    - docker manifest annotate --arch "arm64" --os "linux" "ubud/server" "ubud/server:${CI_COMMIT_SHA}-arm64"
+    - docker manifest annotate --arch "arm64" --os "linux" "ubud/server" --variant "aarch64" "ubud/server:${CI_COMMIT_SHA}-aarch64"
+    - docker manifest annotate --arch "amd64" --os "linux" "ubud/server" "ubud/server:${CI_COMMIT_SHA}-amd64"
+    - docker manifest annotate --arch "arm" --os "linux" "ubud/server" "ubud/server:${CI_COMMIT_SHA}-armhf"
+    - docker manifest annotate --arch "386" --os "linux" "ubud/server" "ubud/server:${CI_COMMIT_SHA}-i386"
     - docker manifest push -p "ubud/server"
   only:
     - tags
@@ -256,35 +426,22 @@ publish_docker_version:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
     - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
     - export VERSION=$(cat ./package.new.json | jq -rM .version)
-    - docker manifest create "ubud/server:${VERSION}" "ubud/server:${CI_COMMIT_SHA}" "ubud/server:${CI_COMMIT_SHA}-arm32v7"
-    - docker manifest annotate --arch "amd64" --os "linux" "ubud/server:${VERSION}" "ubud/server:${CI_COMMIT_SHA}"
-    - docker manifest annotate --arch "arm" --os "linux" "ubud/server:${VERSION}" "ubud/server:${CI_COMMIT_SHA}-arm32v7"
+    - docker manifest create "ubud/server:${VERSION}"
+        "ubud/server:${CI_COMMIT_SHA}-x86_64"
+        "ubud/server:${CI_COMMIT_SHA}-arm64"
+        "ubud/server:${CI_COMMIT_SHA}-aarch64"
+        "ubud/server:${CI_COMMIT_SHA}-amd64"
+        "ubud/server:${CI_COMMIT_SHA}-armhf"
+        "ubud/server:${CI_COMMIT_SHA}-i386"
+    - docker manifest annotate --arch "amd64" --os "linux" "ubud/server:${VERSION}" --variant "x86_64" "ubud/server:${CI_COMMIT_SHA}-x86_64"
+    - docker manifest annotate --arch "arm64" --os "linux" "ubud/server:${VERSION}" "ubud/server:${CI_COMMIT_SHA}-arm64"
+    - docker manifest annotate --arch "arm64" --os "linux" "ubud/server:${VERSION}" --variant "aarch64" "ubud/server:${CI_COMMIT_SHA}-aarch64"
+    - docker manifest annotate --arch "amd64" --os "linux" "ubud/server:${VERSION}" "ubud/server:${CI_COMMIT_SHA}-amd64"
+    - docker manifest annotate --arch "arm" --os "linux" "ubud/server:${VERSION}" "ubud/server:${CI_COMMIT_SHA}-armhf"
+    - docker manifest annotate --arch "386" --os "linux" "ubud/server:${VERSION}" "ubud/server:${CI_COMMIT_SHA}-i386"
     - docker manifest push -p "ubud/server:${VERSION}"
   only:
     - tags
-
-private-deployment:
-  stage: publish
-  tags:
-    - matt.sebbo.net
-    - ssh
-  environment:
-    name: ubud.sebbo.net
-    url: https://ubud.sebbo.net/
-  script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
-    - docker pull "ubud/server:${CI_COMMIT_SHA}-next"
-    - docker stop "ubud" || true
-    - docker rm "ubud" || true
-    - docker create --restart "always" --name="ubud"
-        --link mariadb:db
-        -v "/etc/timezone:/etc/timezone:ro" -v "/etc/localtime:/etc/localtime:ro"
-        -e "DATABASE=${DEPLOYMENT_DATABASE}"
-        -p 127.0.0.1:10060:8080
-        "ubud/server:${CI_COMMIT_SHA}-next"
-    - docker start ubud
-  only:
-    - develop
 
 
 #
@@ -301,3 +458,26 @@ notify:
   only:
     - develop
     - tags
+
+private-deployment:
+  stage: notify
+  tags:
+    - matt.sebbo.net
+    - ssh
+  environment:
+    name: ubud.sebbo.net
+    url: https://ubud.sebbo.net/
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
+    - docker pull "ubud/server:next"
+    - docker stop "ubud" || true
+    - docker rm "ubud" || true
+    - docker create --restart "always" --name="ubud"
+      --link mariadb:db
+      -v "/etc/timezone:/etc/timezone:ro" -v "/etc/localtime:/etc/localtime:ro"
+      -e "DATABASE=${DEPLOYMENT_DATABASE}"
+      -p 127.0.0.1:10060:8080
+      "ubud/server:next"
+    - docker start ubud
+  only:
+    - develop

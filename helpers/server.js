@@ -78,25 +78,11 @@ class ServerHelper {
      * Loades the available logic routes and generates HTTP
      * routes for them. Also stores all routes in `allRoutes`
      * for later usage.
-     *
-     * @todo Currently this method works sync, but it should make no difference to run this asynchronously, right?
      */
     static loadRoutes () {
-        const fs = require('fs');
-
-        /* eslint-disable security/detect-non-literal-fs-filename */
-        fs.readdirSync(__dirname + '/../logic').forEach(function (dir) {
-            /* eslint-enable security/detect-non-literal-fs-filename */
-            if (dir.substr(0, 1) === '_') {
-                return;
-            }
-
-            /* eslint-disable security/detect-non-literal-require */
-            const Logic = require(__dirname + '/../logic/' + dir);
-            /* eslint-enable security/detect-non-literal-require */
-
+        const Logics = require('../logic');
+        Logics.forEach(Logic => {
             allLogics[Logic.getModelName()] = Logic;
-
             Logic.getAvailableRoutes().forEach(route => {
                 ServerHelper.addHTTPRoute(Logic, route);
             });

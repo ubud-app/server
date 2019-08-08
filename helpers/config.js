@@ -36,7 +36,7 @@ try {
     ui.static = path.resolve(ui.static);
 
     const packageJson = path.resolve(ui.all + '/../package.json');
-    const stats = fs.statSync(packageJson);
+    const stats = fs.statSync(packageJson); // eslint-disable-line security/detect-non-literal-fs-filename
     ui.timestamp = stats.mtime;
 
     ui.version = require(packageJson).version;  // eslint-disable-line security/detect-non-literal-require

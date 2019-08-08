@@ -1,0 +1,20 @@
+module.exports = [
+    require('./account'),
+    require('./budget'),
+    require('./category'),
+    require('./component'),
+    require('./document'),
+    require('./import'),
+    require('./payee'),
+    require('./plugin'),
+    require('./plugin-config'),
+    require('./plugin-instance'),
+    require('./plugin-store'),
+    require('./portion'),
+    require('./session'),
+    require('./setting'),
+    require('./summary'),
+    require('./transaction'),
+    require('./unit'),
+    require('./user')
+];

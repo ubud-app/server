@@ -1,31 +1,39 @@
-ARG BASEIMAGE=node:slim
+ARG BASEIMAGE=multiarch/alpine:x86_64-latest-stable
 FROM $BASEIMAGE
 
+ARG UID=1000
+ARG GID=1000
 ARG CLIENT_TAG=latest
 ARG NODE_ENV=production
 ARG NEXT
 ARG SENTRY_DSN
+
 ENV SENTRY_DSN=$SENTRY_DSN
 ENV NEXT=$NEXT
 
-ADD "." "/usr/local/lib/node_modules/@ubud-app/server"
+RUN apk add --no-cache --update \
+    nodejs \
+    nodejs-npm \
+    libstdc++ \
+    python \
+    make \
+    gcc \
+    g++ && \
+    addgroup -g $GID ubud && \
+    adduser -u $UID -G ubud -s /bin/sh -D ubud
 
-RUN apt-get update && \
-    apt-get install -y libexpat-dev python make gcc g++ libc-dev && \
-    apt-get clean && \
-    adduser --system --disabled-password ubud && \
-    chown -R ubud:nogroup /usr/local/lib/node_modules && \
-    chown -R ubud:nogroup /usr/local/bin
+ADD "." "/@ubud-app/server"
+
+RUN cd "/@ubud-app/server" && \
+    npm ci && \
+    cd ../ && \
+    npm i "@ubud-app/client@$CLIENT_TAG" --no-save --no-audit --production && \
+    ln -s "/@ubud-app/server/bin/database" "/usr/local/bin/ubud-db" && \
+    ln -s "/@ubud-app/server/bin/plugin" "/usr/local/bin/ubud-plugin" && \
+    ln -s "/@ubud-app/server/bin/user" "/usr/local/bin/ubud-user" && \
+    ln -s "/@ubud-app/server/server.js" "/usr/local/bin/ubud-server" && \
+    chown -R ubud:ubud /@ubud-app/server/node_modules
 
 USER ubud
-WORKDIR "/usr/local/lib/node_modules/@ubud-app/server"
-
-RUN cd "/usr/local/lib/node_modules/@ubud-app/server" && \
-    npm ci && \
-    npm i -g @ubud-app/client@$CLIENT_TAG --no-audit && \
-    ln -s "/usr/local/lib/node_modules/@ubud-app/server/bin/database" "/usr/local/bin/ubud-db" && \
-    ln -s "/usr/local/lib/node_modules/@ubud-app/server/bin/plugin" "/usr/local/bin/ubud-plugin" && \
-    ln -s "/usr/local/lib/node_modules/@ubud-app/server/bin/user" "/usr/local/bin/ubud-user" && \
-    ln -s "/usr/local/lib/node_modules/@ubud-app/server/server.js" "/usr/local/bin/ubud-server"
-
+WORKDIR "/@ubud-app/server"
 CMD ubud-server

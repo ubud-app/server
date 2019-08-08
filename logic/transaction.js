@@ -236,7 +236,7 @@ class TransactionLogic extends BaseLogic {
                     unitModel.transferAccountId = unit.transferAccountId;
                 }
                 else if (unit.budgetId) {
-                    const BudgetLogic = require('./budgets');
+                    const BudgetLogic = require('./budget');
                     const budget = await BudgetLogic.get(unit.budgetId, options);
                     if (!budget || accountModel.document.id !== budget.category.document.id) {
                         throw new ErrorResponse(400, 'Not able to update transaction: unit[' + i + '] has invalid budgetId', {
@@ -680,7 +680,7 @@ class TransactionLogic extends BaseLogic {
                     unitModel.transferAccountId = unit.transferAccountId;
                 }
                 else if (unit.budgetId && unit.budgetId !== unitModel.budgetId) {
-                    const BudgetLogic = require('./budgets');
+                    const BudgetLogic = require('./budget');
                     const budget = await BudgetLogic.get(unit.budgetId, options);
 
                     const AccountLogic = require('./account');
