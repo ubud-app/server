@@ -45,7 +45,7 @@ pre_build:
     - matt.sebbo.net
     - ssh
   script:
-    - npm --no-git-tag-version version from-git
+    - jq -M ".version=\"$CI_COMMIT_TAG\"" package.json|sponge package.json
     - cp package.json package.new.json
   artifacts:
     paths:
