@@ -19,6 +19,7 @@ RUN apk add --no-cache --update \
     make \
     gcc \
     g++ && \
+    npm install -g npm && \
     addgroup -g $GID ubud && \
     adduser -u $UID -G ubud -s /bin/sh -D ubud
 
