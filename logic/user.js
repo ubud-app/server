@@ -2,23 +2,24 @@
 
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
-const { pwnedPassword } = require('hibp');
+const {pwnedPassword} = require('hibp');
 const mailValidator = require('email-validator');
+const moment = require('moment');
 
 const BaseLogic = require('./_');
 const ErrorResponse = require('../helpers/errorResponse');
 const RepositoryHelper = require('../helpers/repository');
 
 class UserLogic extends BaseLogic {
-    static getModelName() {
+    static getModelName () {
         return 'user';
     }
 
-    static getPluralModelName() {
+    static getPluralModelName () {
         return 'users';
     }
 
-    static async format(user, secrets) {
+    static async format (user, secrets) {
         const terms = await RepositoryHelper.getTerms();
         const r = {
             id: user.id,
@@ -27,7 +28,7 @@ class UserLogic extends BaseLogic {
             otpEnabled: user.otpEnabled,
             needsPasswordChange: user.needsPasswordChange,
             terms: {
-                accepted: user.acceptedTermVersion,
+                accepted: moment().isAfter(terms.validFrom) ? terms.version : user.acceptedTermVersion,
                 current: terms
             }
         };
@@ -39,7 +40,7 @@ class UserLogic extends BaseLogic {
         return r;
     }
 
-    static async create(attributes, options) {
+    static async create (attributes, options) {
         if (!options.session.user.isAdmin) {
             throw new ErrorResponse(403, 'You need admin privileges to create new users…');
         }
@@ -70,7 +71,8 @@ class UserLogic extends BaseLogic {
             crypto.randomBytes(16, (err, buffer) => {
                 if (err) {
                     reject(err);
-                } else {
+                }
+                else {
                     resolve(buffer.toString('hex'));
                 }
             });
@@ -83,7 +85,7 @@ class UserLogic extends BaseLogic {
         try {
             await model.save();
         }
-        catch(err) {
+        catch (err) {
             if (err.toString().indexOf('SequelizeUniqueConstraintError') > -1) {
                 throw new ErrorResponse(400, 'User with this email address already exists…', {
                     attributes: {
@@ -98,7 +100,7 @@ class UserLogic extends BaseLogic {
         return {model, secrets};
     }
 
-    static async get(id, options) {
+    static async get (id, options) {
         if (options.session.user.isAdmin || id === options.session.userId) {
             return this.getModel().findByPk(id);
         }
@@ -106,7 +108,7 @@ class UserLogic extends BaseLogic {
         return null;
     }
 
-    static async list(params, options) {
+    static async list (params, options) {
         const req = {};
 
         if (!options.session.user.isAdmin) {
@@ -118,7 +120,7 @@ class UserLogic extends BaseLogic {
         return this.getModel().findAll(req);
     }
 
-    static async update(model, body, options) {
+    static async update (model, body, options) {
 
         // email
         if (body.email === undefined) {
@@ -143,12 +145,12 @@ class UserLogic extends BaseLogic {
             throw new ErrorResponse(403, 'You are not allowed to update other people\'s password!');
         }
         if (body.password !== undefined) {
-            const [hash, count] =  await Promise.all([
+            const [hash, count] = await Promise.all([
                 bcrypt.hash(body.password, 10),
                 pwnedPassword(body.password)
             ]);
 
-            if(count > 0) {
+            if (count > 0) {
                 throw new ErrorResponse(400, 'Password is not secure…', {
                     attributes: {
                         password: `Seems not to be secure. Password is listed on haveibeenpwned.com ${count} times.`
@@ -169,11 +171,17 @@ class UserLogic extends BaseLogic {
             throw new ErrorResponse(403, 'You are not allowed to update other people\'s admin privilege!');
         }
 
+
+        // terms
+        if (body.terms.accepted && body.terms.accepted !== model.acceptedTermVersion) {
+            model.acceptedTermVersion = body.terms.accepted;
+        }
+
         await model.save();
         return {model};
     }
 
-    static async delete(model, options) {
+    static async delete (model, options) {
         if (model.id === options.session.userId) {
             throw new ErrorResponse(400, 'Sorry, but you can\'t delete yourself…');
         }

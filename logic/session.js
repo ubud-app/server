@@ -114,8 +114,8 @@ class SessionLogic extends BaseLogic {
 
         const RepositoryHelper = require('../helpers/repository');
         const terms = await RepositoryHelper.getTerms();
-        if(attributes.acceptedTerms) {
-            userModel.acceptedTermVersion = terms.version;
+        if(attributes.acceptedTerms && userModel.acceptedTermVersion !== attributes.acceptedTerms) {
+            userModel.acceptedTermVersion = attributes.acceptedTerms;
             await userModel.save();
         }
         if(!userModel.acceptedTermVersion || userModel.acceptedTermVersion !== terms.version) {
@@ -123,10 +123,7 @@ class SessionLogic extends BaseLogic {
                 attributes: {
                     acceptedTerms: 'Is required to be set to the current term version.'
                 },
-                extra: {
-                    tos: terms.tos.defaultUrl,
-                    privacy: terms.privacy.defaultUrl
-                }
+                extra: terms
             });
         }
 

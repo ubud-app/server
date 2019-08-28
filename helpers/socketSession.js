@@ -53,7 +53,12 @@ class SocketSession {
 
         const RepositoryHelper = require('../helpers/repository');
         const terms = await RepositoryHelper.getTerms();
-        if(!session.user.acceptedTermVersion || session.user.acceptedTermVersion !== terms.version) {
+        const moment = require('moment');
+        if(
+            session.user.acceptedTermVersion === null ||
+            session.user.acceptedTermVersion < terms.version - 1 ||
+            (session.user.acceptedTermVersion === terms.version - 1 && moment().isSameOrAfter(terms.validFrom))
+        ) {
             throw new ErrorResponse(401, 'Not able to login: User has not accept the current terms!', {
                 attributes: {
                     acceptedTerms: 'Is required to be set to the current term version.'
