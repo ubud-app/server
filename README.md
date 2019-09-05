@@ -3,7 +3,7 @@
     <br /><br /><br />
 </div>
 
-[![Status](https://git-badges.sebbo.net/67/master/build)](https://github.com/ubud-app/server)
+[![Status](https://git-badges.sebbo.net/67/develop/build)](https://github.com/ubud-app/server)
 ![npm version](https://img.shields.io/npm/v/@ubud-app/server?color=blue&label=version&style=flat-square)
 
 ## 🚨 Warning
@@ -13,6 +13,10 @@ This software is still in a very early stage (early preview). Errors can occur a
 ## 🧐 What's this?
 
 This repository contains the software ubud, a small private software for budgeting. ubud works according to the envelope method and can be extended with plugins, so that turnovers of accounts can be imported automatically. So that your data doesn't buzz around in some clouds, ubud is a self-hosted software. Install ubud on a [Raspberry Pi](https://www.raspberrypi.org/) or on any NAS with docker support.
+
+
+![](https://d.sebbo.net/Shared-Image-2019-09-05-11-05-42-x4ys4ALrS636dFDeYy50KU4UgFqcymXpe0FXSLJdJcMve07VS6pC0AUFb35jfwjajbtkvbpTSaAc1dVpquRoF0VdEgbSZRWEgV4U.png)
+
 
 ## 🎉 Features
 
