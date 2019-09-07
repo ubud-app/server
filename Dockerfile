@@ -19,6 +19,7 @@ RUN apk add --no-cache --update \
     make \
     gcc \
     g++ && \
+    npm install -g --unsafe-perm npm && \
     addgroup -g $GID ubud && \
     adduser -u $UID -G ubud -s /bin/sh -D ubud
 
@@ -32,7 +33,10 @@ RUN cd "/@ubud-app/server" && \
     ln -s "/@ubud-app/server/bin/plugin" "/usr/local/bin/ubud-plugin" && \
     ln -s "/@ubud-app/server/bin/user" "/usr/local/bin/ubud-user" && \
     ln -s "/@ubud-app/server/server.js" "/usr/local/bin/ubud-server" && \
-    chown -R ubud:ubud /@ubud-app/server/node_modules
+    chown -R ubud:ubud /@ubud-app/server && \
+    chown -R ubud:ubud /@ubud-app/server/node_modules && \
+    chown -R ubud:ubud /@ubud-app/server/package.json && \
+    chown -R ubud:ubud /@ubud-app/server/package-lock.json
 
 USER ubud
 WORKDIR "/@ubud-app/server"

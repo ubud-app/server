@@ -19,13 +19,13 @@
 		"url": "https://github.com/ubud-app/client/issues"
 	},
 	"dependencies": {
-		"@sentry/node": "^5.6.1",
+		"@sentry/node": "^5.6.2",
 		"basic-auth": "^2.0.1",
-		"bcrypt": "^3.0.6",
+		"bcryptjs": "^2.4.3",
 		"body-parser": "^1.19.0",
 		"bunyan": "^1.8.12",
 		"cli-table": "^0.3.1",
-		"commander": "^3.0.0",
+		"commander": "^3.0.1",
 		"cors": "^2.8.5",
 		"email-validator": "^2.0.4",
 		"express": "^4.17.1",
@@ -33,23 +33,23 @@
 		"hibp": "^8.0.0",
 		"moment": "^2.24.0",
 		"mt940-js": "^0.6.0",
-		"mysql2": "^1.6.5",
+		"mysql2": "^1.7.0",
 		"neat-csv": "^5.1.0",
 		"promised-exec": "^1.0.1",
 		"request": "^2.88.0",
 		"request-promise-native": "^1.0.7",
-		"sequelize": "^5.13.0",
+		"sequelize": "^5.18.2",
 		"shell-escape": "^0.2.0",
 		"socket.io": "^2.2.0",
 		"umzug": "^2.2.0",
 		"underscore": "^1.9.1",
-		"uuid": "^3.3.2"
+		"uuid": "^3.3.3"
 	},
 	"optionalDependencies": {
 		"ofx": "^0.4.0"
 	},
 	"devDependencies": {
-		"eslint": "^6.1.0",
+		"eslint": "^6.3.0",
 		"eslint-plugin-security": "^1.4.0",
 		"npm-check": "^5.9.0"
 	}
