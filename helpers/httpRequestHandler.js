@@ -59,7 +59,7 @@ class HTTPRequestHandler {
      */
     async checkSession() {
         const auth = require('basic-auth');
-        const bcrypt = require('bcrypt');
+        const bcrypt = require('bcryptjs');
         const moment = require('moment');
 
         const Logic = this.Logic;

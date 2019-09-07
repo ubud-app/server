@@ -30,7 +30,7 @@ class SessionLogic extends BaseLogic {
     static async create (attributes, options) {
         const ErrorResponse = require('../helpers/errorResponse');
         const DatabaseHelper = require('../helpers/database');
-        const bcrypt = require('bcrypt');
+        const bcrypt = require('bcryptjs');
         const {URL} = require('url');
 
         const model = this.getModel().build();
@@ -187,7 +187,7 @@ class SessionLogic extends BaseLogic {
                     });
                 });
 
-                const bcrypt = require('bcrypt');
+                const bcrypt = require('bcryptjs');
                 model.secret = await bcrypt.hash(secrets.token, 10);
             }
         }
