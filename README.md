@@ -10,12 +10,15 @@
 
 This software is still in a very early stage (early preview). Errors can occur at any time. Therefore ubud should currently not be used productively, but only for testing purposes.
 
+
 ## 🧐 What's this?
 
 This repository contains the software ubud, a small private software for budgeting. ubud works according to the envelope method and can be extended with plugins, so that turnovers of accounts can be imported automatically. So that your data doesn't buzz around in some clouds, ubud is a self-hosted software. Install ubud on a [Raspberry Pi](https://www.raspberrypi.org/) or on any NAS with docker support.
 
 
-![](https://d.sebbo.net/Shared-Image-2019-09-05-11-05-42-x4ys4ALrS636dFDeYy50KU4UgFqcymXpe0FXSLJdJcMve07VS6pC0AUFb35jfwjajbtkvbpTSaAc1dVpquRoF0VdEgbSZRWEgV4U.png)
+## 🖼 Screenshot
+
+![Screenshot](https://d.sebbo.net/macbookpro13_front-UcPy3pEMhoqNuzqBJwY0nwV4DMPOAFu9h7SGxUSXXATFArbW5UPLQOBnkbw3R7CEsrponXZQ5SrYPs7hViVVKIhzJ2UmckumiVDh.png)
 
 
 ## 🎉 Features
@@ -25,6 +28,7 @@ This repository contains the software ubud, a small private software for budgeti
 - Budgeting via envelope method
 - Synchronization with banks possible with plugins
 - Multi-user capable
+
 
 ## 🐳 Quick Start
 
@@ -47,6 +51,7 @@ docker logs -f $(docker-compose ps -q ubud) | docker-compose exec -T ubud \
     ./node_modules/bunyan/bin/bunyan -o short --color -l info
 ```
 
+
 ## 🔧 Configuration
 | Environment Variable | Default Value | Description |
 |:------- |:------------------- |:------------------ |
@@ -55,9 +60,11 @@ docker logs -f $(docker-compose ps -q ubud) | docker-compose exec -T ubud \
 |PORT|8080|Port to listen on|
 |DEVELOP|0|Run in develop mode|
 
+
 ## 💬 Feedback & Help
 
 For the early preview there are no issues possible, because I want to get the software to work well with it. However, questions and feedback can still be passed on. Either via Twitter [@ubudapp](https://twitter.com/ubudapp) or in our [Slack-Channel](https://join.slack.com/t/ubud-app/shared_invite/enQtNzAzNTU0MjM2MzUzLTY5MGRiZDE5ZDAyMDc3NDZkNGZlOGQxMTc2ZjA1NzEwZDk5ODc5YTc4MTg5N2VlYzY0ODViODZkNmQ0YTQ0MDk).
+
 
 ## 🛠 Build a Plugin
 
@@ -69,9 +76,11 @@ Plugins can be installed via the ubud user interface. These are written in node.
 
 The development of a plugin is currently still a bit hairy, since there is still no documentation and no tools to help. If you still don't want to wait, please feel free to contact us via Slack or Twitter.
 
+
 ## ⏱ Roadmap
 
 During the Early Preview you can find a very rough roadmap on [GitHub](https://github.com/orgs/ubud-app/projects/1).
+
 
 ## 👩‍⚖️ Legal Stuff
 
