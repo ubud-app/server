@@ -157,6 +157,12 @@ class TransactionLogic extends BaseLogic {
         }
 
 
+        // Approved Flag
+        if (body.approved) {
+            model.approved = true;
+        }
+
+
         // account
         const accountModel = await DatabaseHelper.get('account').findOne({
             where: {id: body.accountId},
@@ -556,6 +562,12 @@ class TransactionLogic extends BaseLogic {
         // Accuracy
         if (body.locationAccuracy && body.locationAccuracy > 0) {
             model.locationAccuracy = Math.round(body.locationAccuracy);
+        }
+
+
+        // Approved Flag
+        if (body.approved !== undefined) {
+            model.approved = !!body.approved;
         }
 
 
