@@ -20,6 +20,7 @@ class BudgetLogic extends BaseLogic {
             goal: budget.goal,
             hidden: budget.hidden,
             overspending: budget.overspending,
+            deletable: budget.units ? budget.units.length === 0 : true,
             pluginInstanceId: budget.pluginInstanceId,
             categoryId: budget.categoryId,
             documentId: budget.category.document.id
@@ -74,15 +75,23 @@ class BudgetLogic extends BaseLogic {
             where: {
                 id: id
             },
-            include: [{
-                model: DatabaseHelper.get('category'),
-                attributes: ['id'],
-                include: [{
-                    model: DatabaseHelper.get('document'),
+            include: [
+                {
+                    model: DatabaseHelper.get('category'),
                     attributes: ['id'],
-                    include: DatabaseHelper.includeUserIfNotAdmin(options.session)
-                }]
-            }]
+                    include: [
+                        {
+                            model: DatabaseHelper.get('document'),
+                            attributes: ['id'],
+                            include: DatabaseHelper.includeUserIfNotAdmin(options.session)
+                        }
+                    ]
+                },
+                {
+                    model: DatabaseHelper.get('unit'),
+                    attributes: ['id']
+                }
+            ]
         });
     }
 
@@ -90,24 +99,32 @@ class BudgetLogic extends BaseLogic {
         const DatabaseHelper = require('../helpers/database');
 
         const sql = {
-            include: [{
-                model: DatabaseHelper.get('category'),
-                attributes: ['id'],
-                required: true,
-                include: [{
-                    model: DatabaseHelper.get('document'),
+            include: [
+                {
+                    model: DatabaseHelper.get('category'),
                     attributes: ['id'],
                     required: true,
-                    include: options.session.user.isAdmin ? [] : [{
-                        model: DatabaseHelper.get('user'),
-                        attributes: [],
-                        required: true,
-                        where: {
-                            id: options.session.userId
+                    include: [
+                        {
+                            model: DatabaseHelper.get('document'),
+                            attributes: ['id'],
+                            required: true,
+                            include: options.session.user.isAdmin ? [] : [{
+                                model: DatabaseHelper.get('user'),
+                                attributes: [],
+                                required: true,
+                                where: {
+                                    id: options.session.userId
+                                }
+                            }]
                         }
-                    }]
-                }]
-            }],
+                    ]
+                },
+                {
+                    model: DatabaseHelper.get('unit'),
+                    attributes: ['id']
+                }
+            ],
             order: [
                 ['name', 'ASC']
             ]
@@ -197,11 +214,15 @@ class BudgetLogic extends BaseLogic {
         return {model};
     }
 
-    static delete() {
-        throw new ErrorResponse(
-            501,
-            'It\'s not allowed to delete budgets, try to hide them or remove the whole document.'
-        );
+    static async delete(model) {
+        if(model.units.length) {
+            throw new ErrorResponse(
+                501,
+                `It's not allowed to delete this budget, as it's used to budget ${model.units.length} transactions.`
+            );
+        }
+
+        await model.destroy();
     }
 }
 

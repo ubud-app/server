@@ -117,7 +117,7 @@ models.payee.belongsTo(models.document, {onDelete: 'CASCADE'});
 models.transaction.hasMany(models.unit, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 models.unit.belongsTo(models.transaction, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 
-models.budget.hasOne(models.unit, {onDelete: 'CASCADE'});
+models.budget.hasMany(models.unit, {onDelete: 'CASCADE'});
 models.unit.belongsTo(models.budget, {onDelete: 'CASCADE'});
 
 models.account.hasMany(models.unit, {as: 'transferUnits', foreignKey: 'transferAccountId', onDelete: 'CASCADE'});
