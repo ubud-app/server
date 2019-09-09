@@ -190,7 +190,7 @@ class UserLogic extends BaseLogic {
         if(body.admin.unlockPassword) {
             const passwordCorrect = await bcrypt.compare(body.admin.unlockPassword, model.password);
             if (!passwordCorrect) {
-                throw new ErrorResponse(401, 'Not able to unlock keychain: Is your password correct?');
+                throw new ErrorResponse(400, 'Not able to unlock keychain: Is your password correct?');
             }
 
             await KeychainHelper.unlock(model, body.admin.unlockPassword, {dontSave: true});
