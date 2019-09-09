@@ -15,6 +15,7 @@ const SocketRequestHandler = require('./socketRequestHandler');
 const DatabaseHelper = require('./database');
 const RepositoryHelper = require('./repository');
 const PluginHelper = require('./plugin');
+const KeychainHelper = require('./keychain');
 const log = new LogHelper('ServerHelper');
 
 const allLogics = {};
@@ -252,6 +253,18 @@ class ServerHelper {
 
         DatabaseHelper.events().on('update', handleEvent);
         PluginHelper.events().on('update', handleEvent);
+
+        KeychainHelper.events().on('unlocked', () => {
+            if (session.getSessionModel()) {
+                handleEvent({
+                    action: 'updated',
+                    name: 'user',
+                    model: session.getSessionModel().user
+                }).catch(error => {
+                    log.error(error);
+                });
+            }
+        });
 
         socket.once('disconnecting', function () {
             DatabaseHelper.events().removeListener('update', handleEvent);

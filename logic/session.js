@@ -30,7 +30,10 @@ class SessionLogic extends BaseLogic {
     static async create (attributes, options) {
         const ErrorResponse = require('../helpers/errorResponse');
         const DatabaseHelper = require('../helpers/database');
+        const KeychainHelper = require('../helpers/keychain');
+
         const bcrypt = require('bcryptjs');
+        const crypto = require('crypto');
         const {URL} = require('url');
 
         const model = this.getModel().build();
@@ -78,7 +81,8 @@ class SessionLogic extends BaseLogic {
                 crypto.randomBytes(32, (err, buffer) => {
                     if (err) {
                         reject(err);
-                    } else {
+                    }
+                    else {
                         resolve(buffer.toString('hex'));
                     }
                 });
@@ -114,11 +118,11 @@ class SessionLogic extends BaseLogic {
 
         const RepositoryHelper = require('../helpers/repository');
         const terms = await RepositoryHelper.getTerms();
-        if(attributes.acceptedTerms && userModel.acceptedTermVersion !== attributes.acceptedTerms) {
+        if (attributes.acceptedTerms && userModel.acceptedTermVersion !== attributes.acceptedTerms) {
             userModel.acceptedTermVersion = attributes.acceptedTerms;
             await userModel.save();
         }
-        if(!userModel.acceptedTermVersion || userModel.acceptedTermVersion !== terms.version) {
+        if (!userModel.acceptedTermVersion || userModel.acceptedTermVersion !== terms.version) {
             throw new ErrorResponse(401, 'Not able to login: User has not accept the current terms!', {
                 attributes: {
                     acceptedTerms: 'Is required to be set to the current term version.'
@@ -127,19 +131,11 @@ class SessionLogic extends BaseLogic {
             });
         }
 
-        const crypto = require('crypto');
-        const random = await new Promise((resolve, reject) => {
-            crypto.randomBytes(32, (err, buffer) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(buffer.toString('hex'));
-                }
-            });
-        });
+        await KeychainHelper.unlock(userModel, options.session.pass);
 
-        const hash = await bcrypt.hash(random, 10);
-        model.secret = hash;
+        const random = crypto.randomBytes(32).toString('hex');
+        const passwordHash = await bcrypt.hash(random, 10);
+        model.secret = passwordHash;
         secrets.token = random;
 
         options.setSession(model);
@@ -175,13 +171,14 @@ class SessionLogic extends BaseLogic {
             model.name = body.name;
 
             // neues secret generieren
-            if(model.mobilePairing && model.id === options.session.id) {
+            if (model.mobilePairing && model.id === options.session.id) {
                 const crypto = require('crypto');
                 secrets.token = await new Promise((resolve, reject) => {
                     crypto.randomBytes(32, (err, buffer) => {
                         if (err) {
                             reject(err);
-                        } else {
+                        }
+                        else {
                             resolve(buffer.toString('hex'));
                         }
                     });
@@ -223,7 +220,7 @@ class SessionLogic extends BaseLogic {
             }
         }
 
-        if(body.accepted !== undefined && !options.session.mobilePairing) {
+        if (body.accepted !== undefined && !options.session.mobilePairing) {
             model.mobilePairing = !body.accepted;
         }
 
