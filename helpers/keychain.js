@@ -226,10 +226,6 @@ class KeychainHelper {
     static async migrateDatabase (key) {
         const types = ['plugin-config', 'plugin-store'];
         for (let i in types) {
-            if (!types.hasOwnProperty(i)) {
-                return;
-            }
-
             const type = types[i];
             const pluginConfigs = await DatabaseHelper.get(type).findAll({
                 attributes: ['id', 'value']
