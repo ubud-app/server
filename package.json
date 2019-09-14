@@ -27,6 +27,7 @@
 		"cli-table": "^0.3.1",
 		"commander": "^3.0.1",
 		"cors": "^2.8.5",
+		"dtrace-provider": "^0.8.8",
 		"email-validator": "^2.0.4",
 		"express": "^4.17.1",
 		"express-fileupload": "^1.1.5",
@@ -38,7 +39,7 @@
 		"promised-exec": "^1.0.1",
 		"request": "^2.88.0",
 		"request-promise-native": "^1.0.7",
-		"sequelize": "^5.18.2",
+		"sequelize": "^5.18.4",
 		"shell-escape": "^0.2.0",
 		"socket.io": "^2.2.0",
 		"umzug": "^2.2.0",
@@ -49,7 +50,7 @@
 		"ofx": "^0.4.0"
 	},
 	"devDependencies": {
-		"eslint": "^6.3.0",
+		"eslint": "^6.4.0",
 		"eslint-plugin-security": "^1.4.0",
 		"npm-check": "^5.9.0"
 	}

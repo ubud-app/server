@@ -9,6 +9,7 @@ const moment = require('moment');
 const BaseLogic = require('./_');
 const ErrorResponse = require('../helpers/errorResponse');
 const RepositoryHelper = require('../helpers/repository');
+const KeychainHelper = require('../helpers/keychain');
 
 class UserLogic extends BaseLogic {
     static getModelName () {
@@ -24,7 +25,11 @@ class UserLogic extends BaseLogic {
         const r = {
             id: user.id,
             email: user.email,
-            isAdmin: user.isAdmin,
+            admin: {
+                isAdmin: user.isAdmin,
+                canUnlockKeychain: !!user.keychainKey,
+                shouldUnlockKeychain: user.keychainKey && KeychainHelper.isLocked()
+            },
             otpEnabled: user.otpEnabled,
             needsPasswordChange: user.needsPasswordChange,
             terms: {
@@ -81,6 +86,8 @@ class UserLogic extends BaseLogic {
         secrets.password = random;
         const hash = await bcrypt.hash(random, 10);
         model.password = hash;
+
+        await KeychainHelper.unlock(model, secrets.password, {dontSave: true});
 
         try {
             await model.save();
@@ -160,15 +167,33 @@ class UserLogic extends BaseLogic {
 
             model.password = hash;
             model.needsPasswordChange = false;
+            model.keychainKey = null;
+
+            await KeychainHelper.unlock(model, body.password, {dontSave: true});
         }
 
 
         // isAdmin
-        if (options.session.user.isAdmin && body.isAdmin !== undefined && !!body.isAdmin !== model.isAdmin) {
-            model.isAdmin = !!body.isAdmin;
+        if (options.session.user.isAdmin && body.isAdmin !== undefined && body.admin && body.admin.isAdmin !== model.isAdmin) {
+            model.isAdmin = !!body.admin.isAdmin;
+
+            if(!model.isAdmin) {
+                model.keychainKey = null;
+            }
         }
         else if (body.isAdmin !== undefined && !!body.isAdmin !== model.isAdmin) {
             throw new ErrorResponse(403, 'You are not allowed to update other people\'s admin privilege!');
+        }
+
+
+        // unlock keychain
+        if(body.admin.unlockPassword) {
+            const passwordCorrect = await bcrypt.compare(body.admin.unlockPassword, model.password);
+            if (!passwordCorrect) {
+                throw new ErrorResponse(400, 'Not able to unlock keychain: Is your password correct?');
+            }
+
+            await KeychainHelper.unlock(model, body.admin.unlockPassword, {dontSave: true});
         }
 
 

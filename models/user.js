@@ -20,6 +20,11 @@ module.exports = class UserModelDefinition {
                 allowNull: false,
                 defaultValue: false
             },
+            keychainKey: {
+                type: DataTypes.STRING(1024),
+                allowNull: true,
+                defaultValue: null
+            },
             needsPasswordChange: {
                 type: DataTypes.BOOLEAN,
                 allowNull: false,

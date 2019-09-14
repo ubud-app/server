@@ -4,6 +4,7 @@ const _ = require('underscore');
 const LogHelper = require('../log');
 const EventEmitter = require('events');
 const DatabaseHelper = require('../database');
+const KeychainHelper = require('../keychain');
 const log = new LogHelper('PluginInstance');
 const status = ['initializing', 'configuration', 'ready', 'shutdown', 'error'];
 
@@ -109,6 +110,8 @@ class PluginInstance extends EventEmitter {
             log.warn('Okay, got it now, version of %s is %s', this.type(), this._version);
         }
 
+        await KeychainHelper.waitTillUnlocked();
+
         // get plugin information
         try {
             const RepositoryHelper = require('../repository');
@@ -156,12 +159,12 @@ class PluginInstance extends EventEmitter {
         });
 
         // create configuration json
-        this._config = config.map(config => {
+        this._config = await Promise.all(config.map(async config => {
             config.model = dbConfigs.find(configModel => config.id === configModel.key) || null;
 
             if (!config.value && config.model && config.model.value) {
                 try {
-                    config.value = JSON.parse(config.model.value);
+                    config.value = await KeychainHelper.decrypt(config.model.value);
                 }
                 catch (err) {
                     config.value = null;
@@ -177,16 +180,17 @@ class PluginInstance extends EventEmitter {
                 config.model.key = config.id;
                 config.model.pluginInstanceId = this._model.id;
             }
-            if (config.model.value !== JSON.stringify(config.value)) {
-                config.model.value = JSON.stringify(config.value);
-                if (config.model.value.length > 255) {
+
+            if (await KeychainHelper.decrypt(config.model.value) !== config.value) {
+                config.model.value = await KeychainHelper.encrypt(config.value);
+                if (config.model.value.length > 2048) {
                     log.error('Plugin `%s`: Value for key `%s` is too long!', this._model.id, config.id);
                     config.model.value = null;
                 }
             }
 
             return config;
-        });
+        }));
 
         await this.checkAndSaveConfig();
 
@@ -393,10 +397,13 @@ class PluginInstance extends EventEmitter {
 
         // persistent configuration if valid
         if (validation.valid) {
-            await Promise.all(this._config.map(field => {
+            await Promise.all(this._config.map(async field => {
                 // overwrite new value
                 field.value = config[field.id];
-                field.model.value = JSON.stringify(field.value);
+
+                if(await KeychainHelper.decrypt(field.model.value) !== field.value) {
+                    field.model.value = await KeychainHelper.encrypt(field.value);
+                }
 
                 // check length
                 if (field.model.value.length > 255) {
@@ -1154,7 +1161,7 @@ class PluginInstance extends EventEmitter {
 
         let value = null;
         try {
-            value = JSON.parse(store.value);
+            value = await KeychainHelper.decrypt(store.value);
         }
         catch (err) {
             // ignore
@@ -1193,7 +1200,7 @@ class PluginInstance extends EventEmitter {
             store.key = key;
         }
 
-        store.value = JSON.stringify(value);
+        store.value = await KeychainHelper.encrypt(value);
 
         try {
             store.save();
@@ -1223,8 +1230,8 @@ class PluginInstance extends EventEmitter {
             const util = require('util');
             const fs = require('fs');
             const readFile = util.promisify(fs.readFile); // eslint-disable-line security/detect-non-literal-fs-filename
-            const json = await readFile(type + '/package.json');
 
+            const json = await readFile(type + '/package.json').toString();
             JSON.parse(json);
         }
         catch (err) {
