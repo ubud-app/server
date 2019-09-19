@@ -171,7 +171,7 @@ class UserLogic extends BaseLogic {
             if (model.isAdmin && KeychainHelper.isLocked()) {
                 throw new ErrorResponse(400, 'Keychain is locked…', {
                     attributes: {
-                        password: `Please unlock keychain before changing password.`
+                        password: 'Please unlock keychain before changing password.'
                     }
                 });
             }
