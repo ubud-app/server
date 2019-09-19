@@ -22,13 +22,17 @@ class UserLogic extends BaseLogic {
 
     static async format (user, secrets) {
         const terms = await RepositoryHelper.getTerms();
+        const canUnlockKeychain = !!user.keychainKey || (
+            !user.keychainKey && user.isAdmin && !(await KeychainHelper.isSetUp())
+        );
+
         const r = {
             id: user.id,
             email: user.email,
             admin: {
                 isAdmin: user.isAdmin,
-                canUnlockKeychain: !!user.keychainKey,
-                shouldUnlockKeychain: user.keychainKey && KeychainHelper.isLocked()
+                canUnlockKeychain,
+                shouldUnlockKeychain: canUnlockKeychain && KeychainHelper.isLocked()
             },
             otpEnabled: user.otpEnabled,
             needsPasswordChange: user.needsPasswordChange,
@@ -164,6 +168,13 @@ class UserLogic extends BaseLogic {
                     }
                 });
             }
+            if (model.isAdmin && KeychainHelper.isLocked()) {
+                throw new ErrorResponse(400, 'Keychain is locked…', {
+                    attributes: {
+                        password: 'Please unlock keychain before changing password.'
+                    }
+                });
+            }
 
             model.password = hash;
             model.needsPasswordChange = false;
@@ -177,7 +188,7 @@ class UserLogic extends BaseLogic {
         if (options.session.user.isAdmin && body.isAdmin !== undefined && body.admin && body.admin.isAdmin !== model.isAdmin) {
             model.isAdmin = !!body.admin.isAdmin;
 
-            if(!model.isAdmin) {
+            if (!model.isAdmin) {
                 model.keychainKey = null;
             }
         }
@@ -187,7 +198,7 @@ class UserLogic extends BaseLogic {
 
 
         // unlock keychain
-        if(body.admin.unlockPassword) {
+        if (body.admin.unlockPassword) {
             const passwordCorrect = await bcrypt.compare(body.admin.unlockPassword, model.password);
             if (!passwordCorrect) {
                 throw new ErrorResponse(400, 'Not able to unlock keychain: Is your password correct?');
