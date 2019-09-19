@@ -39,6 +39,23 @@ class KeychainHelper {
     }
 
     /**
+     * Returns true, if keychain is set up.
+     * @returns {Promise<Boolean>}
+     */
+    static async isSetUp () {
+        const numberOfUsersWithKeychainKey = await DatabaseHelper.get('user')
+            .count({
+                where: {
+                    keychainKey: {
+                        [DatabaseHelper.op('not')]: null
+                    }
+                }
+            });
+
+        return !!numberOfUsersWithKeychainKey;
+    }
+
+    /**
      * Returns a promise which resolves when the keychain
      * gets unlocked. Instantly resolves, if the database
      * is already in unlocked state.
@@ -170,22 +187,10 @@ class KeychainHelper {
 
         // initialize keychain
         if (this.isLocked() && !userModel.keychainKey) {
-            const numberOfUsersWithKeychainKey = await DatabaseHelper.get('user')
-                .count({
-                    where: {
-                        keychainKey: {
-                            [DatabaseHelper.op('not')]: null
-                        }
-                    }
-                });
-
-            if (!numberOfUsersWithKeychainKey) {
+            const isSetUp = await this.isSetUp();
+            if (!isSetUp) {
                 const key = crypto.randomBytes(256);
                 await KeychainHelper.migrateDatabase(key);
-
-                console.log('---------');
-                console.log('Keychain Secret:', key.toString('hex'));
-                console.log('---------');
 
                 keychainKey = key;
                 events.emit('unlocked');
