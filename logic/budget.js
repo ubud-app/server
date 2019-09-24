@@ -27,7 +27,7 @@ class BudgetLogic extends BaseLogic {
         };
     }
 
-    static async create(body, options) {
+    static async create(body, options = {}) {
         const DatabaseHelper = require('../helpers/database');
         const model = this.getModel().build();
 
@@ -69,7 +69,7 @@ class BudgetLogic extends BaseLogic {
         return {model};
     }
 
-    static async get(id, options) {
+    static async get(id, options = {}) {
         const DatabaseHelper = require('../helpers/database');
         return this.getModel().findOne({
             where: {
