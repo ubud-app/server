@@ -854,6 +854,7 @@ class TransactionLogic extends BaseLogic {
         let learnings = [];
         if (transaction.units && transaction.units.length) {
             learnings = await TransactionLogic.generateLearnings(transaction);
+            learnings = learnings.filter(l => l.budgetId);
         }
 
         // remove items
