@@ -90,7 +90,7 @@ class TransactionLogic extends BaseLogic {
 
         // amount
         model.amount = parseInt(body.amount, 10) || null;
-        if (isNaN(model.amount) || model.amount === 0) {
+        if (isNaN(model.amount) || (model.amount === 0 && !body.reconcile)) {
             throw new ErrorResponse(400, 'Transaction requires attribute `amount`…', {
                 attributes: {
                     amount: 'Is required!'
@@ -184,10 +184,61 @@ class TransactionLogic extends BaseLogic {
 
         documentId = accountModel.document.id;
         model.accountId = accountModel.id;
+        model.isReconciling = true;
 
 
         // units
-        if (body.units) {
+        if (body.reconcile) {
+            if (model.amount !== null) {
+                const lastReconcileTransaction = await this.getModel().findOne({
+                    where: {
+                        accountId: model.accountId,
+                        isReconciling: true
+                    },
+                    include: [
+                        {
+                            model: DatabaseHelper.get('unit')
+                        }
+                    ],
+                    order: [['time', 'DESC']],
+                    limit: 1
+                });
+
+                model.status = 'cleared';
+                await model.save();
+
+                if (lastReconcileTransaction && lastReconcileTransaction.units.length === 1) {
+                    const unitModel = DatabaseHelper.get('unit').build();
+                    unitModel.transactionId = model.id;
+                    unitModel.amount = model.amount;
+                    unitModel.type = lastReconcileTransaction.units[0].type;
+                    unitModel.budgetId = lastReconcileTransaction.units[0].budgetId;
+                    unitModel.transferAccountId = lastReconcileTransaction.units[0].transferAccountId;
+                    await unitModel.save();
+                    model.units = [unitModel];
+                }
+            }
+
+            const transactions = await this.getModel().findAll({
+                where: {
+                    time: {
+                        [DatabaseHelper.op('lte')]: model.time
+                    },
+                    status: 'normal'
+                }
+            });
+
+            // don't use TransactionModel.update() to trigger events
+            await Promise.all(transactions.map(transaction => {
+                transaction.status = 'cleared';
+                return transaction.save();
+            }));
+
+            if (model.amount === null) {
+                return {model: {}};
+            }
+        }
+        else if (body.units) {
             const unitJobs = [];
             let sum = 0;
 
