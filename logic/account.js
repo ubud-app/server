@@ -5,15 +5,15 @@ const BaseLogic = require('./_');
 const ErrorResponse = require('../helpers/errorResponse');
 
 class AccountLogic extends BaseLogic {
-    static getModelName() {
+    static getModelName () {
         return 'account';
     }
 
-    static getPluralModelName() {
+    static getPluralModelName () {
         return 'accounts';
     }
 
-    static async format(account) {
+    static async format (account) {
         const DatabaseHelper = require('../helpers/database');
 
         const [transactionCount, transactionsWithoutUnits, notTransfer, transferOn, transferOff] = await Promise.all([
@@ -74,11 +74,11 @@ class AccountLogic extends BaseLogic {
         };
     }
 
-    static getValidTypeValues() {
+    static getValidTypeValues () {
         return ['checking', 'savings', 'creditCard', 'cash', 'paypal', 'mortgage', 'asset', 'loan'];
     }
 
-    static async create(body, options) {
+    static async create (body, options) {
         const DatabaseHelper = require('../helpers/database');
         const model = this.getModel().build();
 
@@ -134,7 +134,7 @@ class AccountLogic extends BaseLogic {
         return {model};
     }
 
-    static async get(id, options) {
+    static async get (id, options) {
         const DatabaseHelper = require('../helpers/database');
         return this.getModel().findOne({
             where: {
@@ -148,7 +148,7 @@ class AccountLogic extends BaseLogic {
         });
     }
 
-    static async list(params, options) {
+    static async list (params, options) {
         const DatabaseHelper = require('../helpers/database');
 
         const sql = {
@@ -173,7 +173,8 @@ class AccountLogic extends BaseLogic {
         _.each(params, (id, k) => {
             if (k === 'document') {
                 sql.include[0].where = {id};
-            } else {
+            }
+            else {
                 throw new ErrorResponse(400, 'Unknown filter `' + k + '`!');
             }
         });
@@ -181,7 +182,7 @@ class AccountLogic extends BaseLogic {
         return this.getModel().findAll(sql);
     }
 
-    static async update(model, body) {
+    static async update (model, body) {
         if (body.name !== undefined) {
             model.name = body.name;
         }
@@ -221,13 +222,17 @@ class AccountLogic extends BaseLogic {
             model.hidden = !!body.hidden;
         }
 
+        if (body.pluginInstanceId === null && model.pluginInstanceId) {
+            model.pluginInstanceId = null;
+        }
+
         await model.save();
         return {model};
     }
 
     static async delete (model) {
         const DatabaseHelper = require('../helpers/database');
-        if(model.pluginInstanceId) {
+        if (model.pluginInstanceId) {
             throw new ErrorResponse(400, 'It\'s not allowed to destroy managed accounts.');
         }
 
@@ -243,7 +248,7 @@ class AccountLogic extends BaseLogic {
         await model.destroy();
 
         // Account was empty -> no need to recalculate document
-        if(!firstTransaction) {
+        if (!firstTransaction) {
             return;
         }
 
