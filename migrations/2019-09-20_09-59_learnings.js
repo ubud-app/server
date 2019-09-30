@@ -9,8 +9,19 @@ module.exports = {
             allowNull: false
         });
 
-        await q.removeConstraint('learnings', 'learnings_ibfk_2');
-        await q.removeColumn('learnings', 'categoryId');
+        try {
+            await q.removeConstraint('learnings', 'learnings_ibfk_2');
+        }
+        catch(err) {
+            // ignored
+        }
+
+        try {
+            await q.removeColumn('learnings', 'categoryId');
+        }
+        catch(err) {
+            // ignored
+        }
 
         await q.addColumn('learnings', 'budgetId',{
             type: DataTypes.UUID,
