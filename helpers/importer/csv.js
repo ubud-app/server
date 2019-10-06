@@ -7,6 +7,7 @@ const TransactionLogic = require('../../logic/transaction');
 
 const csv2transactionMap = {
     time: [
+        ['Belegdatum', 'DD.MM.YY'],
         ['Buchungstag', 'DD-MM-YY'],
         ['Wertstellung', 'DD-MM-YY'],
         ['Datum', 'DD-MM-YY'],
@@ -14,13 +15,16 @@ const csv2transactionMap = {
     ],
     pluginsOwnPayeeId: [
         ['Beguenstigter/Zahlungspflichtiger'],
-        ['Name']
+        ['Name'],
+        ['Transaktionsbeschreibung']
     ],
     memo: [
-        ['Verwendungszweck']
+        ['Verwendungszweck'],
+        ['Transaktionsbeschreibung']
     ],
     amount: [
-        ['Betrag']
+        ['Betrag'],
+        ['Buchungsbetrag']
     ]
 };
 
