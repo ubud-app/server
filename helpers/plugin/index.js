@@ -181,11 +181,12 @@ class PluginHelper {
             throw new Error(`Plugin installed, but unable to get plugin name. Output was \`${res}\``);
         }
 
-        const path = require.resolve(type + '/');
-        log.debug('Plugin installation done, path is ' + path);
+        const path = require('path');
+        const modulePath = path.dirname(require.resolve(type + '/package.json'));
+        log.debug('Plugin installation done, path is ' + modulePath);
 
         Object.keys(require.cache)
-            .filter(key => key.substr(0, path.length) === path)
+            .filter(key => key.substr(0, modulePath.length) === modulePath)
             .forEach(key => {
                 log.debug('Invalidated cached module: ' + key);
                 delete require.cache[key];
@@ -234,11 +235,11 @@ class PluginHelper {
             }).finally(() => {
                 log.debug('_runPackageRunQueue: %s: done', id);
                 const i = this._runPackageRunQueue.q.indexOf(item);
-                if(i >= 0) {
+                if (i >= 0) {
                     log.debug('_runPackageRunQueue: %s: remove queue item', id);
                     this._runPackageRunQueue.q.splice(i, 1);
                 }
-                if(this._runPackageRunQueue.q.length > 0) {
+                if (this._runPackageRunQueue.q.length > 0) {
                     setTimeout(() => {
                         log.debug('_runPackageRunQueue: %s: start next item: %s', id, this._runPackageRunQueue.q[0][0]);
                         this._runPackageRunQueue.e.emit('start', this._runPackageRunQueue.q[0][0]);
