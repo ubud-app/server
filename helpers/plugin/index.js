@@ -181,7 +181,7 @@ class PluginHelper {
             throw new Error(`Plugin installed, but unable to get plugin name. Output was \`${res}\``);
         }
 
-        const path = require.resolve(type);
+        const path = require.resolve(type + '/');
         log.debug('Plugin installation done, path is ' + path);
 
         Object.keys(require.cache)
