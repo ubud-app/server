@@ -181,7 +181,7 @@ class PluginInstance extends EventEmitter {
                 config.model.pluginInstanceId = this._model.id;
             }
 
-            if (await KeychainHelper.decrypt(config.model.value) !== config.value) {
+            if (!config.model.value || await KeychainHelper.decrypt(config.model.value) !== config.value) {
                 config.model.value = await KeychainHelper.encrypt(config.value);
                 if (config.model.value.length > 2048) {
                     log.error('Plugin `%s`: Value for key `%s` is too long!', this._model.id, config.id);
