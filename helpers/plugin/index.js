@@ -181,6 +181,16 @@ class PluginHelper {
             throw new Error(`Plugin installed, but unable to get plugin name. Output was \`${res}\``);
         }
 
+        const path = require.resolve(type);
+        log.debug('Plugin installation done, path is ' + path);
+
+        Object.keys(require.cache)
+            .filter(key => key.substr(0, path.length) === path)
+            .forEach(key => {
+                log.debug('Invalidated cached module: ' + key);
+                delete require.cache[key];
+            });
+
         return id.substr(2, id.lastIndexOf('@') - 2).trim();
     }
 
