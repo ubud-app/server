@@ -91,15 +91,20 @@ class PluginHelper {
             log.debug('%s: checks passed', type);
         }
         catch (err) {
+            const count = await DatabaseHelper.get('plugin-instance').count({
+                where: {type}
+            });
 
-            // remove plugin again
-            // @todo only if not used otherwise
-            try {
-                await this._runPackageRemove(type);
-                log.debug('%s: removed successfully', type);
-            }
-            catch (err) {
-                log.warn('%s: unable to remove plugin: %s', type, err);
+            if(!count) {
+
+                // remove plugin again
+                try {
+                    await this._runPackageRemove(type);
+                    log.debug('%s: removed successfully', type);
+                }
+                catch (err) {
+                    log.warn('%s: unable to remove plugin: %s', type, err);
+                }
             }
 
             throw err;
