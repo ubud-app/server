@@ -1235,7 +1235,7 @@ class PluginInstance extends EventEmitter {
             JSON.parse(json);
         }
         catch (err) {
-            throw new Error('Unable to parse plugin\'s package.json');
+            throw new Error('Unable to parse plugin\'s package.json: ' + err);
         }
 
         const response = await this.request(null, type, 'check');
