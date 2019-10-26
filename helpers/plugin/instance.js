@@ -1226,16 +1226,21 @@ class PluginInstance extends EventEmitter {
      * @returns {Promise.<void>}
      */
     static async check (type) {
-        try {
-            const util = require('util');
-            const fs = require('fs');
-            const readFile = util.promisify(fs.readFile); // eslint-disable-line security/detect-non-literal-fs-filename
+        let json;
 
-            const json = await readFile(type + '/package.json').toString();
+        try {
+            const fs = require('fs').promises;
+            json = await fs.readFile(type + '/package.json', {encoding: 'utf8'});
+        }
+        catch (err) {
+            throw new Error('Unable to get plugin\'s package.json: ' + err);
+        }
+
+        try {
             JSON.parse(json);
         }
         catch (err) {
-            throw new Error('Unable to parse plugin\'s package.json: ' + err);
+            throw new Error('Unable to parse plugin\'s package.json: ' + err + '\n\n' + json);
         }
 
         const response = await this.request(null, type, 'check');
