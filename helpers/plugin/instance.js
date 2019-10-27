@@ -1230,7 +1230,7 @@ class PluginInstance extends EventEmitter {
 
         try {
             const fs = require('fs').promises;
-            json = await fs.readFile(require.resolve(type + '/package.json'), {encoding: 'utf8'});
+            json = await fs.readFile(require.resolve(type + '/package.json'), {encoding: 'utf8'}); // eslint-disable-line security/detect-non-literal-fs-filename
         }
         catch (err) {
             throw new Error('Unable to get plugin\'s package.json: ' + err);

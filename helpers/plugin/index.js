@@ -171,6 +171,7 @@ class PluginHelper {
 
 
     static async _runPackageInstall (type) {
+        const path = require('path');
         let modulePath = PluginHelper._packageDirectory(type);
         let res;
 
