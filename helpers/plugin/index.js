@@ -95,7 +95,7 @@ class PluginHelper {
                 where: {type}
             });
 
-            if(!count) {
+            if (!count) {
 
                 // remove plugin again
                 try {
@@ -171,25 +171,27 @@ class PluginHelper {
 
 
     static async _runPackageInstall (type) {
+        let modulePath = PluginHelper._packageDirectory(type);
         let res;
 
-        try {
-            res = await this._runPackageRunQueue(['npm', 'install', '--ignore-scripts', '--production', type]);
-        }
-        catch (err) {
-            log.error(err);
-            throw new Error('Unable to install required package via npm`: ' + err.string);
+        if (!modulePath) {
+            try {
+                res = await this._runPackageRunQueue(['npm', 'install', '--ignore-scripts', '--production', type]);
+            }
+            catch (err) {
+                log.error(err);
+                throw new Error('Unable to install required package via npm`: ' + err.string);
+            }
+
+            modulePath = PluginHelper._packageDirectory(type);
         }
 
-        const id = res.split('\n').find(l => l.trim().substr(0, 1) === '+');
-        if (!id) {
-            throw new Error(`Plugin installed, but unable to get plugin name. Output was \`${res}\``);
+        modulePath = path.dirname(require.resolve(type + '/package.json'));
+        if (!modulePath) {
+            throw new Error('Unable to find plugin after installation');
         }
 
-        const path = require('path');
-        const modulePath = path.dirname(require.resolve(type + '/package.json'));
         log.debug('Plugin installation done, path is ' + modulePath);
-
         Object.keys(require.cache)
             .filter(key => key.substr(0, modulePath.length) === modulePath)
             .forEach(key => {
@@ -197,7 +199,24 @@ class PluginHelper {
                 delete require.cache[key];
             });
 
+        const id = res.split('\n').find(l => l.trim().substr(0, 1) === '+');
+        if (!id) {
+            throw new Error(`Plugin installed, but unable to get plugin name. Output was \`${res}\``);
+        }
+
         return id.substr(2, id.lastIndexOf('@') - 2).trim();
+    }
+
+    static _packageDirectory (type) {
+        const path = require('path');
+
+        try {
+            const modulePath = path.dirname(require.resolve(type + '/package.json'));
+            return modulePath;
+        }
+        catch (err) {
+            return null;
+        }
     }
 
     static async _runPackageRemove (type) {
