@@ -181,7 +181,7 @@ class PluginInstance extends EventEmitter {
                 config.model.pluginInstanceId = this._model.id;
             }
 
-            if (await KeychainHelper.decrypt(config.model.value) !== config.value) {
+            if (!config.model.value || await KeychainHelper.decrypt(config.model.value) !== config.value) {
                 config.model.value = await KeychainHelper.encrypt(config.value);
                 if (config.model.value.length > 2048) {
                     log.error('Plugin `%s`: Value for key `%s` is too long!', this._model.id, config.id);
@@ -1226,16 +1226,21 @@ class PluginInstance extends EventEmitter {
      * @returns {Promise.<void>}
      */
     static async check (type) {
-        try {
-            const util = require('util');
-            const fs = require('fs');
-            const readFile = util.promisify(fs.readFile); // eslint-disable-line security/detect-non-literal-fs-filename
+        let json;
 
-            const json = await readFile(type + '/package.json').toString();
+        try {
+            const fs = require('fs').promises;
+            json = await fs.readFile(require.resolve(type + '/package.json'), {encoding: 'utf8'}); // eslint-disable-line security/detect-non-literal-fs-filename
+        }
+        catch (err) {
+            throw new Error('Unable to get plugin\'s package.json: ' + err);
+        }
+
+        try {
             JSON.parse(json);
         }
         catch (err) {
-            throw new Error('Unable to parse plugin\'s package.json');
+            throw new Error('Unable to parse plugin\'s package.json: ' + err + '\n\n' + json);
         }
 
         const response = await this.request(null, type, 'check');

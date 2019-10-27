@@ -91,15 +91,20 @@ class PluginHelper {
             log.debug('%s: checks passed', type);
         }
         catch (err) {
+            const count = await DatabaseHelper.get('plugin-instance').count({
+                where: {type}
+            });
 
-            // remove plugin again
-            // @todo only if not used otherwise
-            try {
-                await this._runPackageRemove(type);
-                log.debug('%s: removed successfully', type);
-            }
-            catch (err) {
-                log.warn('%s: unable to remove plugin: %s', type, err);
+            if (!count) {
+
+                // remove plugin again
+                try {
+                    await this._runPackageRemove(type);
+                    log.debug('%s: removed successfully', type);
+                }
+                catch (err) {
+                    log.warn('%s: unable to remove plugin: %s', type, err);
+                }
             }
 
             throw err;
@@ -166,15 +171,34 @@ class PluginHelper {
 
 
     static async _runPackageInstall (type) {
+        const path = require('path');
+        let modulePath = PluginHelper._packageDirectory(type);
         let res;
 
-        try {
-            res = await this._runPackageRunQueue(['npm', 'install', '--ignore-scripts', '--production', type]);
+        if (!modulePath) {
+            try {
+                res = await this._runPackageRunQueue(['npm', 'install', '--ignore-scripts', '--production', type]);
+            }
+            catch (err) {
+                log.error(err);
+                throw new Error('Unable to install required package via npm`: ' + err.string);
+            }
+
+            modulePath = PluginHelper._packageDirectory(type);
         }
-        catch (err) {
-            log.error(err);
-            throw new Error('Unable to install required package via npm`: ' + err.string);
+
+        modulePath = path.dirname(require.resolve(type + '/package.json'));
+        if (!modulePath) {
+            throw new Error('Unable to find plugin after installation');
         }
+
+        log.debug('Plugin installation done, path is ' + modulePath);
+        Object.keys(require.cache)
+            .filter(key => key.substr(0, modulePath.length) === modulePath)
+            .forEach(key => {
+                log.debug('Invalidated cached module: ' + key);
+                delete require.cache[key];
+            });
 
         const id = res.split('\n').find(l => l.trim().substr(0, 1) === '+');
         if (!id) {
@@ -182,6 +206,18 @@ class PluginHelper {
         }
 
         return id.substr(2, id.lastIndexOf('@') - 2).trim();
+    }
+
+    static _packageDirectory (type) {
+        const path = require('path');
+
+        try {
+            const modulePath = path.dirname(require.resolve(type + '/package.json'));
+            return modulePath;
+        }
+        catch (err) {
+            return null;
+        }
     }
 
     static async _runPackageRemove (type) {
@@ -224,11 +260,11 @@ class PluginHelper {
             }).finally(() => {
                 log.debug('_runPackageRunQueue: %s: done', id);
                 const i = this._runPackageRunQueue.q.indexOf(item);
-                if(i >= 0) {
+                if (i >= 0) {
                     log.debug('_runPackageRunQueue: %s: remove queue item', id);
                     this._runPackageRunQueue.q.splice(i, 1);
                 }
-                if(this._runPackageRunQueue.q.length > 0) {
+                if (this._runPackageRunQueue.q.length > 0) {
                     setTimeout(() => {
                         log.debug('_runPackageRunQueue: %s: start next item: %s', id, this._runPackageRunQueue.q[0][0]);
                         this._runPackageRunQueue.e.emit('start', this._runPackageRunQueue.q[0][0]);

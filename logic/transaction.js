@@ -90,7 +90,7 @@ class TransactionLogic extends BaseLogic {
 
         // amount
         model.amount = parseInt(body.amount, 10) || null;
-        if (isNaN(model.amount) || model.amount === 0) {
+        if (isNaN(model.amount) || (model.amount === 0 && !body.reconcile)) {
             throw new ErrorResponse(400, 'Transaction requires attribute `amount`…', {
                 attributes: {
                     amount: 'Is required!'
@@ -184,10 +184,61 @@ class TransactionLogic extends BaseLogic {
 
         documentId = accountModel.document.id;
         model.accountId = accountModel.id;
+        model.isReconciling = true;
 
 
         // units
-        if (body.units) {
+        if (body.reconcile) {
+            if (model.amount !== null) {
+                const lastReconcileTransaction = await this.getModel().findOne({
+                    where: {
+                        accountId: model.accountId,
+                        isReconciling: true
+                    },
+                    include: [
+                        {
+                            model: DatabaseHelper.get('unit')
+                        }
+                    ],
+                    order: [['time', 'DESC']],
+                    limit: 1
+                });
+
+                model.status = 'cleared';
+                await model.save();
+
+                if (lastReconcileTransaction && lastReconcileTransaction.units.length === 1) {
+                    const unitModel = DatabaseHelper.get('unit').build();
+                    unitModel.transactionId = model.id;
+                    unitModel.amount = model.amount;
+                    unitModel.type = lastReconcileTransaction.units[0].type;
+                    unitModel.budgetId = lastReconcileTransaction.units[0].budgetId;
+                    unitModel.transferAccountId = lastReconcileTransaction.units[0].transferAccountId;
+                    await unitModel.save();
+                    model.units = [unitModel];
+                }
+            }
+
+            const transactions = await this.getModel().findAll({
+                where: {
+                    time: {
+                        [DatabaseHelper.op('lte')]: model.time
+                    },
+                    status: 'normal'
+                }
+            });
+
+            // don't use TransactionModel.update() to trigger events
+            await Promise.all(transactions.map(transaction => {
+                transaction.status = 'cleared';
+                return transaction.save();
+            }));
+
+            if (model.amount === null) {
+                return {model: {}};
+            }
+        }
+        else if (body.units) {
             const unitJobs = [];
             let sum = 0;
 
@@ -292,7 +343,9 @@ class TransactionLogic extends BaseLogic {
         }
 
 
-        const lastJobs = [];
+        const lastJobs = [
+            this.updateLearnings(model)
+        ];
 
         // update portions
         const PortionLogic = require('../logic/portion');
@@ -311,12 +364,13 @@ class TransactionLogic extends BaseLogic {
 
         // update account balance
         const AccountLogic = require('./account');
-        if(model.units && model.units.find(u => u.type === 'TRANSFER')) {
+        if (model.units && model.units.find(u => u.type === 'TRANSFER')) {
             lastJobs.push((async () => {
                 const accounts = await AccountLogic.list({}, options);
                 await Promise.all(accounts.map(a => AccountLogic.sendUpdatedEvent(a)));
             })());
-        }else {
+        }
+        else {
             lastJobs.push((async () => {
                 const account = await model.getAccount();
                 await AccountLogic.sendUpdatedEvent(account);
@@ -328,7 +382,7 @@ class TransactionLogic extends BaseLogic {
         return {model};
     }
 
-    static async get (id, options) {
+    static async get (id, options = {}) {
         const DatabaseHelper = require('../helpers/database');
         return this.getModel().findOne({
             where: {
@@ -341,13 +395,13 @@ class TransactionLogic extends BaseLogic {
                     include: [{
                         model: DatabaseHelper.get('document'),
                         attributes: ['id'],
-                        include: [{
+                        include: options.session ? [{
                             model: DatabaseHelper.get('user'),
                             attributes: ['id'],
                             where: {
                                 id: options.session.userId
                             }
-                        }]
+                        }] : []
                     }]
                 },
                 {
@@ -582,7 +636,7 @@ class TransactionLogic extends BaseLogic {
         if (body.accountId !== undefined && body.accountId !== model.accountId) {
             const AccountLogic = require('./account');
             const accountModel = await AccountLogic.get(body.accountId, options);
-            if(!accountModel) {
+            if (!accountModel) {
                 throw new ErrorResponse(400, 'Not able to update transaction: account can not be changed to a non existing one!', {
                     attributes: {
                         accountId: 'Not allowed to change, because new account not existing'
@@ -633,7 +687,7 @@ class TransactionLogic extends BaseLogic {
                 }
 
                 // amount
-                if(unit.amount !== undefined) {
+                if (unit.amount !== undefined) {
                     let amount = parseInt(unit.amount, 10);
                     sum += amount;
 
@@ -655,7 +709,7 @@ class TransactionLogic extends BaseLogic {
                 }
 
                 // memo
-                if(unit.memo !== undefined) {
+                if (unit.memo !== undefined) {
                     unitModel.memo = unit.memo || null;
                     if (unitModel.memo && unitModel.memo.length > 255) {
                         throw new ErrorResponse(400, 'Not able to update transaction: unit[' + i + '].memo is to long', {
@@ -709,7 +763,7 @@ class TransactionLogic extends BaseLogic {
                     unitModel.type = 'BUDGET';
                     unitModel.budgetId = budget.id;
                 }
-                else if(!unit.budgetId) {
+                else if (!unit.budgetId) {
                     throw new ErrorResponse(
                         400,
                         'Not able to update transaction: unit[' + i + '] has no valid type or budgetId set',
@@ -760,8 +814,9 @@ class TransactionLogic extends BaseLogic {
         }
 
 
-
-        const lastJobs = [];
+        const lastJobs = [
+            this.updateLearnings(model)
+        ];
 
         // update portions
         if (recalculateFrom !== null) {
@@ -783,14 +838,15 @@ class TransactionLogic extends BaseLogic {
         }
 
         // update account balance
-        if(model.units.find(u => u.type === 'TRANSFER')) {
+        if (model.units.find(u => u.type === 'TRANSFER')) {
             lastJobs.push((async () => {
                 const AccountLogic = require('./account');
                 const accounts = await AccountLogic.list({}, options);
 
                 accounts.forEach(a => AccountLogic.sendUpdatedEvent(a));
             })());
-        }else {
+        }
+        else {
             lastJobs.push((async () => {
                 const AccountLogic = require('./account');
                 const account = await model.getAccount();
@@ -825,15 +881,220 @@ class TransactionLogic extends BaseLogic {
 
         // update account balance
         const AccountLogic = require('./account');
-        if(model.units.find(u => u.type === 'TRANSFER')) {
+        if (model.units.find(u => u.type === 'TRANSFER')) {
             const accounts = await AccountLogic.list({}, options);
             accounts.forEach(a => AccountLogic.sendUpdatedEvent(a));
-        }else {
+        }
+        else {
             const account = await model.getAccount();
             AccountLogic.sendUpdatedEvent(account);
         }
 
         return model;
+    }
+
+    static async updateLearnings (transaction) {
+        const DatabaseHelper = require('../helpers/database');
+        const models = await DatabaseHelper.get('learning').findAll({
+            where: {
+                transactionId: transaction.id
+            }
+        });
+
+        const promises = [];
+        let learnings = [];
+        if (transaction.units && transaction.units.length) {
+            learnings = await TransactionLogic.generateLearnings(transaction);
+            learnings = learnings.filter(l => l.budgetId);
+        }
+
+        // remove items
+        models.filter(model =>
+            !learnings.find(learning =>
+                learning.location === model.location &&
+                learning.documentId === model.documentId &&
+                learning.transactionId === model.transactionId &&
+                learning.word === model.word
+            )
+        ).forEach(remove => {
+            promises.push(remove.destroy());
+        });
+
+        // add items
+        learnings.filter(learning =>
+            !models.find(model =>
+                learning.location === model.location &&
+                learning.documentId === model.documentId &&
+                learning.transactionId === model.transactionId &&
+                learning.word === model.word
+            )
+        ).forEach(add => {
+            promises.push(DatabaseHelper.get('learning').create(add));
+        });
+
+        await Promise.all(promises);
+    }
+
+    static async generateLearnings (transaction) {
+        const result = [];
+        const crypto = require('crypto');
+
+        let documentId = null;
+        if (transaction.account && transaction.account.documentId) {
+            documentId = transaction.account.documentId;
+        }
+        if (!documentId && transaction.account && transaction.account.document && transaction.account.document.id) {
+            documentId = transaction.account.document.id;
+        }
+        if (!documentId) {
+            const fullTransaction = await TransactionLogic.get(transaction.id);
+            documentId = fullTransaction.account.documentId;
+        }
+        if (!documentId) {
+            return [];
+        }
+
+        const add = (location, value) => {
+            const words = value
+                .trim()
+                .toLowerCase()
+                .replace(/[^[a-zA-Z0-9]/, ' ')
+                .split(' ');
+
+            words.forEach(word => {
+                if (!word) {
+                    return;
+                }
+
+                const hash = crypto.createHash('md5')
+                    .update(word)
+                    .digest('hex');
+
+                if (result.find(l =>
+                    l.location === location &&
+                    l.word === hash &&
+                    l.transactionId === transaction.id
+                )) {
+                    return;
+                }
+
+                result.push({
+                    location,
+                    documentId,
+                    budgetId: transaction.units && transaction.units.length ? transaction.units[0].budgetId : null,
+                    transactionId: transaction.id,
+                    word: hash
+                });
+            });
+        };
+
+        // payee
+        if (transaction.payee && transaction.payee.name) {
+            add('payee', transaction.payee.name);
+        }
+
+        // memo
+        if (transaction.memo) {
+            add('memo', transaction.memo);
+        }
+
+        // plugin:payee
+        if (transaction.pluginsOwnPayeeId) {
+            add('plugin:payee', transaction.pluginsOwnPayeeId);
+        }
+
+        // plugin:memo
+        if (transaction.pluginsOwnMemo) {
+            add('plugin:memo', transaction.pluginsOwnMemo);
+        }
+
+        return result;
+    }
+
+    static async guessBudget (transaction) {
+        const DatabaseHelper = require('../helpers/database');
+        const locationFactors = {
+            'plugin:payee': 1,
+            'plugin:memo': 0.4,
+            'payee': 0.7,
+            'memo': 0.2
+        };
+
+        const learnings = await TransactionLogic.generateLearnings(transaction);
+        const merged = [];
+
+        console.log(learnings.map(learning => ({
+            location: learning.location,
+            word: learning.word
+        })));
+
+        const models = await DatabaseHelper.get('learning').findAll({
+            attributes: [
+                'budgetId',
+                'location',
+                'word',
+                [DatabaseHelper.count('*'), 'learningUsages'],
+                [
+                    DatabaseHelper.literal(
+                        '(SELECT COUNT(*) ' +
+                        'FROM learnings AS i ' +
+                        'WHERE i.location = learning.location AND i.budgetId = learning.budgetId)'
+                    ),
+                    'budgetUsages'
+                ],
+                [
+                    DatabaseHelper.literal(
+                        '(COUNT(*) / (SELECT COUNT(*) ' +
+                        'FROM learnings AS i ' +
+                        'WHERE i.location = learning.location AND i.budgetId = learning.budgetId))'
+                    ),
+                    'ratio'
+                ]
+            ],
+            include: [
+                {
+                    model: DatabaseHelper.get('budget'),
+                    attributes: ['id', 'name'],
+                    required: true,
+                    where: {
+                        hidden: 0
+                    }
+                }
+            ],
+            where: {
+                [DatabaseHelper.op('or')]: learnings.map(learning => ({
+                    location: learning.location,
+                    word: learning.word
+                })),
+                documentId: transaction.account.documentId
+            },
+            group: ['budgetId', 'location', 'word'],
+            order: [[DatabaseHelper.literal('ratio'), 'DESC']],
+            limit: 10
+        });
+
+        models.forEach(model => {
+            let m = merged.find(j => j.budgetId === model.budgetId);
+            if (!m) {
+                m = {
+                    budgetId: model.budgetId,
+                    budgetName: model.budget.name,
+                    probability: 0
+                };
+                merged.push(m);
+            }
+
+
+            m.probability += Math.sin(model.dataValues.learningUsages / model.dataValues.budgetUsages) *
+                (locationFactors[model.location] || 0.25) / 4;
+        });
+
+        merged.sort((a, b) => b.probability - a.probability);
+        if (merged.length > 5) {
+            merged.splice(5, merged.length - 5);
+        }
+
+        return merged;
     }
 
     /**
@@ -1107,16 +1368,16 @@ class TransactionLogic extends BaseLogic {
             const allPlugins = await PluginHelper.listPlugins();
             const allMetadataPlugins = allPlugins.filter(p => p.supported().includes('getMetadata'));
 
-            return Promise.all(allMetadataPlugins.map(plugin => (async () => {
+            return Promise.all(allMetadataPlugins.map(async plugin => {
                 try {
                     log.debug('Run metadata plugin: ' + plugin.type());
-                    return plugin.getMetadata(newTransaction);
+                    return await plugin.getMetadata(newTransaction);
                 }
                 catch (err) {
                     log.info('Unable to load metadata: %s', err.toString());
                     log.warn(err);
                 }
-            })()));
+            }));
         })());
 
         await Promise.all(jobs);

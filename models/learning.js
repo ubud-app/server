@@ -7,11 +7,11 @@ module.exports = class LearningModelDefinition {
                 defaultValue: DataTypes.UUIDV4
             },
             location: {
-                type: DataTypes.ENUM('payee.name', 'payee.account', 'reference'),
+                type: DataTypes.ENUM('payee', 'memo', 'plugin:payee', 'plugin:memo'),
                 allowNull: false
             },
             word: {
-                type: DataTypes.STRING(50),
+                type: DataTypes.STRING(32),
                 allowNull: false
             }
         };

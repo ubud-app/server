@@ -150,8 +150,11 @@ models['plugin-instance'].belongsTo(models.document, {foreignKey: {allowNull: fa
 models.document.hasMany(models.learning, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 models.learning.belongsTo(models.document, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 
-models.category.hasMany(models.learning, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
-models.learning.belongsTo(models.category, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+models.budget.hasMany(models.learning, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+models.learning.belongsTo(models.budget, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+
+models.transaction.hasMany(models.learning, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+models.learning.belongsTo(models.transaction, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 
 models.document.hasMany(models.summary, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
 models.summary.belongsTo(models.document, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});

@@ -1,6 +1,7 @@
 module.exports = [
     require('./account'),
     require('./budget'),
+    require('./budget-guess'),
     require('./category'),
     require('./component'),
     require('./document'),
