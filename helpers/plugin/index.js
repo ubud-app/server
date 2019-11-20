@@ -200,12 +200,16 @@ class PluginHelper {
                 delete require.cache[key];
             });
 
-        const id = res.split('\n').find(l => l.trim().substr(0, 1) === '+');
-        if (!id) {
-            throw new Error(`Plugin installed, but unable to get plugin name. Output was \`${res}\``);
+        if (res) {
+            const id = res.split('\n').find(l => l.trim().substr(0, 1) === '+');
+            if (!id) {
+                throw new Error(`Plugin installed, but unable to get plugin name. Output was \`${res}\``);
+            }
+
+            return id.substr(2, id.lastIndexOf('@') - 2).trim();
         }
 
-        return id.substr(2, id.lastIndexOf('@') - 2).trim();
+        return type;
     }
 
     static _packageDirectory (type) {

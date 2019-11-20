@@ -37,6 +37,7 @@ class TransactionLogic extends BaseLogic {
             })),
             approved: transaction.approved,
             status: transaction.status,
+            reconciling: transaction.isReconciling,
             locationAccuracy: transaction.locationAccuracy || null,
             locationLatitude: transaction.locationLatitude || null,
             locationLongitude: transaction.locationLongitude || null
