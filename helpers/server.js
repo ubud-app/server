@@ -55,6 +55,7 @@ class ServerHelper {
         io = socketio(server);
 
         try {
+            await this.waitForDatabase();
             await this.migrateDatabaseIfRequired();
             await this.createDefaultUserIfRequired();
 
@@ -63,7 +64,7 @@ class ServerHelper {
         }
         catch (err) {
             log.error(err);
-            throw err;
+            process.exit(1);
         }
 
         this.loadRoutes();
@@ -73,6 +74,35 @@ class ServerHelper {
         io.on('connection', function (socket) {
             ServerHelper.handleSocketConnection(socket);
         });
+    }
+
+    /**
+     * Tests the database connection and waits up to 30
+     * seconds for a working connection. If sequelize is
+     * unable to connect, this method will throw an error
+     * after 30 seconds.
+     *
+     * @returns {Promise<void>}
+     */
+    static async waitForDatabase () {
+        let lastError = null;
+        for(let i = 0; i < 60; i++) {
+            try {
+                await DatabaseHelper.authenticate();
+                return;
+            }
+            catch(error) {
+                lastError = error;
+
+                if(i === 0) {
+                    log.info('Unable to establish database connection. Will try again for a moment, please wait…');
+                }
+
+                await new Promise(cb => setTimeout(cb, 1000));
+            }
+        }
+
+        throw lastError;
     }
 
     /**
