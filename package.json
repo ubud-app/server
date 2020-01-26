@@ -8,6 +8,7 @@
 		"ubud-server": "./server.js"
 	},
 	"scripts": {
+		"test": "echo \"Error: no test specified\"",
 		"check": "npm run check:eslint && npm run check:npm",
 		"check:quick": "npm run check:eslint",
 		"check:eslint": "eslint ./",
