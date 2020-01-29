@@ -12,6 +12,7 @@ else
 fi
 
 
+
 baseImages=( x86_64 arm64 aarch64 amd64 armhf i386 )
 for i in "${baseImages[@]}"
 do
@@ -30,6 +31,7 @@ do
     docker push "ubud/server:${VERSION}-${i}"
     docker push "docker.pkg.github.com/ubud-app/server/docker:${VERSION}-${i}"
 done
+
 
 
 docker manifest create "ubud/server:${VERSION}" \
