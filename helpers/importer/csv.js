@@ -61,8 +61,11 @@ class CSVImporter {
                     }
                     else if (row[possibleColumn] && attr === 'amount') {
                         const amount = parseInt(row[possibleColumn].replace(/,|\./, ''), 10);
-                        if (!isNaN(amount)) {
+                        if (!isNaN(amount) && amount !== 0) {
                             model[attr] = amount;
+                        }
+                        if (amount === 0) {
+                            return;
                         }
                     }
                     else if (row[possibleColumn] !== undefined) {
@@ -70,7 +73,7 @@ class CSVImporter {
                     }
                 });
 
-                if(model[attr] === undefined) {
+                if (model[attr] === undefined) {
                     throw new Error(
                         'Unable to import CSV: no value found for `' + attr + '`, parsed this data: ' +
                         JSON.stringify(row, null, '  ')

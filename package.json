@@ -8,6 +8,7 @@
 		"ubud-server": "./server.js"
 	},
 	"scripts": {
+		"test": "echo \"Error: no test specified\"",
 		"check": "npm run check:eslint && npm run check:npm",
 		"check:quick": "npm run check:eslint",
 		"check:eslint": "eslint ./",
@@ -19,13 +20,13 @@
 		"url": "https://github.com/ubud-app/client/issues"
 	},
 	"dependencies": {
-		"@sentry/node": "^5.9.0",
+		"@sentry/node": "^5.11.2",
 		"basic-auth": "^2.0.1",
 		"bcryptjs": "^2.4.3",
 		"body-parser": "^1.19.0",
 		"bunyan": "^1.8.12",
 		"cli-table": "^0.3.1",
-		"commander": "^4.0.1",
+		"commander": "^4.1.0",
 		"cors": "^2.8.5",
 		"dtrace-provider": "^0.8.8",
 		"email-validator": "^2.0.4",
@@ -34,24 +35,29 @@
 		"hibp": "^8.0.0",
 		"moment": "^2.24.0",
 		"mt940-js": "^0.6.0",
-		"mysql2": "^2.0.1",
+		"mysql2": "^2.1.0",
 		"neat-csv": "^5.1.0",
 		"promised-exec": "^1.0.1",
 		"request": "^2.88.0",
 		"request-promise-native": "^1.0.8",
-		"sequelize": "^5.21.2",
+		"sequelize": "^5.21.3",
 		"shell-escape": "^0.2.0",
 		"socket.io": "^2.3.0",
 		"umzug": "^2.2.0",
-		"underscore": "^1.9.1",
-		"uuid": "^3.3.3"
+		"underscore": "^1.9.2",
+		"uuid": "^3.4.0"
 	},
 	"optionalDependencies": {
 		"ofx": "^0.4.0"
 	},
 	"devDependencies": {
-		"eslint": "^6.6.0",
+		"@semantic-release/changelog": "^5.0.0",
+		"@semantic-release/exec": "^5.0.0",
+		"@semantic-release/github": "^7.0.0",
+		"@semantic-release/npm": "^7.0.0",
+		"eslint": "^6.8.0",
 		"eslint-plugin-security": "^1.4.0",
-		"npm-check": "^5.9.0"
+		"npm-check": "^5.9.0",
+		"semantic-release": "^17.0.1"
 	}
 }

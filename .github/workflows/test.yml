@@ -1,0 +1,36 @@
+name: Test
+on:
+  pull_request:
+    types: [opened, reopened]
+  push:
+    branches:
+      - feature/**
+      - hotfix/**
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: set version
+        run: |
+          export OLDVERSION=$(npm view @ubud-app/server@next version)
+          jq -M ".version=\"$OLDVERSION\"" package.json > package.new.json
+          rm -f package.json
+          mv package.new.json package.json
+      - name: pull dependencies
+        run: |
+          docker pull multiarch/qemu-user-static:register
+          docker pull multiarch/alpine:x86_64-latest-stable
+      - name: register quemu user static
+        run: docker run --rm --privileged multiarch/qemu-user-static:register --reset
+      - name: build test docker container
+        run: |
+          docker build \
+              --build-arg BASEIMAGE="multiarch/alpine:x86_64-latest-stable" \
+              --build-arg NODE_ENV="develop" \
+              --build-arg CLIENT_TAG="next" \
+              --build-arg NEXT="1" \
+              -t "ubud-server-tests:${GITHUB_SHA}" .
+      - name: run checks
+        run: docker run --rm "ubud-server-tests:${GITHUB_SHA}" npm run check

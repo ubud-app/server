@@ -323,6 +323,16 @@ class DatabaseHelper {
     static count (column) {
         return sequelize.fn('count', sequelize.col(column));
     }
+
+    /**
+     * Resolves if database connection works, otherwise
+     * resolves with an error
+     *
+     * @returns {Promise<<void>>}
+     */
+    static async authenticate () {
+        return sequelize.authenticate();
+    }
 }
 
 module.exports = DatabaseHelper;
