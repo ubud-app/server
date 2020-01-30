@@ -2,6 +2,10 @@ ARG BASEIMAGE=multiarch/alpine:x86_64-latest-stable
 FROM $BASEIMAGE as build-container
 
 ARG CLIENT_TAG=latest
+ARG NODE_ENV=production
+ENV NODE_ENV=$NODE_ENV
+ENV SENTRY_DSN=$SENTRY_DSN
+
 RUN apk add --no-cache --update \
     nodejs \
     nodejs-npm \
@@ -30,6 +34,7 @@ ARG NODE_ENV=production
 ARG NEXT
 ARG SENTRY_DSN
 
+ENV NODE_ENV=$NODE_ENV
 ENV SENTRY_DSN=$SENTRY_DSN
 ENV NEXT=$NEXT
 

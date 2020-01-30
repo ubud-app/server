@@ -3,12 +3,12 @@
 if [[ "${BRANCH}" == "master" ]]
 then
    CLIENT_TAG="latest"
-   NEXT=""
    DOCKER_TAG="latest"
+   NEXT=""
 else
    CLIENT_TAG="next"
-   NEXT="1"
    DOCKER_TAG="next"
+   NEXT="1"
 fi
 
 
@@ -16,23 +16,42 @@ fi
 baseImages=( x86_64 arm64 aarch64 amd64 armhf i386 )
 for i in "${baseImages[@]}"
 do
+    docker pull "multiarch/alpine:${i}-latest-stable"
+    docker pull "ubud/server:next-${i}-base" || true
+    docker pull "ubud/server:next-${i}" || true
+
+    docker build \
+        --target build-container \
+        --build-arg BASEIMAGE="multiarch/alpine:${i}-latest-stable" \
+        --build-arg NODE_ENV="production" \
+        --build-arg CLIENT_TAG="${CLIENT_TAG}" \
+        --build-arg NEXT="${NEXT}" \
+        --cache-from "ubud/server:next-${i}-base" \
+        -t "ubud/server:${VERSION}-${i}-base" .
+
     docker build \
         --build-arg BASEIMAGE="multiarch/alpine:${i}-latest-stable" \
         --build-arg NODE_ENV="production" \
         --build-arg CLIENT_TAG="${CLIENT_TAG}" \
         --build-arg NEXT="${NEXT}" \
+        --cache-from "ubud/server:next-${i}-base" \
+        --cache-from "ubud/server:next-${i}" \
         -t "ubud/server:${VERSION}-${i}" .
 
     docker run --rm "ubud/server:${VERSION}-${i}" npm run check
 
     docker tag "ubud/server:${VERSION}-${i}" "ubud/server:${DOCKER_TAG}-${i}"
-    docker tag "ubud/server:${VERSION}-${i}" "docker.pkg.github.com/ubud-app/server/docker:${VERSION}-${i}"
-    docker tag "ubud/server:${VERSION}-${i}" "docker.pkg.github.com/ubud-app/server/docker:${DOCKER_TAG}-${i}"
+    docker tag "ubud/server:${VERSION}-${i}-base" "ubud/server:${DOCKER_TAG}-${i}-base"
+
+    docker tag "ubud/server:${VERSION}-${i}" "docker.pkg.github.com/ubud-app/server/${i}:${VERSION}"
+    docker tag "ubud/server:${VERSION}-${i}" "docker.pkg.github.com/ubud-app/server/${i}:${DOCKER_TAG}"
 
     docker push "ubud/server:${VERSION}-${i}"
     docker push "ubud/server:${DOCKER_TAG}-${i}"
-    docker push "docker.pkg.github.com/ubud-app/server/docker:${VERSION}-${i}"
-    docker push "docker.pkg.github.com/ubud-app/server/docker:${DOCKER_TAG}-${i}"
+    docker push "ubud/server:${DOCKER_TAG}-${i}-base"
+
+    docker push "docker.pkg.github.com/ubud-app/server/${i}:${VERSION}"
+    docker push "docker.pkg.github.com/ubud-app/server/${i}:${DOCKER_TAG}"
 done
 
 
