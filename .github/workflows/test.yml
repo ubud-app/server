@@ -22,7 +22,8 @@ jobs:
         run: |
           docker pull multiarch/qemu-user-static:register
           docker pull multiarch/alpine:x86_64-latest-stable
-          docker pull ubud/server:next-x86_64
+          docker pull ubud/server:next-x86_64-base || true
+          docker pull ubud/server:next-x86_64 || true
       - name: register quemu user static
         run: docker run --rm --privileged multiarch/qemu-user-static:register --reset
       - name: build test docker container
@@ -32,6 +33,7 @@ jobs:
               --build-arg NODE_ENV="develop" \
               --build-arg CLIENT_TAG="next" \
               --build-arg NEXT="1" \
+              --cache-from ubud/server:next-x86_64-base \
               --cache-from ubud/server:next-x86_64 \
               -t "ubud-server-tests:${GITHUB_SHA}" .
       - name: run checks
