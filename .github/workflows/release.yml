@@ -64,3 +64,4 @@ jobs:
           SENTRY_URL: ${{ secrets.SENTRY_URL }}
           NOTIFY_WEBHOOK_SECRET: ${{ secrets.NOTIFY_WEBHOOK_SECRET }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          MICROBADGER_WEBHOOK_SECRET: ${{ secrets.MICROBADGER_WEBHOOK_SECRET }}
