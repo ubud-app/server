@@ -8,7 +8,7 @@
 		"ubud-server": "./server.js"
 	},
 	"scripts": {
-		"test": "mocha",
+		"test": "mocha | bunyan -o short -l error",
 		"check": "npm run check:eslint && npm run check:npm",
 		"check:quick": "npm run check:eslint",
 		"check:eslint": "eslint ./",
