@@ -1024,11 +1024,6 @@ class TransactionLogic extends BaseLogic {
         const learnings = await TransactionLogic.generateLearnings(transaction);
         const merged = [];
 
-        console.log(learnings.map(learning => ({
-            location: learning.location,
-            word: learning.word
-        })));
-
         const models = await DatabaseHelper.get('learning').findAll({
             attributes: [
                 'budgetId',
