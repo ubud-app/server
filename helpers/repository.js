@@ -320,10 +320,12 @@ class RepositoryHelper {
      * @returns {{installed: string|null, available: string|null, id: string}}
      */
     static prettifyComponent (name, data) {
+        const semver = require('semver');
         const j = {
             id: name,
             installed: null,
-            available: null
+            available: null,
+            updateAvailable: null
         };
 
         if (name === 'server' && ConfigHelper.getVersion()) {
@@ -334,6 +336,11 @@ class RepositoryHelper {
         }
 
         j.available = data.channels[ConfigHelper.isNext() ? 'next' : 'latest'];
+
+        if(j.installed && j.available) {
+            j.updateAvailable = semver.gt(j.available, j.installed);
+        }
+
         return j;
     }
 
