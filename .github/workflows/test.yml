@@ -8,7 +8,7 @@ on:
       - hotfix/**
 
 jobs:
-  test:
+  prepare:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
@@ -18,23 +18,52 @@ jobs:
           jq -M ".version=\"$OLDVERSION\"" package.json > package.new.json
           rm -f package.json
           mv package.new.json package.json
+      - name: docker login
+        run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+        env:
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       - name: pull dependencies
         run: |
           docker pull multiarch/qemu-user-static:register
           docker pull multiarch/alpine:x86_64-latest-stable
           docker pull ubud/server:next-x86_64-base || true
-          docker pull ubud/server:next-x86_64 || true
+          docker pull ubud/server:${{ github.sha }}-test-container || true
       - name: register quemu user static
         run: docker run --rm --privileged multiarch/qemu-user-static:register --reset
       - name: build test docker container
         run: |
           docker build \
+              --target build-container \
               --build-arg BASEIMAGE="multiarch/alpine:x86_64-latest-stable" \
               --build-arg NODE_ENV="develop" \
               --build-arg CLIENT_TAG="next" \
               --build-arg NEXT="1" \
+              --cache-from ubud/server:${{ github.sha }}-test-container \
               --cache-from ubud/server:next-x86_64-base \
-              --cache-from ubud/server:next-x86_64 \
-              -t "ubud-server-tests:${GITHUB_SHA}" .
+              -t "ubud/server:${{ github.sha }}-test-container" .
+      - name: push
+        run: docker push "ubud/server:${{ github.sha }}-test-container"
+  check:
+    runs-on: ubuntu-latest
+    needs: [prepare]
+    steps:
       - name: run checks
-        run: docker run --rm "ubud-server-tests:${GITHUB_SHA}" npm run check
+        run: docker run --rm ubud/server:${{ github.sha }}-test-container npm run check
+  test-mysql:
+    runs-on: ubuntu-latest
+    needs: [prepare]
+    steps:
+      - name: run tests
+        run: |
+          docker run -d --rm --name "database" \
+            -e "MYSQL_ROOT_PASSWORD=**********" \
+            -e "MYSQL_USER=ubud" \
+            -e "MYSQL_PASSWORD=**********" \
+            -e "MYSQL_DATABASE=ubud" \
+            mariadb:latest
+          sleep 10
+          docker run --rm --link database \
+            -e "DATABASE=mysql://ubud:**********@database/ubud" \
+            ubud/server:${{ github.sha }}-test-container npm run test
+          docker stop database

@@ -8,7 +8,7 @@
 		"ubud-server": "./server.js"
 	},
 	"scripts": {
-		"test": "echo \"Error: no test specified\"",
+		"test": "mocha | bunyan -o short -l error",
 		"check": "npm run check:eslint && npm run check:npm",
 		"check:quick": "npm run check:eslint",
 		"check:eslint": "eslint ./",
@@ -56,9 +56,12 @@
 		"@semantic-release/exec": "^5.0.0",
 		"@semantic-release/github": "^7.0.1",
 		"@semantic-release/npm": "^7.0.2",
+		"chai": "^4.2.0",
 		"eslint": "^6.8.0",
 		"eslint-plugin-security": "^1.4.0",
+		"mocha": "^7.0.1",
 		"npm-check": "^5.9.0",
+		"nyc": "^15.0.0",
 		"semantic-release": "^17.0.2"
 	}
 }
