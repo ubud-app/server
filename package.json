@@ -20,13 +20,13 @@
 		"url": "https://github.com/ubud-app/client/issues"
 	},
 	"dependencies": {
-		"@sentry/node": "^5.11.2",
+		"@sentry/node": "^5.12.3",
 		"basic-auth": "^2.0.1",
 		"bcryptjs": "^2.4.3",
 		"body-parser": "^1.19.0",
 		"bunyan": "^1.8.12",
 		"cli-table": "^0.3.1",
-		"commander": "^4.1.0",
+		"commander": "^4.1.1",
 		"cors": "^2.8.5",
 		"dtrace-provider": "^0.8.8",
 		"email-validator": "^2.0.4",
@@ -54,7 +54,7 @@
 	"devDependencies": {
 		"@semantic-release/changelog": "^5.0.0",
 		"@semantic-release/exec": "^5.0.0",
-		"@semantic-release/github": "^7.0.1",
+		"@semantic-release/github": "^7.0.2",
 		"@semantic-release/npm": "^7.0.2",
 		"chai": "^4.2.0",
 		"eslint": "^6.8.0",
