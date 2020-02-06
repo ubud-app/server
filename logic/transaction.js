@@ -1221,7 +1221,7 @@ class TransactionLogic extends BaseLogic {
                         [DatabaseHelper.op('lte')]: moment(reference.time).add(1, 'day').endOf('day').toJSON()
                     },
                     pluginsOwnId: {
-                        [DatabaseHelper.op('notIn')]: allTransactions.map(t => t.id)
+                        [DatabaseHelper.op('notIn')]: allTransactions.map(t => t.pluginsOwnId)
                     },
                     accountId: reference.accountId,
                     pluginsOwnPayeeId: reference.pluginsOwnPayeeId,
