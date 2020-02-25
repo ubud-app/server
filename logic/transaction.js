@@ -1024,7 +1024,49 @@ class TransactionLogic extends BaseLogic {
         const learnings = await TransactionLogic.generateLearnings(transaction);
         const merged = [];
 
-        const models = await DatabaseHelper.get('learning').findAll({
+        // check exact match
+        if(transaction.payeeId || transaction.pluginsOwnPayeeId) {
+            const where = {
+                id: {
+                    [DatabaseHelper.op('not')]: transaction.id
+                },
+                accountId: transaction.accountId
+            };
+            if(transaction.payeeId) {
+                where.payeeId = transaction.payeeId;
+            }
+            else if(transaction.pluginsOwnPayeeId) {
+                where.pluginsOwnPayeeId = transaction.pluginsOwnPayeeId;
+            }
+
+            const budgetIds = [];
+            const exactModels = await this.getModel().findAll({
+                where,
+                attributes: ['id'],
+                order: [['updatedAt', 'DESC']],
+                limit: 2,
+                include: [{
+                    model: DatabaseHelper.get('unit')
+                }]
+            });
+            exactModels.forEach(transaction => {
+                transaction.units.forEach(unit => {
+                    if(unit.type === 'BUDGET' && !budgetIds.includes(unit.budgetId)) {
+                        budgetIds.push(unit.budgetId);
+                    }
+                });
+            });
+            if(budgetIds.length === 1) {
+                const budget = await DatabaseHelper.get('budget').findByPk(budgetIds[0]);
+                merged.push({
+                    budgetId: budget.id,
+                    budgetName: budget.name,
+                    probability: 1
+                });
+            }
+        }
+
+        const learningModels = await DatabaseHelper.get('learning').findAll({
             attributes: [
                 'budgetId',
                 'location',
@@ -1068,8 +1110,7 @@ class TransactionLogic extends BaseLogic {
             order: [[DatabaseHelper.literal('ratio'), 'DESC']],
             limit: 10
         });
-
-        models.forEach(model => {
+        learningModels.forEach(model => {
             let m = merged.find(j => j.budgetId === model.budgetId);
             if (!m) {
                 m = {
