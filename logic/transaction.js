@@ -1180,6 +1180,12 @@ class TransactionLogic extends BaseLogic {
             }
         });
 
+        // check accountId
+        const account = await DatabaseHelper.get('account').findByPk(reference.accountId);
+        if(!account) {
+            throw new Error('Unable to sync transaction: attribute `accountId` invalid!');
+        }
+
         // find transaction model
         let newTransaction;
         if (reference.pluginsOwnId) {
