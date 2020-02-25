@@ -401,7 +401,7 @@ class PluginInstance extends EventEmitter {
                 // overwrite new value
                 field.value = config[field.id];
 
-                if(await KeychainHelper.decrypt(field.model.value) !== field.value) {
+                if (await KeychainHelper.decrypt(field.model.value) !== field.value) {
                     field.model.value = await KeychainHelper.encrypt(field.value);
                 }
 
@@ -473,13 +473,13 @@ class PluginInstance extends EventEmitter {
      * @returns {Promise.<void>}
      */
     async cron () {
-        if (this._supported.indexOf('getAccounts') > -1 && this._supported.indexOf('getTransactions') > -1) {
+        if (this.supported().indexOf('getAccounts') > -1 && this.supported().indexOf('getTransactions') > -1) {
             this.syncAccounts().catch(err => {
                 log.error('Unable to sync transactions with plugin %s: %s', this.type(), err);
                 log.error(err);
             });
         }
-        if (this._supported.indexOf('getGoals') > -1) {
+        if (this.supported().indexOf('getGoals') > -1) {
             this.syncGoals().catch(err => {
                 log.error('Unable to sync goals with plugin %s: %s', this.type(), err);
                 log.error(err);
@@ -943,7 +943,7 @@ class PluginInstance extends EventEmitter {
      * @returns {Promise<object|void>}
      */
     static async request (instance, type, method, config, params) {
-        const { fork } = require('child_process'); // eslint-disable-line security/detect-child-process
+        const {fork} = require('child_process'); // eslint-disable-line security/detect-child-process
 
         if (instance && instance._shutdown) {
             throw new Error('Instance is shutting down…');
