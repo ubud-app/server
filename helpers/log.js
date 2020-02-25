@@ -6,7 +6,7 @@ const _ = require('underscore');
 const os = require('os');
 const util = require('util');
 const http = require('http');
-const uuid = require('uuid/v4');
+const {v4: uuid} = require('uuid');
 const ConfigHelper = require('./config');
 
 // bunyan logger
