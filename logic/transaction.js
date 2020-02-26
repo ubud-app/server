@@ -1042,7 +1042,7 @@ class TransactionLogic extends BaseLogic {
             const budgetIds = [];
             const exactModels = await this.getModel().findAll({
                 where,
-                attributes: ['id'],
+                attributes: ['id', 'updatedAt'],
                 order: [['updatedAt', 'DESC']],
                 limit: 2,
                 include: [{
