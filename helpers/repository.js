@@ -6,6 +6,7 @@ const ConfigHelper = require('./config');
 const DatabaseHelper = require('./database');
 const PluginHelper = require('./plugin');
 const log = new LogHelper('RepositoryHelper');
+const fetch = require('node-fetch');
 
 let events = new EventEmitter();
 let initialized = false;
@@ -70,15 +71,14 @@ class RepositoryHelper {
      * the instance id in settings if required.
      */
     static async _run () {
-        const request = require('request-promise-native');
         const payload = await this._payload();
-
-        const res = await request({
-            uri: 'https://beacon.ubud.club/v1/beacon',
-            method: 'post',
-            json: true,
-            body: payload
-        });
+        const res = await fetch('https://beacon.ubud.club/v1/beacon', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }).then(r => r.json());
 
         if (res.id && instanceIdModel && instanceIdModel.value !== JSON.stringify(res.id)) {
             instanceIdModel.value = JSON.stringify(res.id);
@@ -225,13 +225,10 @@ class RepositoryHelper {
         }
 
         try {
-            const request = require('request-promise-native');
             const payload = await this._payload();
-            const plugin = await request({
-                uri: 'https://beacon.ubud.club/v1/plugin',
-                method: 'post',
-                json: true,
-                body: {
+            const res = await fetch('https://beacon.ubud.club/v1/plugin', {
+                method: 'POST',
+                body: JSON.stringify({
                     id: payload.id,
                     serverVersion: payload.serverVersion,
                     clientVersion: payload.clientVersion,
@@ -240,8 +237,11 @@ class RepositoryHelper {
                     cpuType: payload.cpuType,
                     osType: payload.osType,
                     plugin: id
+                }),
+                headers: {
+                    'Content-Type': 'application/json'
                 }
-            });
+            }).then(r => r.json());
 
             return plugin;
         }
@@ -259,14 +259,10 @@ class RepositoryHelper {
      * @returns {Promise.<object|null>}
      */
     static async searchAccountPlugin (q) {
-        const request = require('request-promise-native');
         const payload = await this._payload();
-
-        return request({
-            uri: 'https://beacon.ubud.club/v1/search',
-            method: 'post',
-            json: true,
-            body: {
+        return fetch('https://beacon.ubud.club/v1/search', {
+            method: 'POST',
+            body: JSON.stringify({
                 id: payload.id,
                 serverVersion: payload.serverVersion,
                 clientVersion: payload.clientVersion,
@@ -275,8 +271,12 @@ class RepositoryHelper {
                 cpuType: payload.cpuType,
                 osType: payload.osType,
                 account: q
+            }),
+            headers: {
+                'Content-Type': 'application/json'
             }
-        });
+        })
+            .then(r => r.json());
     }
 
     /**
