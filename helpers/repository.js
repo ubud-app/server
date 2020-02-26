@@ -226,7 +226,7 @@ class RepositoryHelper {
 
         try {
             const payload = await this._payload();
-            const res = await fetch('https://beacon.ubud.club/v1/plugin', {
+            const plugin = await fetch('https://beacon.ubud.club/v1/plugin', {
                 method: 'POST',
                 body: JSON.stringify({
                     id: payload.id,
