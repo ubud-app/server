@@ -1373,7 +1373,7 @@ class TransactionLogic extends BaseLogic {
                         'payeeId'
                     ],
                     where: {
-                        documentId: account.documentId,
+                        accountId: account.id,
                         pluginsOwnPayeeId: newTransaction.pluginsOwnPayeeId,
                         payeeId: {
                             [DatabaseHelper.op('not')]: null
