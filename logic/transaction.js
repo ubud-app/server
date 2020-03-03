@@ -1,6 +1,7 @@
 'use strict';
 
 const _ = require('underscore');
+const moment = require('moment');
 const BaseLogic = require('./_');
 const LogHelper = require('../helpers/log');
 const ErrorResponse = require('../helpers/errorResponse');
@@ -487,7 +488,15 @@ class TransactionLogic extends BaseLogic {
             }
         });
 
-        return this.getModel().findAll(sql);
+        const models = await this.getModel().findAll(sql);
+
+        if(!options.httpRequest) {
+            TransactionLogic.startSyncIfUseful(params).catch(error => {
+                log.warn('Unable to execute background account sync: ' + (error.stack || error));
+            });
+        }
+
+        return models;
     }
 
     static async update (model, body, options) {
@@ -1458,6 +1467,53 @@ class TransactionLogic extends BaseLogic {
         }
 
         return newTransaction;
+    }
+
+    static async startSyncIfUseful ({month, document, account}) {
+        const PluginHelper = require('../helpers/plugin');
+        const DatabaseHelper = require('../helpers/database');
+
+        if(month && moment(month, 'YYYY-MM').isSame(moment(), 'month')) {
+            return;
+        }
+
+        // get plugin instances
+        const instances = [];
+        if(document) {
+            const instanceIds = await DatabaseHelper.get('pluginInstance').findAll({
+                attributes: ['id'],
+                where: {
+                    documentId: document
+                }
+            });
+
+            await Promise.all(instanceIds.map(async ({id}) => {
+                instances.push(await PluginHelper.getPlugin(id));
+            }));
+        }
+        if(account) {
+            const instanceId = await DatabaseHelper.get('account').findByPk(account);
+            if(instanceId && instanceId.id && !instances.find(p => p.id() === instanceId.id)) {
+                instances.push(await PluginHelper.getPlugin(instanceId.id));
+            }
+        }
+
+        // filter instances
+        const instancesToSync = instances.filter(instance =>
+            instance.supported().includes('getAccounts') &&
+            instance.supported().includes('getTransactions') &&
+            !instance.errors().getAccounts &&
+            !instance.errors().getTransactions &&
+            (
+                !this.syncedAt('accounts')[0] ||
+                moment().subtract(5, 'minutes').isAfter(this.syncedAt('accounts')[0])
+            )
+        );
+
+        log.info(`Sync ${instancesToSync.length} accounts as listTransactions was called with a socket connection…`);
+
+        // sync instances
+        await Promise.all(instancesToSync.map(instance => instance.syncAccounts()));
     }
 }
 

@@ -42,6 +42,10 @@ class PluginHelper {
         return plugins;
     }
 
+    static async getPlugin (id) {
+        return plugins.find(plugin => plugin.id() === id) || null;
+    }
+
     /**
      * installPlugin()
      *

@@ -1,6 +1,7 @@
 'use strict';
 
 const _ = require('underscore');
+const moment = require('moment');
 const LogHelper = require('../log');
 const EventEmitter = require('events');
 const DatabaseHelper = require('../database');
@@ -27,6 +28,11 @@ class PluginInstance extends EventEmitter {
         this._shutdown = false;
         this._errors = {};
         this._cron = null;
+        this._syncedAt = {
+            accounts: [null, null],
+            metadata: [null, null],
+            goals: [null, null]
+        };
 
         this._events.emit('update', {
             action: 'created',
@@ -333,6 +339,22 @@ class PluginInstance extends EventEmitter {
     }
 
     /**
+     * Returns either an object with the latest execution
+     * times (as moment object) or just one object if a
+     * type is defined.
+     *
+     * @param {string} type One of accounts, metadata or goals
+     * @returns {{metadata: moment[]|null[], accounts: moment[]|null[], goals: moment[]|null[]}|moment[]|null[]}
+     */
+    syncedAt (type = '') {
+        if(type) {
+            return this.syncedAt()[type];
+        }
+
+        return this._syncedAt;
+    }
+
+    /**
      * Returns a json ready to serve to the client…
      *
      * @param {boolean} [instant]
@@ -493,6 +515,7 @@ class PluginInstance extends EventEmitter {
      * @returns {Promise.<void>}
      */
     async syncAccounts () {
+        this._syncedAt.accounts[0] = moment();
         const accounts = await PluginInstance.request(this, this.type(), 'getAccounts', this.generateConfig());
 
         for (let i = 0; i < accounts.length; i++) {
@@ -506,6 +529,8 @@ class PluginInstance extends EventEmitter {
                 log.error(err);
             }
         }
+
+        this._syncedAt.accounts[1] = moment();
     }
 
     /**
@@ -686,6 +711,8 @@ class PluginInstance extends EventEmitter {
             return transactionModel;
         }
 
+        this._syncedAt.metadata[0] = moment();
+
         /* only ask plugin when payee matches */
         const match = this._metainfo.responsibilities.find(r => r.metadata && (
             transactionModel.pluginsOwnPayeeId.includes(r.name) ||
@@ -742,6 +769,7 @@ class PluginInstance extends EventEmitter {
             }
         });
 
+        this._syncedAt.metadata[1] = moment();
         return transactionModel;
     }
 
@@ -751,6 +779,8 @@ class PluginInstance extends EventEmitter {
      * @returns {Promise<void>}
      */
     async syncGoals () {
+        this._syncedAt.goals[0] = moment();
+
         const goals = await PluginInstance.request(this, this.type(), 'getGoals', this.generateConfig());
         await Promise.all(
             goals.map(goal => this.syncGoal(goal).catch(err => {
@@ -758,6 +788,8 @@ class PluginInstance extends EventEmitter {
                 log.error(err);
             }))
         );
+
+        this._syncedAt.goals[1] = moment();
     }
 
     /**
