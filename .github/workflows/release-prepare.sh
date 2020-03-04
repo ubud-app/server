@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 
-npm install -g @sentry/cli
+ASSETVERSION=$(cat ./version/release.json| jq .version -r)
+
+# CHeck if versions match
+if [ "$VERSION" != "$ASSETVERSION" ]; then
+    echo "Error: Version in assets and semantic-release version mismatch!";
+    echo "  - Asset Version: $ASSETVERSION";
+    echo "  - semantic-release Version: $VERSION";
+    exit 1;
+fi
+
 sentry-cli releases new -p client "${VERSION}"
-
-docker pull multiarch/qemu-user-static:register
-docker pull multiarch/alpine:x86_64-latest-stable
-
-docker run --rm --privileged multiarch/qemu-user-static:register --reset
