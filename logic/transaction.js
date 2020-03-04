@@ -1480,7 +1480,7 @@ class TransactionLogic extends BaseLogic {
         // get plugin instances
         const instances = [];
         if(document) {
-            const instanceIds = await DatabaseHelper.get('pluginInstance').findAll({
+            const instanceIds = await DatabaseHelper.get('plugin-instance').findAll({
                 attributes: ['id'],
                 where: {
                     documentId: document
