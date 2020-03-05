@@ -10,4 +10,4 @@ if [ "$VERSION" != "$ASSETVERSION" ]; then
     exit 1;
 fi
 
-sentry-cli releases new -p client "${VERSION}"
+sentry-cli releases new -p server "${VERSION}"

@@ -25,7 +25,10 @@ globalTags.version = ConfigHelper.getVersion();
 
 // initialize sentry instance
 if (ConfigHelper.getSentryDSN()) {
-    Sentry.init({dsn: ConfigHelper.getSentryDSN()});
+    Sentry.init({
+        dsn: ConfigHelper.getSentryDSN(),
+        release: ConfigHelper.getVersion()
+    });
 }
 
 
