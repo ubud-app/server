@@ -80,6 +80,10 @@ jobs:
           VERSION=$(cat ./version/release.json| jq .version -r)
           BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
+          mv -f ./version/package.json ./
+          mv -f ./version/package-lock.json ./
+          rm -rf ./version
+
           echo "------"
           echo "$VERSION"
           echo "${GITHUB_REF#refs/heads/}"
