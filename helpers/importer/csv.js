@@ -10,13 +10,14 @@ const csv2transactionMap = {
         ['Belegdatum', 'DD.MM.YY'],
         ['Buchungstag', 'DD-MM-YY'],
         ['Wertstellung', 'DD-MM-YY'],
-        ['Datum', 'DD-MM-YY'],
+        ['Datum', ['DD-MM-YY', 'YYYY-MM-DD']],
         ['Valutadatum', 'DD-MM-YY']
     ],
     pluginsOwnPayeeId: [
         ['Beguenstigter/Zahlungspflichtiger'],
         ['Name'],
-        ['Transaktionsbeschreibung']
+        ['Transaktionsbeschreibung'],
+        ['Empfänger']
     ],
     memo: [
         ['Verwendungszweck'],
@@ -24,7 +25,8 @@ const csv2transactionMap = {
     ],
     amount: [
         ['Betrag'],
-        ['Buchungsbetrag']
+        ['Buchungsbetrag'],
+        ['Betrag (EUR)']
     ]
 };
 
@@ -42,7 +44,11 @@ class CSVImporter {
 
     static async parse (file) {
         const TransactionModel = TransactionLogic.getModel();
-        const csv = await neatCsv(file.data, {separator: ';'});
+        let csv = await neatCsv(file.data, {separator: ';'});
+        if(Object.keys(csv[0]).length < 4) {
+            csv = await neatCsv(file.data, {separator: ','});
+        }
+
 
         return csv.map(row => {
             const model = TransactionModel.build();
@@ -68,8 +74,8 @@ class CSVImporter {
                             return;
                         }
                     }
-                    else if (row[possibleColumn] !== undefined) {
-                        model[attr] = row[possibleColumn];
+                    else if (typeof row[possibleColumn] === 'string') {
+                        model[attr] = row[possibleColumn].trim();
                     }
                 });
 
