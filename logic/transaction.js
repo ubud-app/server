@@ -490,7 +490,7 @@ class TransactionLogic extends BaseLogic {
 
         const models = await this.getModel().findAll(sql);
 
-        if(!options.httpRequest) {
+        if (!options.httpRequest) {
             TransactionLogic.startSyncIfUseful(params).catch(error => {
                 log.warn('Unable to execute background account sync: ' + (error.stack || error));
             });
@@ -540,6 +540,10 @@ class TransactionLogic extends BaseLogic {
 
 
         // Payee
+        if (body.payeeId !== model.payeeId && !body.payeeId) {
+            model.payeeId = null;
+            model.payee = null;
+        }
         if (body.payeeId !== model.payeeId) {
             const PayeeLogic = require('./payee');
             const payee = await PayeeLogic.get(body.payeeId, {session: options.session});
@@ -1034,17 +1038,17 @@ class TransactionLogic extends BaseLogic {
         const merged = [];
 
         // check exact match
-        if(transaction.payeeId || transaction.pluginsOwnPayeeId) {
+        if (transaction.payeeId || transaction.pluginsOwnPayeeId) {
             const where = {
                 id: {
                     [DatabaseHelper.op('not')]: transaction.id
                 },
                 accountId: transaction.accountId
             };
-            if(transaction.payeeId) {
+            if (transaction.payeeId) {
                 where.payeeId = transaction.payeeId;
             }
-            else if(transaction.pluginsOwnPayeeId) {
+            else if (transaction.pluginsOwnPayeeId) {
                 where.pluginsOwnPayeeId = transaction.pluginsOwnPayeeId;
             }
 
@@ -1060,12 +1064,12 @@ class TransactionLogic extends BaseLogic {
             });
             exactModels.forEach(transaction => {
                 transaction.units.forEach(unit => {
-                    if(unit.type === 'BUDGET' && !budgetIds.includes(unit.budgetId)) {
+                    if (unit.type === 'BUDGET' && !budgetIds.includes(unit.budgetId)) {
                         budgetIds.push(unit.budgetId);
                     }
                 });
             });
-            if(budgetIds.length === 1) {
+            if (budgetIds.length === 1) {
                 const budget = await DatabaseHelper.get('budget').findByPk(budgetIds[0]);
                 merged.push({
                     budgetId: budget.id,
@@ -1232,7 +1236,7 @@ class TransactionLogic extends BaseLogic {
 
         // check accountId
         const account = await DatabaseHelper.get('account').findByPk(reference.accountId);
-        if(!account) {
+        if (!account) {
             throw new Error('Unable to sync transaction: attribute `accountId` invalid!');
         }
 
@@ -1473,13 +1477,13 @@ class TransactionLogic extends BaseLogic {
         const PluginHelper = require('../helpers/plugin');
         const DatabaseHelper = require('../helpers/database');
 
-        if(month && moment(month, 'YYYY-MM').isSame(moment(), 'month')) {
+        if (month && moment(month, 'YYYY-MM').isSame(moment(), 'month')) {
             return;
         }
 
         // get plugin instances
         const instances = [];
-        if(document) {
+        if (document) {
             const instanceIds = await DatabaseHelper.get('plugin-instance').findAll({
                 attributes: ['id'],
                 where: {
@@ -1491,9 +1495,9 @@ class TransactionLogic extends BaseLogic {
                 instances.push(await PluginHelper.getPlugin(id));
             }));
         }
-        if(account) {
+        if (account) {
             const instanceId = await DatabaseHelper.get('account').findByPk(account);
-            if(instanceId && instanceId.id && !instances.find(p => p.id() === instanceId.id)) {
+            if (instanceId && instanceId.id && !instances.find(p => p.id() === instanceId.id)) {
                 instances.push(await PluginHelper.getPlugin(instanceId.id));
             }
         }
@@ -1509,6 +1513,9 @@ class TransactionLogic extends BaseLogic {
                 moment().subtract(5, 'minutes').isAfter(this.syncedAt('accounts')[0])
             )
         );
+        if (!instancesToSync.length) {
+            return;
+        }
 
         log.info(`Sync ${instancesToSync.length} accounts as listTransactions was called with a socket connection…`);
 
