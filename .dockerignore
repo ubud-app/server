@@ -1,3 +1,9 @@
-./.git
-./node_modules
-./code-visualization
+.git
+.github
+node_modules
+code-visualization
+.gitignore
+.npmignore
+.releaserc
+.docker-compose.yml
+*.md

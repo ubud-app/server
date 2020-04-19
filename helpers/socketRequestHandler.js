@@ -113,7 +113,7 @@ class SocketRequestHandler {
         const method = 'serve' + this.route.substr(0, 1).toUpperCase() + this.route.substr(1);
 
         const params = {};
-        (this.data.id || '').split('/').forEach(part => {
+        (this.data.id || '').split('/').filter(Boolean).forEach(part => {
             const p = part.split(':', 2);
             params[p[0]] = p[1] !== undefined ? p[1] : true;
         });

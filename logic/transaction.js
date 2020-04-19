@@ -1,6 +1,7 @@
 'use strict';
 
 const _ = require('underscore');
+const moment = require('moment');
 const BaseLogic = require('./_');
 const LogHelper = require('../helpers/log');
 const ErrorResponse = require('../helpers/errorResponse');
@@ -487,7 +488,15 @@ class TransactionLogic extends BaseLogic {
             }
         });
 
-        return this.getModel().findAll(sql);
+        const models = await this.getModel().findAll(sql);
+
+        if (!options.httpRequest) {
+            TransactionLogic.startSyncIfUseful(params).catch(error => {
+                log.warn('Unable to execute background account sync: ' + (error.stack || error));
+            });
+        }
+
+        return models;
     }
 
     static async update (model, body, options) {
@@ -531,6 +540,10 @@ class TransactionLogic extends BaseLogic {
 
 
         // Payee
+        if (body.payeeId !== model.payeeId && !body.payeeId) {
+            model.payeeId = null;
+            model.payee = null;
+        }
         if (body.payeeId !== model.payeeId) {
             const PayeeLogic = require('./payee');
             const payee = await PayeeLogic.get(body.payeeId, {session: options.session});
@@ -1024,12 +1037,59 @@ class TransactionLogic extends BaseLogic {
         const learnings = await TransactionLogic.generateLearnings(transaction);
         const merged = [];
 
-        console.log(learnings.map(learning => ({
-            location: learning.location,
-            word: learning.word
-        })));
+        // check exact match
+        if (transaction.payeeId || transaction.pluginsOwnPayeeId) {
+            const where = {
+                id: {
+                    [DatabaseHelper.op('not')]: transaction.id
+                },
+                accountId: transaction.accountId
+            };
+            if (transaction.payeeId) {
+                where.payeeId = transaction.payeeId;
+            }
+            else if (transaction.pluginsOwnPayeeId) {
+                where.pluginsOwnPayeeId = transaction.pluginsOwnPayeeId;
+            }
 
-        const models = await DatabaseHelper.get('learning').findAll({
+            const budgetIds = [];
+            const exactModels = await this.getModel().findAll({
+                where,
+                attributes: ['id', 'updatedAt'],
+                order: [['updatedAt', 'DESC']],
+                limit: 2,
+                include: [{
+                    model: DatabaseHelper.get('unit')
+                }]
+            });
+            exactModels.forEach(transaction => {
+                transaction.units.forEach(unit => {
+                    if (unit.type === 'BUDGET' && !budgetIds.includes(unit.budgetId)) {
+                        budgetIds.push(unit.budgetId);
+                    }
+                });
+            });
+
+            if (budgetIds.length > 0) {
+                const budgetModels = await DatabaseHelper.get('budget').findAll({
+                    where: {
+                        id: {
+                            [DatabaseHelper.op('in')]: [budgetIds]
+                        },
+                        hidden: false
+                    }
+                });
+                if (budgetModels.length === 1) {
+                    merged.push({
+                        budgetId: budgetModels[0].id,
+                        budgetName: budgetModels[0].name,
+                        probability: 1
+                    });
+                }
+            }
+        }
+
+        const learningModels = await DatabaseHelper.get('learning').findAll({
             attributes: [
                 'budgetId',
                 'location',
@@ -1073,8 +1133,7 @@ class TransactionLogic extends BaseLogic {
             order: [[DatabaseHelper.literal('ratio'), 'DESC']],
             limit: 10
         });
-
-        models.forEach(model => {
+        learningModels.forEach(model => {
             let m = merged.find(j => j.budgetId === model.budgetId);
             if (!m) {
                 m = {
@@ -1185,6 +1244,12 @@ class TransactionLogic extends BaseLogic {
             }
         });
 
+        // check accountId
+        const account = await DatabaseHelper.get('account').findByPk(reference.accountId);
+        if (!account) {
+            throw new Error('Unable to sync transaction: attribute `accountId` invalid!');
+        }
+
         // find transaction model
         let newTransaction;
         if (reference.pluginsOwnId) {
@@ -1226,7 +1291,7 @@ class TransactionLogic extends BaseLogic {
                         [DatabaseHelper.op('lte')]: moment(reference.time).add(1, 'day').endOf('day').toJSON()
                     },
                     pluginsOwnId: {
-                        [DatabaseHelper.op('notIn')]: allTransactions.map(t => t.id)
+                        [DatabaseHelper.op('notIn')]: allTransactions.map(t => t.pluginsOwnId)
                     },
                     accountId: reference.accountId,
                     pluginsOwnPayeeId: reference.pluginsOwnPayeeId,
@@ -1331,6 +1396,7 @@ class TransactionLogic extends BaseLogic {
                         'payeeId'
                     ],
                     where: {
+                        accountId: account.id,
                         pluginsOwnPayeeId: newTransaction.pluginsOwnPayeeId,
                         payeeId: {
                             [DatabaseHelper.op('not')]: null
@@ -1415,6 +1481,56 @@ class TransactionLogic extends BaseLogic {
         }
 
         return newTransaction;
+    }
+
+    static async startSyncIfUseful ({month, document, account}) {
+        const PluginHelper = require('../helpers/plugin');
+        const DatabaseHelper = require('../helpers/database');
+
+        if (month && moment(month, 'YYYY-MM').isSame(moment(), 'month')) {
+            return;
+        }
+
+        // get plugin instances
+        const instances = [];
+        if (document) {
+            const instanceIds = await DatabaseHelper.get('plugin-instance').findAll({
+                attributes: ['id'],
+                where: {
+                    documentId: document
+                }
+            });
+
+            await Promise.all(instanceIds.map(async ({id}) => {
+                instances.push(await PluginHelper.getPlugin(id));
+            }));
+        }
+        if (account) {
+            const instanceId = await DatabaseHelper.get('account').findByPk(account);
+            if (instanceId && instanceId.id && !instances.find(p => p.id() === instanceId.id)) {
+                instances.push(await PluginHelper.getPlugin(instanceId.id));
+            }
+        }
+
+        // filter instances
+        const instancesToSync = instances.filter(instance =>
+            instance.supported().includes('getAccounts') &&
+            instance.supported().includes('getTransactions') &&
+            !instance.errors().getAccounts &&
+            !instance.errors().getTransactions &&
+            (
+                !this.syncedAt('accounts')[0] ||
+                moment().subtract(5, 'minutes').isAfter(this.syncedAt('accounts')[0])
+            )
+        );
+        if (!instancesToSync.length) {
+            return;
+        }
+
+        log.info(`Sync ${instancesToSync.length} accounts as listTransactions was called with a socket connection…`);
+
+        // sync instances
+        await Promise.all(instancesToSync.map(instance => instance.syncAccounts()));
     }
 }
 
