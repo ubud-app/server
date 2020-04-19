@@ -1069,13 +1069,23 @@ class TransactionLogic extends BaseLogic {
                     }
                 });
             });
-            if (budgetIds.length === 1) {
-                const budget = await DatabaseHelper.get('budget').findByPk(budgetIds[0]);
-                merged.push({
-                    budgetId: budget.id,
-                    budgetName: budget.name,
-                    probability: 1
+
+            if (budgetIds.length > 0) {
+                const budgetModels = await DatabaseHelper.get('budget').findAll({
+                    where: {
+                        id: {
+                            [DatabaseHelper.op('in')]: [budgetIds]
+                        },
+                        hidden: false
+                    }
                 });
+                if (budgetModels.length === 1) {
+                    merged.push({
+                        budgetId: budgetModels[0].id,
+                        budgetName: budgetModels[0].name,
+                        probability: 1
+                    });
+                }
             }
         }
 
