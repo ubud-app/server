@@ -28,7 +28,8 @@ class MT940Importer {
                     TransactionModel.build({
                         time: moment(transaction.valueDate, 'YYYY-MM-DD').toJSON(),
                         memo: transaction.description,
-                        amount: parseInt(transaction.amount.toString().replace(/,|\./, ''), 10) * (transaction.isExpense ? -1 : 1)
+                        amount: parseInt(transaction.amount.toString().replace(/,|\./, ''), 10) * (transaction.isExpense ? -1 : 1),
+                        pluginsOwnPayeeId: null
                     })
                 );
             });
