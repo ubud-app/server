@@ -45,7 +45,7 @@
 		"socket.io": "^2.3.0",
 		"umzug": "^2.3.0",
 		"underscore": "^1.10.2",
-		"uuid": "^7.0.3"
+		"uuid": "^8.0.0"
 	},
 	"optionalDependencies": {
 		"ofx": "^0.4.0"
