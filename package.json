@@ -33,7 +33,7 @@
 		"express": "^4.17.1",
 		"express-fileupload": "^1.1.6",
 		"hibp": "^9.0.0",
-		"moment": "^2.24.0",
+		"moment": "^2.25.1",
 		"mt940-js": "^1.0.0",
 		"mysql2": "^2.1.0",
 		"neat-csv": "^5.2.0",
