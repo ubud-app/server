@@ -174,6 +174,14 @@ class AccountLogic extends BaseLogic {
             if (k === 'document') {
                 sql.include[0].where = {id};
             }
+            else if (k === 'pluginInstance' && !id) {
+                sql.where = sql.where || {};
+                sql.where.pluginInstanceId = null;
+            }
+            else if (k === 'pluginInstance') {
+                sql.where = sql.where || {};
+                sql.where.pluginInstanceId = id;
+            }
             else {
                 throw new ErrorResponse(400, 'Unknown filter `' + k + '`!');
             }
