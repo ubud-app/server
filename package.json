@@ -20,11 +20,11 @@
 		"url": "https://github.com/ubud-app/client/issues"
 	},
 	"dependencies": {
-		"@sentry/node": "^5.17.0",
+		"@sentry/node": "^5.18.1",
 		"basic-auth": "^2.0.1",
 		"bcryptjs": "^2.4.3",
 		"body-parser": "^1.19.0",
-		"bunyan": "^1.8.12",
+		"bunyan": "^1.8.13",
 		"cli-table": "^0.3.1",
 		"commander": "^5.1.0",
 		"cors": "^2.8.5",
@@ -33,7 +33,7 @@
 		"express": "^4.17.1",
 		"express-fileupload": "^1.1.6",
 		"hibp": "^9.0.0",
-		"moment": "^2.26.0",
+		"moment": "^2.27.0",
 		"mt940-js": "^1.0.0",
 		"mysql2": "^2.1.0",
 		"neat-csv": "^5.2.0",
@@ -45,7 +45,7 @@
 		"socket.io": "^2.3.0",
 		"umzug": "^2.3.0",
 		"underscore": "^1.10.2",
-		"uuid": "^8.1.0"
+		"uuid": "^8.2.0"
 	},
 	"optionalDependencies": {
 		"ofx": "^0.4.0"
@@ -56,11 +56,11 @@
 		"@semantic-release/github": "^7.0.7",
 		"@semantic-release/npm": "^7.0.5",
 		"chai": "^4.2.0",
-		"eslint": "^7.2.0",
+		"eslint": "^7.3.1",
 		"eslint-plugin-security": "^1.4.0",
 		"mocha": "^8.0.1",
 		"npm-check": "^5.9.2",
 		"nyc": "^15.1.0",
-		"semantic-release": "^17.0.8"
+		"semantic-release": "^17.1.1"
 	}
 }
