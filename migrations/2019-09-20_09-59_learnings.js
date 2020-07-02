@@ -27,9 +27,10 @@ module.exports = {
             type: DataTypes.UUID,
             allowNull: false
         });
-        await q.addConstraint('learnings', ['budgetId'], {
+        await q.addConstraint('learnings', {
             type: 'FOREIGN KEY',
             name: 'learnings_ibfk_2',
+            fields: ['budgetId'],
             references: {
                 table: 'budgets',
                 field: 'id'
@@ -47,9 +48,10 @@ module.exports = {
             type: DataTypes.UUID,
             allowNull: false
         });
-        await q.addConstraint('learnings', ['transactionId'], {
+        await q.addConstraint('learnings', {
             type: 'FOREIGN KEY',
             name: 'learnings_ibfk_3',
+            fields: ['transactionId'],
             references: {
                 table: 'transactions',
                 field: 'id'

@@ -670,9 +670,10 @@ module.exports = {
 
 
         // accounts
-        await q.addConstraint('accounts', ['documentId'], {
+        await q.addConstraint('accounts', {
             type: 'FOREIGN KEY',
             name: 'accounts_ibfk_1',
+            fields: ['documentId'],
             references: {
                 table: 'documents',
                 field: 'id'
@@ -680,9 +681,10 @@ module.exports = {
             onDelete: 'cascade',
             onUpdate: 'cascade'
         });
-        await q.addConstraint('accounts', ['pluginInstanceId'], {
+        await q.addConstraint('accounts', {
             type: 'FOREIGN KEY',
             name: 'accounts_ibfk_2',
+            fields: ['pluginInstanceId'],
             references: {
                 table: 'plugin-instances',
                 field: 'id'
@@ -692,9 +694,10 @@ module.exports = {
         });
 
         // budgets
-        await q.addConstraint('budgets', ['pluginInstanceId'], {
+        await q.addConstraint('budgets', {
             type: 'FOREIGN KEY',
             name: 'budgets_ibfk_1',
+            fields: ['pluginInstanceId'],
             references: {
                 table: 'plugin-instances',
                 field: 'id'
@@ -702,9 +705,10 @@ module.exports = {
             onDelete: 'set null',
             onUpdate: 'set null'
         });
-        await q.addConstraint('budgets', ['categoryId'], {
+        await q.addConstraint('budgets', {
             type: 'FOREIGN KEY',
             name: 'budgets_ibfk_2',
+            fields: ['categoryId'],
             references: {
                 table: 'categories',
                 field: 'id'
@@ -714,9 +718,10 @@ module.exports = {
         });
 
         // categories
-        await q.addConstraint('categories', ['documentId'], {
+        await q.addConstraint('categories', {
             type: 'FOREIGN KEY',
             name: 'categories_ibfk_1',
+            fields: ['documentId'],
             references: {
                 table: 'documents',
                 field: 'id'
@@ -726,9 +731,10 @@ module.exports = {
         });
 
         // learnings
-        await q.addConstraint('learnings', ['documentId'], {
+        await q.addConstraint('learnings', {
             type: 'FOREIGN KEY',
             name: 'learnings_ibfk_1',
+            fields: ['documentId'],
             references: {
                 table: 'documents',
                 field: 'id'
@@ -736,9 +742,10 @@ module.exports = {
             onDelete: 'cascade',
             onUpdate: 'cascade'
         });
-        await q.addConstraint('learnings', ['categoryId'], {
+        await q.addConstraint('learnings', {
             type: 'FOREIGN KEY',
             name: 'learnings_ibfk_2',
+            fields: ['categoryId'],
             references: {
                 table: 'categories',
                 field: 'id'
@@ -748,9 +755,10 @@ module.exports = {
         });
 
         // payees
-        await q.addConstraint('payees', ['documentId'], {
+        await q.addConstraint('payees', {
             type: 'FOREIGN KEY',
             name: 'payees_ibfk_1',
+            fields: ['documentId'],
             references: {
                 table: 'documents',
                 field: 'id'
@@ -760,9 +768,10 @@ module.exports = {
         });
 
         // plugin-configs
-        await q.addConstraint('plugin-configs', ['pluginInstanceId'], {
+        await q.addConstraint('plugin-configs', {
             type: 'FOREIGN KEY',
             name: 'plugin-config_ibfk_1',
+            fields: ['pluginInstanceId'],
             references: {
                 table: 'plugin-instances',
                 field: 'id'
@@ -772,9 +781,10 @@ module.exports = {
         });
 
         // plugin-instances
-        await q.addConstraint('plugin-instances', ['documentId'], {
+        await q.addConstraint('plugin-instances', {
             type: 'FOREIGN KEY',
             name: 'plugin-instances_ibfk_1',
+            fields: ['documentId'],
             references: {
                 table: 'documents',
                 field: 'id'
@@ -784,9 +794,10 @@ module.exports = {
         });
 
         // plugin-stores
-        await q.addConstraint('plugin-stores', ['pluginInstanceId'], {
+        await q.addConstraint('plugin-stores', {
             type: 'FOREIGN KEY',
             name: 'plugin-store_ibfk_1',
+            fields: ['pluginInstanceId'],
             references: {
                 table: 'plugin-instances',
                 field: 'id'
@@ -796,9 +807,10 @@ module.exports = {
         });
 
         // portions
-        await q.addConstraint('portions', ['budgetId'], {
+        await q.addConstraint('portions', {
             type: 'FOREIGN KEY',
             name: 'portions_ibfk_1',
+            fields: ['budgetId'],
             references: {
                 table: 'budgets',
                 field: 'id'
@@ -808,9 +820,10 @@ module.exports = {
         });
 
         // sessions
-        await q.addConstraint('sessions', ['userId'], {
+        await q.addConstraint('sessions', {
             type: 'FOREIGN KEY',
             name: 'sessions_ibfk_1',
+            fields: ['userId'],
             references: {
                 table: 'users',
                 field: 'id'
@@ -820,9 +833,10 @@ module.exports = {
         });
 
         // settings
-        await q.addConstraint('settings', ['documentId'], {
+        await q.addConstraint('settings', {
             type: 'FOREIGN KEY',
             name: 'settings_ibfk_1',
+            fields: ['documentId'],
             references: {
                 table: 'documents',
                 field: 'id'
@@ -836,9 +850,10 @@ module.exports = {
         });
 
         // shares
-        await q.addConstraint('shares', ['userId'], {
+        await q.addConstraint('shares', {
             type: 'FOREIGN KEY',
             name: 'shares_ibfk_1',
+            fields: ['userId'],
             references: {
                 table: 'users',
                 field: 'id'
@@ -846,9 +861,10 @@ module.exports = {
             onDelete: 'cascade',
             onUpdate: 'cascade'
         });
-        await q.addConstraint('shares', ['documentId'], {
+        await q.addConstraint('shares', {
             type: 'FOREIGN KEY',
             name: 'shares_ibfk_2',
+            fields: ['documentId'],
             references: {
                 table: 'documents',
                 field: 'id'
@@ -862,9 +878,10 @@ module.exports = {
         });
 
         // summaries
-        await q.addConstraint('summaries', ['documentId'], {
+        await q.addConstraint('summaries', {
             type: 'FOREIGN KEY',
             name: 'summaries_ibfk_1',
+            fields: ['documentId'],
             references: {
                 table: 'documents',
                 field: 'id'
@@ -874,9 +891,10 @@ module.exports = {
         });
 
         // transactions
-        await q.addConstraint('transactions', ['accountId'], {
+        await q.addConstraint('transactions', {
             type: 'FOREIGN KEY',
             name: 'transactions_ibfk_1',
+            fields: ['accountId'],
             references: {
                 table: 'accounts',
                 field: 'id'
@@ -884,9 +902,10 @@ module.exports = {
             onDelete: 'cascade',
             onUpdate: 'cascade'
         });
-        await q.addConstraint('transactions', ['payeeId'], {
+        await q.addConstraint('transactions', {
             type: 'FOREIGN KEY',
             name: 'transactions_ibfk_2',
+            fields: ['payeeId'],
             references: {
                 table: 'payees',
                 field: 'id'
@@ -896,9 +915,10 @@ module.exports = {
         });
 
         // units
-        await q.addConstraint('units', ['transactionId'], {
+        await q.addConstraint('units', {
             type: 'FOREIGN KEY',
             name: 'units_ibfk_1',
+            fields: ['transactionId'],
             references: {
                 table: 'transactions',
                 field: 'id'
@@ -906,9 +926,10 @@ module.exports = {
             onDelete: 'cascade',
             onUpdate: 'cascade'
         });
-        await q.addConstraint('units', ['budgetId'], {
+        await q.addConstraint('units', {
             type: 'FOREIGN KEY',
             name: 'units_ibfk_2',
+            fields: ['budgetId'],
             references: {
                 table: 'budgets',
                 field: 'id'
@@ -916,9 +937,10 @@ module.exports = {
             onDelete: 'cascade',
             onUpdate: 'cascade'
         });
-        await q.addConstraint('units', ['transferAccountId'], {
+        await q.addConstraint('units', {
             type: 'FOREIGN KEY',
             name: 'unit_ibfk_3',
+            fields: ['transferAccountId'],
             references: {
                 table: 'accounts',
                 field: 'id'
