@@ -20,7 +20,7 @@
 		"url": "https://github.com/ubud-app/client/issues"
 	},
 	"dependencies": {
-		"@sentry/node": "^5.19.0",
+		"@sentry/node": "^5.19.2",
 		"basic-auth": "^2.0.1",
 		"bcryptjs": "^2.4.3",
 		"body-parser": "^1.19.0",
@@ -40,7 +40,7 @@
 		"node-fetch": "^2.6.0",
 		"promised-exec": "^1.0.1",
 		"semver": "^7.3.2",
-		"sequelize": "^6.2.4",
+		"sequelize": "^6.3.3",
 		"shell-escape": "^0.2.0",
 		"socket.io": "^2.3.0",
 		"umzug": "^2.3.0",
@@ -56,7 +56,7 @@
 		"@semantic-release/github": "^7.0.7",
 		"@semantic-release/npm": "^7.0.5",
 		"chai": "^4.2.0",
-		"eslint": "^7.3.1",
+		"eslint": "^7.4.0",
 		"eslint-plugin-security": "^1.4.0",
 		"mocha": "^8.0.1",
 		"npm-check": "^5.9.2",
