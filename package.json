@@ -56,7 +56,7 @@
 		"@semantic-release/github": "^7.0.7",
 		"@semantic-release/npm": "^7.0.5",
 		"chai": "^4.2.0",
-		"eslint": "^7.4.0",
+		"eslint": "^7.5.0",
 		"eslint-plugin-security": "^1.4.0",
 		"mocha": "^8.0.1",
 		"npm-check": "^5.9.2",
