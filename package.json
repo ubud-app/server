@@ -20,18 +20,18 @@
 		"url": "https://github.com/ubud-app/client/issues"
 	},
 	"dependencies": {
-		"@sentry/node": "^5.19.2",
+		"@sentry/node": "^5.20.1",
 		"basic-auth": "^2.0.1",
 		"bcryptjs": "^2.4.3",
 		"body-parser": "^1.19.0",
 		"bunyan": "^1.8.14",
 		"cli-table": "^0.3.1",
-		"commander": "^5.1.0",
+		"commander": "^6.0.0",
 		"cors": "^2.8.5",
 		"dtrace-provider": "^0.8.8",
 		"email-validator": "^2.0.4",
 		"express": "^4.17.1",
-		"express-fileupload": "^1.1.6",
+		"express-fileupload": "^1.1.8",
 		"hibp": "^9.0.0",
 		"moment": "^2.27.0",
 		"mt940-js": "^1.0.0",
@@ -45,7 +45,7 @@
 		"socket.io": "^2.3.0",
 		"umzug": "^2.3.0",
 		"underscore": "^1.10.2",
-		"uuid": "^8.2.0"
+		"uuid": "^8.3.0"
 	},
 	"optionalDependencies": {
 		"ofx": "^0.4.0"
