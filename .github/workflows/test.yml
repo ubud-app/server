@@ -6,6 +6,7 @@ on:
     branches:
       - feature/**
       - hotfix/**
+      - depfu/**
 
 jobs:
   prepare:
