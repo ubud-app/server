@@ -89,7 +89,6 @@ class PluginInstance extends EventEmitter {
             catch (err) {
                 log.warn('Unable to install plugin %s: %s', this.type(), err);
                 log.fatal(err);
-                process.exit(1);
             }
 
             try {
@@ -109,7 +108,6 @@ class PluginInstance extends EventEmitter {
                 catch (err) {
                     log.warn('Unable to get version of plugin %s, is it installed?', this.type());
                     log.fatal(err);
-                    process.exit(1);
                 }
             }
 

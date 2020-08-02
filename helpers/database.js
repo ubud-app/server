@@ -30,7 +30,6 @@ try {
 }
 catch (err) {
     log.fatal('Unable to connect to database `%s`: Is the database URI correct?', ConfigHelper.getDatabaseURI());
-    process.exit(1);
 }
 
 

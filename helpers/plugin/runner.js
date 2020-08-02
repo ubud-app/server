@@ -316,9 +316,9 @@ PluginRunner.initialize()
         return PluginRunner.sendResponse(result);
     })
     .then(() => {
-        process.exit(0);
+        process.exit(0); // eslint-disable-line no-process-exit
     })
     .catch(error => {
         console.log('Unexpected Error:', error);
-        process.exit(1);
+        process.exit(1); // eslint-disable-line no-process-exit
     });

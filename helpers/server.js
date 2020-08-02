@@ -63,8 +63,7 @@ class ServerHelper {
             await PluginHelper.initialize();
         }
         catch (err) {
-            log.error(err);
-            process.exit(1);
+            log.fatal(err);
         }
 
         this.loadRoutes();
@@ -319,8 +318,7 @@ class ServerHelper {
         }
         catch (e) {
             log.error(e);
-            log.error(new Error('Unable to execute pending database transactions, stop server…'));
-            process.exit(1);
+            log.fatal(new Error('Unable to execute pending database transactions, stop server…'));
         }
     }
 
