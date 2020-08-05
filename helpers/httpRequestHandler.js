@@ -20,7 +20,7 @@ class HTTPRequestHandler {
      * @param {Object} [options.req]
      * @param {Object} [options.res]
      */
-    constructor(options) {
+    constructor (options) {
         this.Logic = options.Logic;
         this.route = options.route;
         this.req = options.req;
@@ -33,7 +33,7 @@ class HTTPRequestHandler {
      *
      * @returns {HTTPRequestHandler}
      */
-    run() {
+    run () {
         const res = this.res;
 
         this.checkSession()
@@ -57,7 +57,7 @@ class HTTPRequestHandler {
      * Checks the Session
      * @returns {Promise}
      */
-    async checkSession() {
+    async checkSession () {
         const auth = require('basic-auth');
         const bcrypt = require('bcryptjs');
         const moment = require('moment');
@@ -113,10 +113,10 @@ class HTTPRequestHandler {
 
         const RepositoryHelper = require('../helpers/repository');
         const terms = await RepositoryHelper.getTerms();
-        if(
+        if (
             session.user.acceptedTermVersion === null ||
             session.user.acceptedTermVersion < terms.version - 1 ||
-            (session.user.acceptedTermVersion === terms.version - 1 && moment().isSameOrAfter(terms.validFrom))
+            session.user.acceptedTermVersion === terms.version - 1 && moment().isSameOrAfter(terms.validFrom)
         ) {
             throw new ErrorResponse(401, 'Not able to login: User has not accept the current terms!', {
                 attributes: {
@@ -135,7 +135,7 @@ class HTTPRequestHandler {
      * @param {Model} session
      * @returns {Promise}
      */
-    runLogic(session) {
+    runLogic (session) {
         const Logic = this.Logic;
         const method = 'serve' + this.route.substr(0, 1).toUpperCase() + this.route.substr(1);
         const options = {
@@ -155,12 +155,13 @@ class HTTPRequestHandler {
      * Yeah! We need a success response…
      * @param {Object|Array} result
      */
-    success(result) {
+    success (result) {
         const res = this.res;
 
         if (!result) {
             res.sendStatus(204);
-        } else {
+        }
+        else {
             res.send(result);
         }
     }
@@ -169,7 +170,7 @@ class HTTPRequestHandler {
      * Oups. We need a error response…
      * @param {Error} err
      */
-    error(err) {
+    error (err) {
         const res = this.res;
 
         if (err instanceof Error && !(err instanceof ErrorResponse)) {

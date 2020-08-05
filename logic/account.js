@@ -62,12 +62,10 @@ class AccountLogic extends BaseLogic {
             name: account.name,
             type: account.type,
             number: account.number,
-            balance: (
-                (parseInt(notTransfer[0].value, 10) || 0) +
+            balance: (parseInt(notTransfer[0].value, 10) || 0) +
                 (parseInt(transactionsWithoutUnits[0].value, 10) || 0) +
                 (parseInt(transferOn[0].value, 10) || 0) -
-                (parseInt(transferOff.dataValues.value, 10) || 0)
-            ),
+                (parseInt(transferOff.dataValues.value, 10) || 0),
             transactions: parseInt(transactionCount.dataValues.value, 10) || 0,
             documentId: account.documentId,
             pluginInstanceId: account.pluginInstanceId

@@ -1,4 +1,8 @@
 'use strict';
+/* eslint-disable node/no-process-env */
+
+const path = require('path');
+const fs = require('fs');
 
 let version;
 let database;
@@ -8,7 +12,11 @@ let ui;
 
 // get version number
 try {
-    version = require('../package.json').version;
+    const packageJsonPath = path.resolve(__dirname, '..', 'package.json');
+
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
+    const packageJsonContent = fs.readFileSync(packageJsonPath, 'utf8');
+    version = JSON.parse(packageJsonContent).version;
 }
 catch (err) {
     version = null;
@@ -28,18 +36,17 @@ if(sentryDSN === undefined) {
 
 // Client / UI
 try {
-    const path = require('path');
-    const fs = require('fs');
 
-    ui = require('@ubud-app/client');
-
+    ui = require('@ubud-app/client'); // eslint-disable-line node/global-require, node/no-missing-require
     ui.static = path.resolve(ui.static);
 
-    const packageJson = path.resolve(ui.all + '/../package.json');
-    const stats = fs.statSync(packageJson); // eslint-disable-line security/detect-non-literal-fs-filename
+    const packageJsonPath = path.resolve(ui.all + '/../package.json');
+    const stats = fs.statSync(packageJsonPath); // eslint-disable-line security/detect-non-literal-fs-filename
     ui.timestamp = stats.mtime;
 
-    ui.version = require(packageJson).version;  // eslint-disable-line security/detect-non-literal-require
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
+    const packageJsonContent = fs.readFileSync(packageJsonPath, 'utf8');
+    ui.version = JSON.parse(packageJsonContent).version;
 }
 catch(err) {
     // do nothing

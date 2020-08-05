@@ -209,7 +209,7 @@ class DatabaseHelper {
             },
             migrations: {
                 params: [sequelize.getQueryInterface(), models, sequelize, Sequelize],
-                path: path.resolve(__dirname + '/../migrations')
+                path: path.resolve(__dirname, '..', 'migrations')
             }
         });
     }

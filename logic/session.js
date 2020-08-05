@@ -34,7 +34,6 @@ class SessionLogic extends BaseLogic {
 
         const bcrypt = require('bcryptjs');
         const crypto = require('crypto');
-        const {URL} = require('url');
 
         const model = this.getModel().build();
         const secrets = {};
@@ -162,7 +161,6 @@ class SessionLogic extends BaseLogic {
     }
 
     static async update (model, body, options) {
-        const {URL} = require('url');
         const ErrorResponse = require('../helpers/errorResponse');
 
         const secrets = {};

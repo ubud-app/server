@@ -1,5 +1,7 @@
 'use strict';
 
+/* eslint-disable node/no-process-exit, no-process-exit, no-console */
+
 const PluginTools = require('./tools.js');
 module.exports = PluginTools;
 
@@ -316,9 +318,9 @@ PluginRunner.initialize()
         return PluginRunner.sendResponse(result);
     })
     .then(() => {
-        process.exit(0); // eslint-disable-line no-process-exit
+        process.exit(0);
     })
     .catch(error => {
         console.log('Unexpected Error:', error);
-        process.exit(1); // eslint-disable-line no-process-exit
+        process.exit(1);
     });
