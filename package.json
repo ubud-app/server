@@ -9,7 +9,7 @@
 	},
 	"scripts": {
 		"test": "mocha | bunyan -o short -l error",
-		"check": "npm run check:eslint && npm run check:npm",
+		"check": "npm run check:eslint",
 		"check:quick": "npm run check:eslint",
 		"check:eslint": "eslint ./",
 		"check:npm": "npm-check -s"
