@@ -31,7 +31,7 @@
         "no-unreachable-loop": "error",
         "node/callback-return": "warn",
         "node/exports-style": "error",
-        "node/global-require": "warn",
+        "node/global-require": "off",
         "node/handle-callback-err": "error",
         "node/no-new-require": "error",
         "node/no-path-concat": "error",
@@ -50,7 +50,8 @@
             "error",
             "single"
         ],
-        "require-atomic-updates": "warn",
+        "security/detect-object-injection": "off",
+        "require-atomic-updates": "off",
         "semi": "error"
     }
 }

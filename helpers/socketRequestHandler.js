@@ -50,6 +50,7 @@ class SocketRequestHandler {
                             message: 'Unknown internal error (1)',
                             attributes: {}
                         });
+                        return;
                     }
                     catch (sendErr) {
                         log.debug(sendErr);
@@ -65,6 +66,7 @@ class SocketRequestHandler {
                     message: 'Unknown internal error (2)',
                     attributes: {}
                 });
+                return;
             }
             catch (sendErr) {
                 log.debug(sendErr);

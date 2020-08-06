@@ -244,6 +244,7 @@ class LogHelper {
 
         if (_.isFunction(cb)) {
             cb(error || null, returned);
+            return returned;
         }
 
         return returned;
