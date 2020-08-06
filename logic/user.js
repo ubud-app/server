@@ -22,9 +22,9 @@ class UserLogic extends BaseLogic {
 
     static async format (user, secrets) {
         const terms = await RepositoryHelper.getTerms();
-        const canUnlockKeychain = !!user.keychainKey || (
-            !user.keychainKey && user.isAdmin && !(await KeychainHelper.isSetUp())
-        );
+        const canUnlockKeychain = !!user.keychainKey ||
+            !user.keychainKey && user.isAdmin && !await KeychainHelper.isSetUp()
+        ;
 
         const r = {
             id: user.id,

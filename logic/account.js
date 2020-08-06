@@ -62,12 +62,10 @@ class AccountLogic extends BaseLogic {
             name: account.name,
             type: account.type,
             number: account.number,
-            balance: (
-                (parseInt(notTransfer[0].value, 10) || 0) +
+            balance: (parseInt(notTransfer[0].value, 10) || 0) +
                 (parseInt(transactionsWithoutUnits[0].value, 10) || 0) +
                 (parseInt(transferOn[0].value, 10) || 0) -
-                (parseInt(transferOff.dataValues.value, 10) || 0)
-            ),
+                (parseInt(transferOff.dataValues.value, 10) || 0),
             transactions: parseInt(transactionCount.dataValues.value, 10) || 0,
             documentId: account.documentId,
             pluginInstanceId: account.pluginInstanceId
@@ -173,6 +171,14 @@ class AccountLogic extends BaseLogic {
         _.each(params, (id, k) => {
             if (k === 'document') {
                 sql.include[0].where = {id};
+            }
+            else if (k === 'pluginInstance' && !id) {
+                sql.where = sql.where || {};
+                sql.where.pluginInstanceId = null;
+            }
+            else if (k === 'pluginInstance') {
+                sql.where = sql.where || {};
+                sql.where.pluginInstanceId = id;
             }
             else {
                 throw new ErrorResponse(400, 'Unknown filter `' + k + '`!');

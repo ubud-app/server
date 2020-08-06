@@ -89,7 +89,6 @@ class PluginInstance extends EventEmitter {
             catch (err) {
                 log.warn('Unable to install plugin %s: %s', this.type(), err);
                 log.fatal(err);
-                process.exit(1);
             }
 
             try {
@@ -109,7 +108,6 @@ class PluginInstance extends EventEmitter {
                 catch (err) {
                     log.warn('Unable to get version of plugin %s, is it installed?', this.type());
                     log.fatal(err);
-                    process.exit(1);
                 }
             }
 
@@ -347,7 +345,7 @@ class PluginInstance extends EventEmitter {
      * @returns {{metadata: moment[]|null[], accounts: moment[]|null[], goals: moment[]|null[]}|moment[]|null[]}
      */
     syncedAt (type = '') {
-        if(type) {
+        if (type) {
             return this.syncedAt()[type];
         }
 
@@ -361,7 +359,7 @@ class PluginInstance extends EventEmitter {
      * @returns {object|Promise.<object>}
      */
     async toJSON (instant) {
-        const config = instant ? (this.config(true) || []) : await this.config();
+        const config = instant ? this.config(true) || [] : await this.config();
         return {
             id: this.id(),
             type: this.type(),
@@ -802,7 +800,7 @@ class PluginInstance extends EventEmitter {
      * @returns {Promise<void>}
      */
     async syncGoal (goal) {
-        const BudgetLogic = require('../../logic/budgets');
+        const BudgetLogic = require('../../logic/budget');
 
         // find transaction model
         let budgetModel = await BudgetLogic.getModel().findOne({
@@ -994,11 +992,12 @@ class PluginInstance extends EventEmitter {
             throw new Error('PluginInstance: called request() wthout method!');
         }
 
-        const childProcess = fork(__dirname + '/runner.js', {
+        const {join} = require('path');
+        const childProcess = fork(join(__dirname, '/runner.js'), {
             cwd: require('os').tmpdir(),
             stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
             env: {
-                PATH: process.env.PATH
+                PATH: process.env.PATH // eslint-disable-line node/no-process-env
             },
             execArgv: ''
         });

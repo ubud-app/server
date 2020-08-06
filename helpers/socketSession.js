@@ -57,7 +57,7 @@ class SocketSession {
         if(
             session.user.acceptedTermVersion === null ||
             session.user.acceptedTermVersion < terms.version - 1 ||
-            (session.user.acceptedTermVersion === terms.version - 1 && moment().isSameOrAfter(terms.validFrom))
+            session.user.acceptedTermVersion === terms.version - 1 && moment().isSameOrAfter(terms.validFrom)
         ) {
             throw new ErrorResponse(401, 'Not able to login: User has not accept the current terms!', {
                 attributes: {

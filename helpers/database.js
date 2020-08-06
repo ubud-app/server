@@ -30,7 +30,6 @@ try {
 }
 catch (err) {
     log.fatal('Unable to connect to database `%s`: Is the database URI correct?', ConfigHelper.getDatabaseURI());
-    process.exit(1);
 }
 
 
@@ -210,7 +209,7 @@ class DatabaseHelper {
             },
             migrations: {
                 params: [sequelize.getQueryInterface(), models, sequelize, Sequelize],
-                path: path.resolve(__dirname + '/../migrations')
+                path: path.resolve(__dirname, '..', 'migrations')
             }
         });
     }

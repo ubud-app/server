@@ -869,7 +869,10 @@ class TransactionLogic extends BaseLogic {
         }
 
 
-        await Promise.all(lastJobs);
+        Promise.all(lastJobs).catch(error => {
+            log.error(error);
+        });
+
         return {model};
     }
 

@@ -1,46 +1,57 @@
 {
-  "env": {
-    "node": true,
-    "es6": true,
-    "mocha": true
-  },
-  "parserOptions": {
-    "ecmaVersion": 2017,
-    "sourceType": "module"
-  },
-  "plugins": [
-    "security"
-  ],
-  "extends": [
-    "eslint:recommended",
-    "plugin:security/recommended"
-  ],
-  "rules": {
-    "indent": [
-      "error",
-      4
+    "env": {
+        "node": true,
+        "es6": true,
+        "mocha": true
+    },
+    "parserOptions": {
+        "ecmaVersion": 2017,
+        "sourceType": "module"
+    },
+    "plugins": [
+        "security"
     ],
-    "linebreak-style": [
-      "error",
-      "unix"
+    "extends": [
+        "eslint:recommended",
+        "plugin:security/recommended",
+        "plugin:node/recommended"
     ],
-    "quotes": [
-      "error",
-      "single"
-    ],
-    "semi": [
-      "error",
-      "always"
-    ],
-    "no-console": [
-      "error",
-      {
-        "allow": [
-          "log"
-        ]
-      }
-    ],
-    "security/detect-object-injection": "off",
-    "require-atomic-updates": "off"
-  }
+    "rules": {
+        "indent": "error",
+        "linebreak-style": "error",
+        "no-console": "error",
+        "no-extra-parens": [
+            "error",
+            "all",
+            {
+                "nestedBinaryExpressions": false
+            }
+        ],
+        "no-loss-of-precision": "error",
+        "no-unreachable-loop": "error",
+        "node/callback-return": "warn",
+        "node/exports-style": "error",
+        "node/global-require": "off",
+        "node/handle-callback-err": "error",
+        "node/no-new-require": "error",
+        "node/no-path-concat": "error",
+        "node/no-process-env": "error",
+        "node/no-process-exit": "error",
+        "node/prefer-global/buffer": "error",
+        "node/prefer-global/console": "error",
+        "node/prefer-global/process": "error",
+        "node/prefer-global/text-decoder": "error",
+        "node/prefer-global/text-encoder": "error",
+        "node/prefer-global/url": "error",
+        "node/prefer-global/url-search-params": "error",
+        "node/prefer-promises/dns": "error",
+        "node/prefer-promises/fs": "error",
+        "quotes": [
+            "error",
+            "single"
+        ],
+        "security/detect-object-injection": "off",
+        "require-atomic-updates": "off",
+        "semi": "error"
+    }
 }

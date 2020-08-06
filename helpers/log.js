@@ -169,7 +169,7 @@ class LogHelper {
         }
 
         // Exception
-        if (ConfigHelper.isDev() && ['fatal', 'error'].indexOf(s.level) >= 0 && s.error instanceof Error) {
+        if (s.level === 'fatal' && s.error instanceof Error) {
             throw s.error;
         }
 
@@ -244,6 +244,7 @@ class LogHelper {
 
         if (_.isFunction(cb)) {
             cb(error || null, returned);
+            return returned;
         }
 
         return returned;

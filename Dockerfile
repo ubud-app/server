@@ -6,11 +6,10 @@ ARG NODE_ENV=production
 ENV NODE_ENV=$NODE_ENV
 ENV SENTRY_DSN=$SENTRY_DSN
 
-RUN apk add --no-cache --update \
+RUN apk add --no-cache --update --force-broken-world \
     nodejs \
     nodejs-npm \
     libstdc++ \
-    python \
     make \
     gcc \
     g++ && \

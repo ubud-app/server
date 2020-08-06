@@ -1,5 +1,7 @@
 'use strict';
 
+/* eslint-disable node/no-process-exit, no-process-exit, no-console */
+
 const PluginTools = require('./tools.js');
 module.exports = PluginTools;
 
