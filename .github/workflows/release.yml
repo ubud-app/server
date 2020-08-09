@@ -119,6 +119,9 @@ jobs:
               --build-arg NODE_ENV="production" \
               --build-arg CLIENT_TAG="${CLIENT_TAG}" \
               --build-arg NEXT="${NEXT}" \
+              --build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
+              --build-arg VCS_REF=`git rev-parse --short HEAD` \
+              --build-arg VERSION="${VERSION}" \
               --cache-from "ubud/server:next-${{ matrix.image }}-base" \
               --cache-from "ubud/server:next-${{ matrix.image }}" \
               -t "ubud/server:${VERSION}-${{ matrix.image }}" .

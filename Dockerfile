@@ -33,6 +33,21 @@ ARG NODE_ENV=production
 ARG NEXT
 ARG SENTRY_DSN
 
+# Build-time metadata as defined at http://label-schema.org
+ARG BUILD_DATE
+ARG VCS_REF
+ARG VERSION
+LABEL org.label-schema.build-date=$BUILD_DATE \
+      org.label-schema.name="ubud app" \
+      org.label-schema.description="A small, selfhosted software for personal budgeting." \
+      org.label-schema.url="https://ubud.club" \
+      org.label-schema.usage="https://github.com/ubud-app/server#-quick-start" \
+      org.label-schema.vcs-ref=$VCS_REF \
+      org.label-schema.vcs-url="https://github.com/ubud-app/server" \
+      org.label-schema.vendor="Sebastian Pekarek" \
+      org.label-schema.version=$VERSION \
+      org.label-schema.schema-version="1.0"
+
 ENV NODE_ENV=$NODE_ENV
 ENV SENTRY_DSN=$SENTRY_DSN
 ENV NEXT=$NEXT

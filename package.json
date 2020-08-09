@@ -1,6 +1,6 @@
 {
 	"name": "@ubud-app/server",
-	"description": "",
+	"description": "A small private software for budgeting",
 	"bin": {
 		"ubud-db": "./bin/database",
 		"ubud-plugin": "./bin/plugin",
