@@ -17,10 +17,10 @@ RUN apk add --no-cache --update --force-broken-world \
 
 COPY package*.json "/@ubud-app/server/"
 WORKDIR "/@ubud-app/server"
-RUN npm ci && \
-    npm i "@ubud-app/client@$CLIENT_TAG" --save-optional --no-audit --production
+RUN npm ci
 
 COPY . "/@ubud-app/server/"
+RUN npm i "@ubud-app/client@$CLIENT_TAG" --save-optional --no-audit --production
 
 
 
