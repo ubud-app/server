@@ -85,9 +85,10 @@ jobs:
           rm -rf ./version
 
           echo "------"
-          echo "$VERSION"
-          echo "${GITHUB_REF#refs/heads/}"
-          echo "${{ matrix.image }}"
+          echo "Version: ${VERSION}"
+          echo "Branch: ${GITHUB_REF#refs/heads/}"
+          echo "Flavour: ${{ matrix.image }}"
+          echo "Client Channel: ${CLIENT_TAG}"
           echo "------"
 
           if [[ "${BRANCH}" == "master" ]]
