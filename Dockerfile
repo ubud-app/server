@@ -23,6 +23,7 @@ RUN npm ci && \
 COPY . "/@ubud-app/server/"
 
 
+
 FROM $BASEIMAGE
 
 ARG UID=1000
