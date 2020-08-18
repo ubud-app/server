@@ -114,10 +114,10 @@ class SocketRequestHandler {
         const Logic = this.Logic;
         const method = 'serve' + this.route.substr(0, 1).toUpperCase() + this.route.substr(1);
 
+        const parameters = new URLSearchParams(this.data.id);
         const params = {};
-        (this.data.id || '').split('/').filter(Boolean).forEach(part => {
-            const p = part.split(':', 2);
-            params[p[0]] = p[1] !== undefined ? p[1] : true;
+        parameters.forEach((value, key) => {
+            params[key] = value;
         });
 
         const options = {
