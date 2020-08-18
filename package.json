@@ -11,8 +11,7 @@
 		"test": "mocha | bunyan -o short -l error",
 		"check": "npm run check:eslint",
 		"check:quick": "npm run check:eslint",
-		"check:eslint": "eslint ./",
-		"check:npm": "npm-check -s"
+		"check:eslint": "eslint ./"
 	},
 	"author": "Sebastian Pekarek <foricheeshaifaecixae@e.sebbo.net>",
 	"homepage": "https://ubud.club",
@@ -59,7 +58,6 @@
 		"eslint-plugin-node": "^11.1.0",
 		"eslint-plugin-security": "^1.4.0",
 		"mocha": "^8.1.1",
-		"npm-check": "^5.9.2",
 		"nyc": "^15.1.0",
 		"semantic-release": "^17.1.1"
 	},
