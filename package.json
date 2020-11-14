@@ -57,7 +57,7 @@
 		"eslint": "^7.12.1",
 		"eslint-plugin-node": "^11.1.0",
 		"eslint-plugin-security": "^1.4.0",
-		"mocha": "^8.2.0",
+		"mocha": "^8.2.1",
 		"nyc": "^15.1.0",
 		"semantic-release": "^17.2.2"
 	},
