@@ -3,7 +3,7 @@
     <br /><br /><br />
 </div>
 
-[![Status](https://img.shields.io/github/workflow/status/ubud-app/server/Release/master?style=flat-square)](https://github.com/ubud-app/server/actions)
+[![Status](https://img.shields.io/github/workflow/status/ubud-app/server/Release/main?style=flat-square)](https://github.com/ubud-app/server/actions)
 [![npm version](https://img.shields.io/npm/v/@ubud-app/server?color=blue&label=version&style=flat-square)](https://www.npmjs.com/package/@ubud-app/server)
 [![npm dependency status](https://img.shields.io/librariesio/release/npm/@ubud-app/server?style=flat-square)](https://www.npmjs.com/package/@ubud-app/server)
 [![Docker Image Size](https://img.shields.io/docker/image-size/ubud/server/next?style=flat-square)](https://hub.docker.com/r/ubud/server)

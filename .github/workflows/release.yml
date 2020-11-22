@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - develop
-      - master
+      - main
 
 jobs:
   quick-check:
@@ -89,7 +89,7 @@ jobs:
           echo "Client Channel: ${CLIENT_TAG}"
           echo "------"
 
-          if [[ "${BRANCH}" == "master" ]]
+          if [[ "${BRANCH}" == "main" ]]
           then
              CLIENT_TAG="latest"
              DOCKER_TAG="latest"
@@ -166,7 +166,7 @@ jobs:
           echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login -u ubud-app --password-stdin docker.pkg.github.com
       - name: semantic-release
-        run: npx semantic-release
+        run: BRANCH=${GITHUB_REF#refs/heads/} npx semantic-release
         env:
           DOCKER_CLI_EXPERIMENTAL: enabled
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
