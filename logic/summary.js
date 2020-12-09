@@ -401,31 +401,51 @@ class SummaryLogic extends BaseLogic {
             }),
 
             /*
-             *   9: balanceUnitsTillThisMonth
+             *   9: balance
              */
-            DatabaseHelper.get('unit').findOne({
-                attributes: [
-                    [DatabaseHelper.sum('unit.amount'), 'balanceUnitsTillThisMonth']
-                ],
-                where: {
-                    '$transaction.time$': {
-                        [DatabaseHelper.op('lte')]: moment(monthMoment).endOf('month').toJSON()
-                    }
-                },
-                include: [{
-                    model: DatabaseHelper.get('transaction'),
-                    attributes: [],
-                    required: true,
-                    include: [{
-                        model: DatabaseHelper.get('account'),
-                        attributes: [],
-                        where: {
-                            documentId: summary.documentId
-                        }
-                    }]
-                }],
-                raw: true
-            })
+            DatabaseHelper.query(
+                'SELECT SUM(' +
+                '   (' + // Transactions without any units
+                '   SELECT IFNULL(SUM(amount), 0)' +
+                '    FROM transactions as t ' +
+                '    WHERE t.accountId = account.id ' +
+                '     AND t.time < "' + moment(monthMoment).endOf('month').toJSON() + '"' +
+                '     AND (' +
+                '      SELECT COUNT(*) ' +
+                '       FROM units ' +
+                '       WHERE units.transactionId = t.id' +
+                '     ) = 0' +
+                ' ) + ' +
+                ' (' + // Not a transfer (budgeted or income)
+                '   SELECT IFNULL(SUM(amount), 0)' +
+                '    FROM units as u' +
+                '    WHERE u.type != "TRANSFER" ' +
+                '     AND u.transactionId IN (' +
+                '       SELECT id FROM transactions AS t WHERE t.accountId = account.id ' +
+                '        AND t.time < "' + moment(monthMoment).endOf('month').toJSON() + '"' +
+                '     )' +
+                ' ) +' +
+                ' (' + // Transfer from account
+                '   SELECT IFNULL(SUM(amount), 0)' +
+                '    FROM units AS u' +
+                '    WHERE u.type = "TRANSFER"' +
+                '     AND u.transactionId IN (' +
+                '       SELECT id FROM transactions AS t WHERE t.accountId = account.id ' +
+                '         AND t.time < "' + moment(monthMoment).endOf('month').toJSON() + '"' +
+                '       )' +
+                ' ) -' +
+                ' (' + // Transfer to account
+                '   SELECT IFNULL(SUM(amount), 0)' +
+                '    FROM units AS u' +
+                '    WHERE u.type = "TRANSFER"' +
+                '     AND u.transferAccountId = account.id' +
+                '     AND u.transactionId IN (' +
+                '       SELECT id FROM transactions AS t ' +
+                '        WHERE t.time < "' + moment(monthMoment).endOf('month').toJSON() + '"' +
+                '     )' +
+                ' )' +
+                ') as balance FROM accounts AS account WHERE account.documentId = "' + summary.documentId + '";'
+            )
         ]);
 
         // till last month
@@ -446,7 +466,7 @@ class SummaryLogic extends BaseLogic {
         const budgetedTillThisMonth = budgetedTillLastMonth + budgetedThisMonth;
         const unbudgetedUnitsTillThisMonth = unbudgetedUnitsTillLastMonth + unbudgetedUnitsThisMonth;
         const unbudgetedTransactionsTillThisMonth = unbudgetedTransactionsTillLastMonth + unbudgetedTransactionsThisMonth;
-        const balanceUnitsTillThisMonth = parseInt(calculated[9].balanceUnitsTillThisMonth) || 0;
+        const balance = parseInt(calculated[9][0].balance) || 0;
 
         summary.available = incomeTillThisMonth - budgetedTillThisMonth +
             unbudgetedUnitsTillThisMonth + unbudgetedTransactionsTillThisMonth;
@@ -458,7 +478,7 @@ class SummaryLogic extends BaseLogic {
         summary.budgeted = budgetedThisMonth;
         summary.unbudgeted = unbudgetedUnitsThisMonth + unbudgetedTransactionsThisMonth;
         summary.outflow = outflowUnitsThisMonth + unbudgetedTransactionsThisMonth;
-        summary.balance = balanceUnitsTillThisMonth + unbudgetedTransactionsThisMonth;
+        summary.balance = balance;
 
         await summary.save();
     }

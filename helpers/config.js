@@ -40,7 +40,7 @@ try {
     ui = require('@ubud-app/client'); // eslint-disable-line node/global-require, node/no-missing-require
     ui.static = path.resolve(ui.static);
 
-    const packageJsonPath = path.resolve(ui.all + '/../package.json');
+    const packageJsonPath = require.resolve('@ubud-app/client/package.json');
     const stats = fs.statSync(packageJsonPath); // eslint-disable-line security/detect-non-literal-fs-filename
     ui.timestamp = stats.mtime;
 

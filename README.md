@@ -3,10 +3,10 @@
     <br /><br /><br />
 </div>
 
-[![Status](https://img.shields.io/github/workflow/status/ubud-app/server/Release/master?style=flat-square)](https://github.com/ubud-app/server/actions)
+[![Status](https://img.shields.io/github/workflow/status/ubud-app/server/Release/main?style=flat-square)](https://github.com/ubud-app/server/actions)
 [![npm version](https://img.shields.io/npm/v/@ubud-app/server?color=blue&label=version&style=flat-square)](https://www.npmjs.com/package/@ubud-app/server)
 [![npm dependency status](https://img.shields.io/librariesio/release/npm/@ubud-app/server?style=flat-square)](https://www.npmjs.com/package/@ubud-app/server)
-[![docker image size](https://img.shields.io/microbadger/image-size/ubud/server?style=flat-square)](https://hub.docker.com/r/ubud/server)
+[![Docker Image Size](https://img.shields.io/docker/image-size/ubud/server/next?style=flat-square)](https://hub.docker.com/r/ubud/server)
 
 ## 🚨 Warning
 
@@ -36,7 +36,7 @@ This repository contains the software ubud, a small private software for budgeti
 
 The easiest way to test ubud is Docker. If you don't have Docker installed on your system yet, you can do this with [this guide](https://docs.docker.com/install/).
 
-You need a database where all the data is stored. Currently MySQL and MariaDB are supported. Docker images are currently available for ARM and AMD64. 
+You need a database where all the data is stored. Currently MySQL and MariaDB are supported. Docker images are currently available for ARM and AMD64.
 
 ```
 # Download docker-compose.yml

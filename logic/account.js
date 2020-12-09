@@ -172,7 +172,7 @@ class AccountLogic extends BaseLogic {
             if (k === 'document') {
                 sql.include[0].where = {id};
             }
-            else if (k === 'pluginInstance' && !id) {
+            else if (k === 'pluginInstance' && (!id || id === 'null')) {
                 sql.where = sql.where || {};
                 sql.where.pluginInstanceId = null;
             }

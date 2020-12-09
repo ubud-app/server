@@ -1,6 +1,6 @@
 {
 	"name": "@ubud-app/server",
-	"description": "",
+	"description": "A small private software for budgeting",
 	"bin": {
 		"ubud-db": "./bin/database",
 		"ubud-plugin": "./bin/plugin",
@@ -11,8 +11,7 @@
 		"test": "mocha | bunyan -o short -l error",
 		"check": "npm run check:eslint",
 		"check:quick": "npm run check:eslint",
-		"check:eslint": "eslint ./",
-		"check:npm": "npm-check -s"
+		"check:eslint": "eslint ./"
 	},
 	"author": "Sebastian Pekarek <foricheeshaifaecixae@e.sebbo.net>",
 	"homepage": "https://ubud.club",
@@ -20,32 +19,31 @@
 		"url": "https://github.com/ubud-app/client/issues"
 	},
 	"dependencies": {
-		"@sentry/node": "^5.20.1",
+		"@sentry/node": "^5.27.4",
 		"basic-auth": "^2.0.1",
 		"bcryptjs": "^2.4.3",
-		"body-parser": "^1.19.0",
 		"bunyan": "^1.8.14",
 		"cli-table": "^0.3.1",
-		"commander": "^6.0.0",
+		"commander": "^6.2.0",
 		"cors": "^2.8.5",
 		"dtrace-provider": "^0.8.8",
 		"email-validator": "^2.0.4",
 		"express": "^4.17.1",
-		"express-fileupload": "^1.1.10",
+		"express-fileupload": "^1.2.0",
 		"hibp": "^9.0.0",
-		"moment": "^2.27.0",
+		"moment": "^2.29.1",
 		"mt940-js": "^1.0.0",
-		"mysql2": "^2.1.0",
+		"mysql2": "^2.2.5",
 		"neat-csv": "^5.2.0",
-		"node-fetch": "^2.6.0",
+		"node-fetch": "^2.6.1",
 		"promised-exec": "^1.0.1",
-		"semver": "^7.3.2",
-		"sequelize": "^6.3.4",
+		"semver": "^7.3.4",
+		"sequelize": "^6.3.5",
 		"shell-escape": "^0.2.0",
-		"socket.io": "^2.3.0",
+		"socket.io": "^3.0.3",
 		"umzug": "^2.3.0",
-		"underscore": "^1.10.2",
-		"uuid": "^8.3.0"
+		"underscore": "^1.12.0",
+		"uuid": "^8.3.1"
 	},
 	"optionalDependencies": {
 		"@ubud-app/client": "^1.1.0",
@@ -54,15 +52,15 @@
 	"devDependencies": {
 		"@semantic-release/changelog": "^5.0.1",
 		"@semantic-release/exec": "^5.0.0",
-		"@semantic-release/github": "^7.0.7",
-		"@semantic-release/npm": "^7.0.5",
-		"eslint": "^7.6.0",
+		"@semantic-release/git": "^9.0.0",
+		"@semantic-release/github": "^7.2.0",
+		"@semantic-release/npm": "^7.0.8",
+		"eslint": "^7.14.0",
 		"eslint-plugin-node": "^11.1.0",
 		"eslint-plugin-security": "^1.4.0",
-		"mocha": "^8.1.1",
-		"npm-check": "^5.9.2",
+		"mocha": "^8.2.1",
 		"nyc": "^15.1.0",
-		"semantic-release": "^17.1.1"
+		"semantic-release": "^17.3.0"
 	},
 	"engines": {
 		"node": ">=12.0.0"

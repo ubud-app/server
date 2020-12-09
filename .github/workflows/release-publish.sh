@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-if [[ "${BRANCH}" == "master" ]]
+if [[ "${BRANCH}" == "main" ]]
 then
    DOCKER_TAG="latest"
 else

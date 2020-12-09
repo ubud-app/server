@@ -492,7 +492,7 @@ class TransactionLogic extends BaseLogic {
 
         if (!options.httpRequest) {
             TransactionLogic.startSyncIfUseful(params).catch(error => {
-                log.warn('Unable to execute background account sync: ' + (error.stack || error));
+                log.error(error);
             });
         }
 
@@ -1522,8 +1522,8 @@ class TransactionLogic extends BaseLogic {
             !instance.errors().getAccounts &&
             !instance.errors().getTransactions &&
             (
-                !this.syncedAt('accounts')[0] ||
-                moment().subtract(5, 'minutes').isAfter(this.syncedAt('accounts')[0])
+                !instance.syncedAt('accounts')[0] ||
+                moment().subtract(5, 'minutes').isAfter(instance.syncedAt('accounts')[0])
             )
         );
         if (!instancesToSync.length) {
