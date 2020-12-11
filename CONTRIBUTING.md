@@ -5,6 +5,7 @@ npm run install
 // If running linux:
 npm run check:eslint --fix
 npm run check
+// for client/src/scripts/ do a manually conversion to  (notepad++ edit>EOL conversion)
 ```
 
 # build client
@@ -12,11 +13,6 @@ npm run check
 ```
 cd client
 npm run build
-```
-
-# install server
-```
-npm i -G .
 ```
 
 # create environment variables
