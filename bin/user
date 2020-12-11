@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
+require("dotenv").config();
 const commander = require('commander');
 const LogHelper = require('../helpers/log');
 const ConfigHelper = require('../helpers/config');
@@ -14,10 +15,10 @@ async function run(action) {
         await action();
         process.exit(0);
     }
-    catch(error) {
-        if(error instanceof ErrorResponse) {
+    catch (error) {
+        if (error instanceof ErrorResponse) {
             log.error(error.toString());
-        }else {
+        } else {
             log.error(error);
         }
         process.exit(1);
@@ -31,7 +32,7 @@ commander
     .alias('ls')
     .description('List all users and their permissions')
     .action(function () {
-        run(async function() {
+        run(async function () {
             const Table = require('cli-table');
             const table = new Table({
                 head: ['User ID', 'Email', 'Is Admin', 'Document ID', 'Document Name']
@@ -74,9 +75,9 @@ commander
     .command('add [email]')
     .description('Adds a new user to the system with the given email address.')
     .action(function (email) {
-        run(async function() {
+        run(async function () {
             const UserLogic = require('../logic/user');
-            const {model, secrets} = await UserLogic.create({email}, {session: {user: {isAdmin: true}}});
+            const { model, secrets } = await UserLogic.create({ email }, { session: { user: { isAdmin: true } } });
 
             log.info('Created User:\nID: %s\nPassword: %s', model.id, secrets.password);
         });

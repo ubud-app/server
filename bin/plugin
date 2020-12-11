@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
+require("dotenv").config();
 const commander = require('commander');
 const LogHelper = require('../helpers/log');
 const ConfigHelper = require('../helpers/config');
@@ -14,7 +15,7 @@ async function run(action) {
         await action();
         process.exit(0);
     }
-    catch(error) {
+    catch (error) {
         log.error(error);
         process.exit(1);
     }
@@ -27,7 +28,7 @@ commander
     .alias('ls')
     .description('List all installed plugin instances and their status…')
     .action(function () {
-        run(async function() {
+        run(async function () {
             const Table = require('cli-table');
             const table = new Table({
                 head: ['ID', 'Document', 'Plugin']
@@ -55,13 +56,13 @@ commander
     .alias('i')
     .description('Install a plugin, where document is a valid document id and plugin is a `npm install` parameter (name, tarball, etc.)')
     .action(function (documentId, plugin) {
-        run(async function() {
+        run(async function () {
             const document = await DatabaseHelper.get('document').findByPk(documentId);
-            if(!document) {
+            if (!document) {
                 throw new Error('Document not found, is the id correct?');
             }
 
-            await PluginHelper.installPlugin(plugin, document, {dontLoad: true});
+            await PluginHelper.installPlugin(plugin, document, { dontLoad: true });
             log.info('Plugin installed successfully. Please restart ubud-server to apply changes.');
         });
     });

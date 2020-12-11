@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
+require("dotenv").config();
 const commander = require('commander');
 const LogHelper = require('../helpers/log');
 const ConfigHelper = require('../helpers/config');
@@ -10,7 +11,7 @@ const log = new LogHelper('bin/database');
 const migrator = DatabaseHelper.getMigrator();
 
 
-function run (promise, type) {
+function run(promise, type) {
 	promise.then(function (migrations) {
 		if (type === 'read' && migrations.length) {
 			log.info('Result: \n - %s', migrations.length, migrations.map(m => m.file).join('\n - '));
