@@ -40,7 +40,7 @@
 		"semver": "^7.3.4",
 		"sequelize": "^6.3.5",
 		"shell-escape": "^0.2.0",
-		"socket.io": "^3.0.4",
+		"socket.io": "^3.0.5",
 		"umzug": "^2.3.0",
 		"underscore": "^1.12.0",
 		"uuid": "^8.3.2"
