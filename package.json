@@ -22,7 +22,7 @@
 		"@sentry/node": "^5.29.2",
 		"basic-auth": "^2.0.1",
 		"bcryptjs": "^2.4.3",
-		"bunyan": "^1.8.14",
+		"bunyan": "^1.8.15",
 		"cli-table": "^0.3.4",
 		"commander": "^6.2.1",
 		"cors": "^2.8.5",
