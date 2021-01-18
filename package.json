@@ -29,7 +29,7 @@
 		"dtrace-provider": "^0.8.8",
 		"email-validator": "^2.0.4",
 		"express": "^4.17.1",
-		"express-fileupload": "^1.2.0",
+		"express-fileupload": "^1.2.1",
 		"hibp": "^10.0.1",
 		"moment": "^2.29.1",
 		"mt940-js": "^1.0.0",
