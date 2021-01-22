@@ -24,7 +24,7 @@
 		"bcryptjs": "^2.4.3",
 		"bunyan": "^1.8.15",
 		"cli-table": "^0.3.4",
-		"commander": "^6.2.1",
+		"commander": "^7.0.0",
 		"cors": "^2.8.5",
 		"dtrace-provider": "^0.8.8",
 		"email-validator": "^2.0.4",
