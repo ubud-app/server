@@ -2,8 +2,6 @@ ARG BASEIMAGE=multiarch/alpine:x86_64-latest-stable
 FROM $BASEIMAGE as build-container
 
 ARG CLIENT_TAG=latest
-ARG NODE_ENV=production
-ENV NODE_ENV=$NODE_ENV
 ENV SENTRY_DSN=$SENTRY_DSN
 
 RUN apk add --no-cache --update --force-broken-world \
@@ -20,7 +18,7 @@ WORKDIR "/@ubud-app/server"
 RUN npm ci
 
 COPY . "/@ubud-app/server/"
-RUN npm i "@ubud-app/client@$CLIENT_TAG" --save-optional --no-audit --production
+RUN npm i "@ubud-app/client@$CLIENT_TAG" --save-optional --no-audit
 
 
 
