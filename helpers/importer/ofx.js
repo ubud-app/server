@@ -14,6 +14,7 @@ const TransactionLogic = require('../../logic/transaction');
 class OFXImporter {
     static async check (file) {
         try {
+            // eslint-disable-next-line node/no-missing-require
             require('ofx');
         }
         catch(err) {
@@ -24,6 +25,8 @@ class OFXImporter {
     }
 
     static async parse (file) {
+        // ofx is available, as check checks for it…
+        // eslint-disable-next-line node/no-missing-require
         const ofx = require('ofx');
         const TransactionModel = TransactionLogic.getModel();
 
