@@ -23,7 +23,7 @@
 		"basic-auth": "^2.0.1",
 		"bcryptjs": "^2.4.3",
 		"bunyan": "^1.8.15",
-		"cli-table": "^0.3.4",
+		"cli-table": "^0.3.5",
 		"commander": "^7.1.0",
 		"cors": "^2.8.5",
 		"dtrace-provider": "^0.8.8",
