@@ -1,3 +1,16 @@
+# [0.5.0](https://github.com/ubud-app/server/compare/v0.4.0...v0.5.0) (2021-04-13)
+
+
+### Bug Fixes
+
+* **Log:** Fix scope.addTag is not a function ([0e98323](https://github.com/ubud-app/server/commit/0e983238bc89b3c5e73285d0dfab33e6c3306a73))
+
+
+### Features
+
+* **PluginInstances:** add logging for plugin initialization for debugging purposes ([8dcce61](https://github.com/ubud-app/server/commit/8dcce61b23c3e799262b84458541b1d01e1553bb))
+* **bin/server:** Do not allow to create first user with that tool ([25dda15](https://github.com/ubud-app/server/commit/25dda15a18956357659a035ccdde0ec5f54b7b84))
+
 # [0.4.0](https://github.com/ubud-app/server/compare/v0.3.0...v0.4.0) (2020-12-09)
 
 
