@@ -134,8 +134,8 @@ class LogHelper {
             Sentry.configureScope(scope => {
                 scope.setExtra('machine', os.hostname() + ':' + ConfigHelper.getPort());
                 scope.setTag('module', s.module);
-                scope.addTag('id', s.id);
-                scope.addTag('level', s.level);
+                scope.setTag('id', s.id);
+                scope.setTag('level', s.level);
                 scope.setUser(s.user);
 
                 Sentry[s.level === 'error' ? 'captureException' : 'captureMessage'](s.error);

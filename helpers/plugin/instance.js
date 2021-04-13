@@ -81,10 +81,12 @@ class PluginInstance extends EventEmitter {
         }
         catch (err) {
             log.warn('Unable to get version of plugin %s, try to install it…', this.type());
+            log.debug('Error message was `%s`', err);
 
             try {
                 const PluginHelper = require('./index');
                 await PluginHelper._runPackageInstall(this.type());
+                log.debug('npm install %s completed successfully', this.type());
             }
             catch (err) {
                 log.warn('Unable to install plugin %s: %s', this.type(), err);
@@ -101,6 +103,8 @@ class PluginInstance extends EventEmitter {
                     const fs = require('fs');
                     const file = require.resolve(this.type())
                         .split(`/${this.type()}/`)[0] + `/${this.type()}/package.json`;
+                    log.debug('package.json path of module %s should be %s, right?', this.type(), file);
+
                     this._version = JSON.parse(
                         fs.readFileSync(file, {encoding: 'utf8'}) // eslint-disable-line security/detect-non-literal-fs-filename
                     ).version.toString();
@@ -114,7 +118,9 @@ class PluginInstance extends EventEmitter {
             log.warn('Okay, got it now, version of %s is %s', this.type(), this._version);
         }
 
+        log.debug('Plugin version of %s = %s', this.type(), this._version);
         await KeychainHelper.waitTillUnlocked();
+        log.debug('Keychain unlocked, proceed with plugin initialization of %s', this.type());
 
         // get plugin information
         try {
