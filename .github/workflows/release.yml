@@ -177,3 +177,11 @@ jobs:
           NOTIFY_WEBHOOK_SECRET: ${{ secrets.NOTIFY_WEBHOOK_SECRET }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           MICROBADGER_WEBHOOK_SECRET: ${{ secrets.MICROBADGER_WEBHOOK_SECRET }}
+      - name: update develop
+        if: ${{ github.ref == 'ref/head/main' }}
+        uses: everlytic/branch-merge@1.1.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          source_ref: 'main'
+          target_branch: 'develop'
+          commit_message_template: 'Merge branch {source_ref} into {target_branch} [skip ci]'
