@@ -8,7 +8,7 @@ const TransactionLogic = require('../../logic/transaction');
 const csv2transactionMap = {
     time: [
         ['Belegdatum', 'DD.MM.YY'],
-        ['Buchungstag', 'DD-MM-YY'],
+        ['Buchungstag', ['DD-MM-YY', 'DD.MM.YYYY']],
         ['Wertstellung', 'DD-MM-YY'],
         ['Datum', ['DD-MM-YY', 'YYYY-MM-DD']],
         ['Valutadatum', 'DD-MM-YY']
@@ -17,7 +17,8 @@ const csv2transactionMap = {
         ['Beguenstigter/Zahlungspflichtiger'],
         ['Name'],
         ['Transaktionsbeschreibung'],
-        ['Empfänger']
+        ['Empfänger'],
+        ['Auftraggeber / Begünstigter']
     ],
     memo: [
         ['Verwendungszweck'],
@@ -44,11 +45,12 @@ class CSVImporter {
 
     static async parse (file) {
         const TransactionModel = TransactionLogic.getModel();
-        let csv = await neatCsv(file.data, {separator: ';'});
-        if(Object.keys(csv[0]).length < 4) {
-            csv = await neatCsv(file.data, {separator: ','});
-        }
+        const data = file.data.toString('latin1').split('\n\n').pop();
 
+        let csv = await neatCsv(data, {separator: ';'});
+        if(Object.keys(csv[0]).length < 2) {
+            csv = await neatCsv(data, {separator: ','});
+        }
 
         return csv.map(row => {
             const model = TransactionModel.build();
@@ -66,7 +68,7 @@ class CSVImporter {
                         }
                     }
                     else if (row[possibleColumn] && attr === 'amount') {
-                        const amount = parseInt(row[possibleColumn].replace(/,|\./, ''), 10);
+                        const amount = parseInt(row[possibleColumn].replace(/,|\./g, ''), 10);
                         if (!isNaN(amount) && amount !== 0) {
                             model[attr] = amount;
                         }
@@ -79,7 +81,9 @@ class CSVImporter {
                     }
                 });
 
-                if (model[attr] === undefined) {
+                // Some banks add transactions with an amount of
+                // 0 to send messages to their customers…
+                if (model[attr] === undefined && attr !== 'amount') {
                     throw new Error(
                         'Unable to import CSV: no value found for `' + attr + '`, parsed this data: ' +
                         JSON.stringify(row, null, '  ')
@@ -87,8 +91,12 @@ class CSVImporter {
                 }
             });
 
+            if(!model.amount) {
+                return null;
+            }
+
             return model;
-        });
+        }).filter(Boolean);
     }
 }
 
