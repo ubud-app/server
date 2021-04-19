@@ -18,11 +18,13 @@ const csv2transactionMap = {
         ['Name'],
         ['Transaktionsbeschreibung'],
         ['Empfänger'],
-        ['Auftraggeber / Begünstigter']
+        ['Auftraggeber / Begünstigter'],
+        ['Beschreibung']
     ],
     memo: [
         ['Verwendungszweck'],
-        ['Transaktionsbeschreibung']
+        ['Transaktionsbeschreibung'],
+        ['Beschreibung']
     ],
     amount: [
         ['Betrag'],
