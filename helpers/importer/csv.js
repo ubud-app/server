@@ -7,7 +7,7 @@ const TransactionLogic = require('../../logic/transaction');
 
 const csv2transactionMap = {
     time: [
-        ['Belegdatum', 'DD.MM.YY'],
+        ['Belegdatum', ['DD.MM.YYYY', 'DD.MM.YY']],
         ['Buchungstag', ['DD-MM-YY', 'DD.MM.YYYY']],
         ['Wertstellung', 'DD-MM-YY'],
         ['Datum', ['DD-MM-YY', 'YYYY-MM-DD']],
