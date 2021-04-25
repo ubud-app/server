@@ -1,3 +1,17 @@
+# [0.6.0](https://github.com/ubud-app/server/compare/v0.5.0...v0.6.0) (2021-04-25)
+
+
+### Bug Fixes
+
+* **CSV Import:** Fix year for DKB credit card imports ([57f8c91](https://github.com/ubud-app/server/commit/57f8c91193bea3f33f0185cc6c4c017dfe0d5445))
+
+
+### Features
+
+* **CSV Importer:** Add columns for DKB credit cards ([bad692d](https://github.com/ubud-app/server/commit/bad692db6b20385018fbd5d58f0b808b7724ec71))
+* **CSV Importer:** Add support for dkb.de csv export ([e9a86d7](https://github.com/ubud-app/server/commit/e9a86d707f76171ecf626606382ff04bff65be0d))
+* **Transactions:** Guess budget for new, synced transactions ([1bb5ee2](https://github.com/ubud-app/server/commit/1bb5ee26edc8f571c9edcb605a1cfdd45d5f34ef))
+
 # [0.5.0](https://github.com/ubud-app/server/compare/v0.4.0...v0.5.0) (2021-04-13)
 
 
