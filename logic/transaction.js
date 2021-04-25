@@ -1453,7 +1453,8 @@ class TransactionLogic extends BaseLogic {
         await Promise.all(jobs);
 
         // check units and add unit with difference when necessary
-        if (newTransaction.id) {
+        const isNew = !newTransaction.id;
+        if (!isNew) {
             const units = await newTransaction.getUnits();
             if (units.length === 1 && units[0].amount !== newTransaction.amount) {
                 units[0].amount = newTransaction.amount;
@@ -1483,6 +1484,23 @@ class TransactionLogic extends BaseLogic {
             throw err;
         }
 
+        if(!isNew) {
+            return newTransaction;
+        }
+
+        const guesses = await this.guessBudget(newTransaction);
+        if(!guesses.length || guesses[0].probability < 1) {
+            return newTransaction;
+        }
+
+        const unit = await DatabaseHelper.get('unit').create({
+            transactionId: newTransaction.id,
+            budgetId: guesses[0].budgetId,
+            amount: newTransaction.amount,
+            type: 'BUDGET'
+        });
+
+        await newTransaction.addUnit(unit);
         return newTransaction;
     }
 
