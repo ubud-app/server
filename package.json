@@ -19,7 +19,7 @@
 		"url": "https://github.com/ubud-app/client/issues"
 	},
 	"dependencies": {
-		"@sentry/node": "^6.4.1",
+		"@sentry/node": "^6.7.2",
 		"basic-auth": "^2.0.1",
 		"bcryptjs": "^2.4.3",
 		"bunyan": "^1.8.15",
