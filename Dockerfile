@@ -6,7 +6,7 @@ ENV SENTRY_DSN=$SENTRY_DSN
 
 RUN apk add --no-cache --update --force-broken-world \
     nodejs \
-    nodejs-npm \
+    npm \
     libstdc++ \
     make \
     gcc \
