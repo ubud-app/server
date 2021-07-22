@@ -4,13 +4,14 @@ FROM $BASEIMAGE as build-container
 ARG CLIENT_TAG=latest
 ENV SENTRY_DSN=$SENTRY_DSN
 
-RUN apk add --no-cache --update --force-broken-world \
+RUN apk add --no-cache --update \
     nodejs \
     npm \
     libstdc++ \
     make \
     gcc \
-    g++ && \
+    g++ \
+    python3 && \
     npm install -g --unsafe-perm npm
 
 COPY package*.json "/@ubud-app/server/"
@@ -52,7 +53,7 @@ ENV NEXT=$NEXT
 
 RUN apk add --no-cache --update \
     nodejs \
-    nodejs-npm && \
+    npm && \
     npm install -g --unsafe-perm npm && \
     addgroup -g $GID ubud && \
     adduser -u $UID -G ubud -s /bin/sh -D ubud
