@@ -1198,26 +1198,33 @@ class TransactionLogic extends BaseLogic {
         log.debug('Got transaction beginning from ' + minDate.toJSON() + ' to ' + maxDate.toJSON());
 
         // destroy lost transactions
-        const toDestroy = await this.getModel().findAll({
-            where: {
-                time: {
-                    [DatabaseHelper.op('gte')]: minDate.toJSON(),
-                    [DatabaseHelper.op('lte')]: maxDate.toJSON()
-                },
-                id: {
-                    [DatabaseHelper.op('notIn')]: newTransactions.map(t => t.id)
-                },
-                accountId: account.id
-            }
-        });
-        await Promise.all(toDestroy.map(async transaction => {
-            if (transaction.isReconciling) {
-                return Promise.resolve();
-            }
+        if(!minDate.isSame(maxDate)) {
+            log.debug(
+                'Remove transactions in this timeframe which are not in the imported data set '+
+                '(for example, expired credit card bookings)'
+            );
 
-            log.debug('Transaction obsolete, delete it: ' + JSON.stringify(transaction.dataValues));
-            return transaction.destroy();
-        }));
+            const toDestroy = await this.getModel().findAll({
+                where: {
+                    time: {
+                        [DatabaseHelper.op('gte')]: minDate.toJSON(),
+                        [DatabaseHelper.op('lte')]: maxDate.toJSON()
+                    },
+                    id: {
+                        [DatabaseHelper.op('notIn')]: newTransactions.map(t => t.id)
+                    },
+                    accountId: account.id
+                }
+            });
+            await Promise.all(toDestroy.map(async transaction => {
+                if (transaction.isReconciling) {
+                    return Promise.resolve();
+                }
+
+                log.debug('Transaction obsolete, delete it: ' + JSON.stringify(transaction.dataValues));
+                return transaction.destroy();
+            }));
+        }
 
         // update summaries
         if (options.updateSummaries !== false) {
@@ -1423,7 +1430,7 @@ class TransactionLogic extends BaseLogic {
                 });
 
                 if (best.id && (best.count >= 3 || payees.length === 1)) {
-                    log.debug('Use payee#' + best.id + ' as payee');
+                    log.debug('Use payee#' + best.id + ' as payee (found ' +  best.sum + ' times)');
                     newTransaction.payeeId = best.id;
                 }
                 else {
