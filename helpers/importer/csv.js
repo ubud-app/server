@@ -9,7 +9,7 @@ const csv2transactionMap = {
     time: [
         ['Belegdatum', ['DD.MM.YYYY', 'DD.MM.YY']],
         ['Buchungstag', ['DD-MM-YY', 'DD.MM.YYYY']],
-        ['Wertstellung', 'DD-MM-YY'],
+        ['Wertstellung', ['DD-MM-YY', 'DD.MM.YYYY']],
         ['Datum', ['DD-MM-YYYY', 'DD.MM.YYYY', 'DD-MM-YY', 'YYYY-MM-DD']],
         ['Valutadatum', 'DD-MM-YY']
     ],
