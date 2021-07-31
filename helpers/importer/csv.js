@@ -9,8 +9,8 @@ const csv2transactionMap = {
     time: [
         ['Belegdatum', ['DD.MM.YYYY', 'DD.MM.YY']],
         ['Buchungstag', ['DD-MM-YY', 'DD.MM.YYYY']],
-        ['Wertstellung', 'DD-MM-YY'],
-        ['Datum', ['DD-MM-YY', 'YYYY-MM-DD']],
+        ['Wertstellung', ['DD-MM-YY', 'DD.MM.YYYY']],
+        ['Datum', ['DD-MM-YYYY', 'DD.MM.YYYY', 'DD-MM-YY', 'YYYY-MM-DD']],
         ['Valutadatum', 'DD-MM-YY']
     ],
     pluginsOwnPayeeId: [
@@ -64,7 +64,11 @@ class CSVImporter {
                     }
 
                     if (row[possibleColumn] && attr === 'time') {
-                        const time = moment(row[possibleColumn], momentFormat);
+                        const momentFormats = Array.isArray(momentFormat) ?
+                            momentFormat.filter(f => f.length === row[possibleColumn].length) :
+                            [momentFormat];
+
+                        const time = moment(row[possibleColumn], momentFormats);
                         if (time && time.isValid()) {
                             model[attr] = time.toJSON();
                         }

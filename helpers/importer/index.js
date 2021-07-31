@@ -51,6 +51,12 @@ class ImporterHelper {
         const transactions = await myImporter.parse(file);
         return transactions.map(t => {
             t.accountId = account.id;
+            
+            t.memo = t.memo || null;
+            if(t.memo && t.memo.length > 512) {
+                t.memo = t.memo.substr(0, 511) + '…';
+            }
+
             return t;
         });
     }

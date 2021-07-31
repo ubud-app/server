@@ -1198,26 +1198,33 @@ class TransactionLogic extends BaseLogic {
         log.debug('Got transaction beginning from ' + minDate.toJSON() + ' to ' + maxDate.toJSON());
 
         // destroy lost transactions
-        const toDestroy = await this.getModel().findAll({
-            where: {
-                time: {
-                    [DatabaseHelper.op('gte')]: minDate.toJSON(),
-                    [DatabaseHelper.op('lte')]: maxDate.toJSON()
-                },
-                id: {
-                    [DatabaseHelper.op('notIn')]: newTransactions.map(t => t.id)
-                },
-                accountId: account.id
-            }
-        });
-        await Promise.all(toDestroy.map(async transaction => {
-            if (transaction.isReconciling) {
-                return Promise.resolve();
-            }
+        if(!minDate.isSame(maxDate)) {
+            log.debug(
+                'Remove transactions in this timeframe which are not in the imported data set '+
+                '(for example, expired credit card bookings)'
+            );
 
-            log.debug('Transaction obsolete, delete it: ' + JSON.stringify(transaction.dataValues));
-            return transaction.destroy();
-        }));
+            const toDestroy = await this.getModel().findAll({
+                where: {
+                    time: {
+                        [DatabaseHelper.op('gte')]: minDate.toJSON(),
+                        [DatabaseHelper.op('lte')]: maxDate.toJSON()
+                    },
+                    id: {
+                        [DatabaseHelper.op('notIn')]: newTransactions.map(t => t.id)
+                    },
+                    accountId: account.id
+                }
+            });
+            await Promise.all(toDestroy.map(async transaction => {
+                if (transaction.isReconciling) {
+                    return Promise.resolve();
+                }
+
+                log.debug('Transaction obsolete, delete it: ' + JSON.stringify(transaction.dataValues));
+                return transaction.destroy();
+            }));
+        }
 
         // update summaries
         if (options.updateSummaries !== false) {
@@ -1423,7 +1430,7 @@ class TransactionLogic extends BaseLogic {
                 });
 
                 if (best.id && (best.count >= 3 || payees.length === 1)) {
-                    log.debug('Use payee#' + best.id + ' as payee');
+                    log.debug('Use payee#' + best.id + ' as payee (found ' +  best.sum + ' times)');
                     newTransaction.payeeId = best.id;
                 }
                 else {
@@ -1453,7 +1460,7 @@ class TransactionLogic extends BaseLogic {
         await Promise.all(jobs);
 
         // check units and add unit with difference when necessary
-        const isNew = !newTransaction.id;
+        const isNew = newTransaction.isNewRecord;
         if (!isNew) {
             const units = await newTransaction.getUnits();
             if (units.length === 1 && units[0].amount !== newTransaction.amount) {
@@ -1485,14 +1492,28 @@ class TransactionLogic extends BaseLogic {
         }
 
         if(!isNew) {
+            log.debug('Skip guessing the new transaction as transaction is not new');
             return newTransaction;
         }
 
-        const guesses = await this.guessBudget(newTransaction);
-        if(!guesses.length || guesses[0].probability < 1) {
+        log.debug('Nice, transaction created. Now trying to auto-budget…');
+
+        const transaction = await this.get(newTransaction.id);
+        const guesses = await this.guessBudget(transaction);
+        if(!guesses.length) {
+            log.debug('Found no guesses, leave the transaction as it is');
+            return newTransaction;
+        }
+        if(guesses[0].probability < 1) {
+            log.debug(
+                'Found ' + guesses.length + ' guesses, but ' + guesses[0].probability +
+                ' is quite low with' + guesses[0].probability + '. Stopping here…'
+            );
+
             return newTransaction;
         }
 
+        log.debug('Found a match (budget#' + guesses[0].budgetId + '), auto-budget it…');
         const unit = await DatabaseHelper.get('unit').create({
             transactionId: newTransaction.id,
             budgetId: guesses[0].budgetId,
