@@ -19,12 +19,12 @@
 		"url": "https://github.com/ubud-app/client/issues"
 	},
 	"dependencies": {
-		"@sentry/node": "^6.10.0",
+		"@sentry/node": "^6.12.0",
 		"basic-auth": "^2.0.1",
 		"bcryptjs": "^2.4.3",
 		"bunyan": "^1.8.15",
 		"cli-table": "^0.3.6",
-		"commander": "^8.1.0",
+		"commander": "^8.2.0",
 		"cors": "^2.8.5",
 		"dtrace-provider": "^0.8.8",
 		"email-validator": "^2.0.4",
@@ -33,14 +33,14 @@
 		"hibp": "^11.0.0",
 		"moment": "^2.29.1",
 		"mt940-js": "^1.0.0",
-		"mysql2": "^2.2.5",
+		"mysql2": "^2.3.0",
 		"neat-csv": "^6.0.1",
-		"node-fetch": "^2.6.1",
+		"node-fetch": "^3.0.0",
 		"promised-exec": "^1.0.1",
 		"semver": "^7.3.5",
 		"sequelize": "^6.6.5",
 		"shell-escape": "^0.2.0",
-		"socket.io": "^4.1.3",
+		"socket.io": "^4.2.0",
 		"umzug": "^2.3.0",
 		"underscore": "^1.13.1",
 		"uuid": "^8.3.2"
@@ -52,15 +52,15 @@
 	"devDependencies": {
 		"@semantic-release/changelog": "^5.0.1",
 		"@semantic-release/exec": "^5.0.0",
-		"@semantic-release/git": "^9.0.0",
+		"@semantic-release/git": "^9.0.1",
 		"@semantic-release/github": "^7.2.3",
 		"@semantic-release/npm": "^7.1.3",
-		"eslint": "^7.31.0",
+		"eslint": "^7.32.0",
 		"eslint-plugin-node": "^11.1.0",
 		"eslint-plugin-security": "^1.4.0",
-		"mocha": "^9.0.3",
+		"mocha": "^9.1.1",
 		"nyc": "^15.1.0",
-		"semantic-release": "^17.4.4"
+		"semantic-release": "^17.4.7"
 	},
 	"engines": {
 		"node": ">=12.0.0"
