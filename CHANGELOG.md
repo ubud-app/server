@@ -1,3 +1,16 @@
+## [0.6.1](https://github.com/ubud-app/server/compare/v0.6.0...v0.6.1) (2021-07-31)
+
+
+### Bug Fixes
+
+* **TransactionLogic:** Don't remove lost transaction for single items ([d32d6ec](https://github.com/ubud-app/server/commit/d32d6ecc425adbb55fdcff1b267f4482e73f1337))
+* **TransactionLogic:** Fix auto-budget ([66d0f9b](https://github.com/ubud-app/server/commit/66d0f9bbca6336adfb799dc238ecd5e7f7b2dd2b))
+* **CSVImporter:** Fix importing wrong date format ([f0a93b1](https://github.com/ubud-app/server/commit/f0a93b12a067f1f269a7de5445005783c33d1df9))
+* **CSVImporter:** Fix importing wrong date format ([933ac78](https://github.com/ubud-app/server/commit/933ac78a963d0e55ca9c30765fb25ee10ff07493))
+* **CSV Import:** Handle column "Wertstellung" with DD.MM.YYYY values ([f72853b](https://github.com/ubud-app/server/commit/f72853b6c5af3d2a34f211fd4af86538514b998f))
+* **Dockerfile:** replace apk from "nodejs-npm" to "npm" ([a5e4809](https://github.com/ubud-app/server/commit/a5e4809354edb8cec1aa37058897461962e5b64d))
+* **Importer:** Trim long memos during import ([c919e93](https://github.com/ubud-app/server/commit/c919e93df367ca6f13803ceefd1999e6e12e02a2))
+
 # [0.6.0](https://github.com/ubud-app/server/compare/v0.5.0...v0.6.0) (2021-04-25)
 
 
