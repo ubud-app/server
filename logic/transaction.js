@@ -1276,7 +1276,7 @@ class TransactionLogic extends BaseLogic {
          *    - is newer than the oldest transaction in plugin's list
          *    - is not in the plugin's list, but in our database (pluginsOwnId / accountId)
          *    - has same pluginsOwnPayeeId
-         *    - amount is about tha same (+/- 10%)
+         *    - amount is about the same (+/- 10%)
          *  if exactly one found:
          *    - use that model
          *    - pluginsOwnPayeeId will be updated below
@@ -1328,7 +1328,7 @@ class TransactionLogic extends BaseLogic {
          * Mainly used für manual imports…
          */
         if (!newTransaction && !reference.pluginsOwnId) {
-            log.debug('Try to find transaction by amount, time, accountId payeeId');
+            log.debug('Try to find transaction by amount, time, accountId and payeeId');
 
             const matchCandiates = await TransactionLogic.getModel().findAll({
                 where: {
@@ -1368,6 +1368,39 @@ class TransactionLogic extends BaseLogic {
 
                 newTransaction = matchCandiates[0];
                 newTransaction.pluginsOwnPayeeId = reference.pluginsOwnPayeeId;
+            }
+        }
+
+        /*
+         * Another fallback for stupid german banks that can't even manage
+         * to give transactions a proper timestamp.
+         */
+        if (!newTransaction && !reference.pluginsOwnId) {
+            log.debug('Try to find transaction by amount, loose time, accountId and payeeId');
+
+            const matchCandiates = await TransactionLogic.getModel().findAll({
+                where: {
+                    amount: reference.amount,
+                    time: {
+                        [DatabaseHelper.op('gt')]: moment(reference.time)
+                            .subtract(1, 'd')
+                            .startOf('day')
+                            .toJSON(),
+                        [DatabaseHelper.op('lt')]: moment(reference.time)
+                            .add(1, 'd')
+                            .endOf('day')
+                            .toJSON()
+                    },
+                    pluginsOwnPayeeId: reference.pluginsOwnPayeeId,
+                    accountId: reference.accountId
+                }
+            });
+
+            log.debug(matchCandiates.length + ' candidates found');
+
+            if (matchCandiates.length === 1) {
+                log.debug('Procceed with this one: ' + JSON.stringify(matchCandiates[0].dataValues));
+                newTransaction = matchCandiates[0];
             }
         }
 
