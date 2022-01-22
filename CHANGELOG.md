@@ -1,3 +1,15 @@
+# [0.7.0](https://github.com/ubud-app/server/compare/v0.6.1...v0.7.0) (2022-01-22)
+
+
+### Bug Fixes
+
+* **build:** Bump node-fetch to 2.6.7 ([91e7c95](https://github.com/ubud-app/server/commit/91e7c95f8fd50eef291967947138c8d5f6ffa238))
+
+
+### Features
+
+* **Transaction:** Add fallback for "stupid german banks" 🤪 ([cbb3ce1](https://github.com/ubud-app/server/commit/cbb3ce178bdfe511686c0403e1bc9dd10002c202))
+
 ## [0.6.1](https://github.com/ubud-app/server/compare/v0.6.0...v0.6.1) (2021-07-31)
 
 
