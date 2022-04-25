@@ -19,11 +19,11 @@ jobs:
           jq -M ".version=\"$OLDVERSION\"" package.json > package.new.json
           rm -f package.json
           mv package.new.json package.json
-      - name: docker login
-        run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
-        env:
-          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      - name: 🔐 Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
       - name: pull dependencies
         run: |
           docker pull multiarch/qemu-user-static:register
