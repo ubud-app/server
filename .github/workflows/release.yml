@@ -60,11 +60,20 @@ jobs:
       - uses: actions/download-artifact@v1
         with:
           name: version
+      - name: 🔐 Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: docker.pkg.github.com
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: 🔐 Login to DockerHub
+        uses: docker/login-action@v1
+        if: ${{ env.PUSH_TO_DOCKERHUB == 'true' }}
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
       - name: prepare, build & test
         run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login -u ubud-app --password-stdin docker.pkg.github.com
-
           docker pull multiarch/qemu-user-static:register
           docker run --rm --privileged multiarch/qemu-user-static:register --reset
 
