@@ -1,7 +1,7 @@
 (async () => {
 
     // https://github.com/semantic-release/semantic-release/issues/753#issuecomment-550977000
-    const semanticRelease = require('semantic-release');
+    const { default: semanticRelease } = await import('semantic-release');
     const result = await semanticRelease({dryRun: true});
 
 
