@@ -135,11 +135,17 @@ class RepositoryHelper {
         data.id = instanceIdModel ? JSON.parse(instanceIdModel.value) : null;
         data.serverVersion = ConfigHelper.getVersion() || 'develop';
         data.clientVersion = ConfigHelper.getClient() ? ConfigHelper.getClient().version : null;
-        data.npmVersion = await exec('npm -v');
 
-        data.nodeVersion = await exec('node -v');
-        if (data.nodeVersion.substr(0, 1) === 'v') {
-            data.nodeVersion = data.nodeVersion.substr(1);
+        try {
+            data.nodeVersion = await exec('node -v');
+            data.npmVersion = await exec('npm -v');
+
+            if (data.nodeVersion.substr(0, 1) === 'v') {
+                data.nodeVersion = data.nodeVersion.substr(1);
+            }
+        }
+        catch(error) {
+            // ignore errors
         }
 
         data.cpuType = os.arch();

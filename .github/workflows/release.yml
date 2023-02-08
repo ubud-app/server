@@ -9,11 +9,11 @@ jobs:
   quick-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
         with:
           cache: 'npm'
-          node-version: '14'
+          node-version: '18'
       - name: set version
         run: |
           export OLDVERSION=$(npm view @ubud-app/server@next version)
@@ -28,11 +28,11 @@ jobs:
   generate-version:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
         with:
           cache: 'npm'
-          node-version: '14'
+          node-version: '18'
       - run: npm ci
       - name: set version
         run: |
@@ -56,15 +56,24 @@ jobs:
       matrix:
         image: [x86_64, arm64, aarch64, amd64, armhf, i386]
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/download-artifact@v1
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
         with:
           name: version
+          path: version
+      - name: 🔐 Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: docker.pkg.github.com
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: 🔐 Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
       - name: prepare, build & test
         run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login -u ubud-app --password-stdin docker.pkg.github.com
-
           docker pull multiarch/qemu-user-static:register
           docker run --rm --privileged multiarch/qemu-user-static:register --reset
 
@@ -139,22 +148,30 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-containers]
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
         with:
           cache: 'npm'
-          node-version: '14'
-      - uses: actions/download-artifact@v1
+          node-version: '18'
+      - uses: actions/download-artifact@v3
         with:
           name: version
+          path: version
       - name: install dependencies
         run: npm ci
       - name: install sentry cli
         run: npm install -g @sentry/cli
-      - name: docker login
-        run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login -u ubud-app --password-stdin docker.pkg.github.com
+      - name: 🔐 Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: docker.pkg.github.com
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: 🔐 Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
       - name: semantic-release
         run: BRANCH=${GITHUB_REF#refs/heads/} npx semantic-release
         env:
