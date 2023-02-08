@@ -1,3 +1,10 @@
+## [0.7.1](https://github.com/ubud-app/server/compare/v0.7.0...v0.7.1) (2023-02-08)
+
+
+### Bug Fixes
+
+* **Repository:** Ignore npm/node.js version errors ([9cc9780](https://github.com/ubud-app/server/commit/9cc97808be1cf1aae1cacb9669b3d6759f0aba6f))
+
 # [0.7.0](https://github.com/ubud-app/server/compare/v0.6.1...v0.7.0) (2022-01-22)
 
 
