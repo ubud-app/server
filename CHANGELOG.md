@@ -1,3 +1,10 @@
+# [0.8.0](https://github.com/ubud-app/server/compare/v0.7.1...v0.8.0) (2023-07-11)
+
+
+### Features
+
+* Update Sentry DSN ([8ce1f9b](https://github.com/ubud-app/server/commit/8ce1f9b6cc700b5f461cd5d72ab70ae2205f89e0))
+
 ## [0.7.1](https://github.com/ubud-app/server/compare/v0.7.0...v0.7.1) (2023-02-08)
 
 
