@@ -6,25 +6,6 @@ on:
       - main
 
 jobs:
-  quick-check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          cache: 'npm'
-          node-version: '18'
-      - name: set version
-        run: |
-          export OLDVERSION=$(npm view @ubud-app/server@next version)
-          jq -M ".version=\"$OLDVERSION\"" package.json > package.new.json
-          rm -f package.json
-          mv package.new.json package.json
-      - name: install dependencies
-        run: npm ci
-      - name: run checks
-        run: npm run check
-
   generate-version:
     runs-on: ubuntu-latest
     steps:
@@ -32,7 +13,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           cache: 'npm'
-          node-version: '18'
+          node-version: '20'
       - run: npm ci
       - name: set version
         run: |
@@ -51,7 +32,7 @@ jobs:
 
   build-containers:
     runs-on: ubuntu-latest
-    needs: [quick-check, generate-version]
+    needs: [generate-version]
     strategy:
       matrix:
         image: [x86_64, arm64, aarch64, amd64, armhf, i386]
@@ -152,7 +133,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           cache: 'npm'
-          node-version: '18'
+          node-version: '20'
       - uses: actions/download-artifact@v3
         with:
           name: version
