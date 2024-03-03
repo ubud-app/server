@@ -194,7 +194,7 @@ class DatabaseHelper {
      * @returns {Umzug}
      */
     static getMigrator () {
-        const Umzug = require('umzug');
+        const { Umzug } = require('umzug');
         const path = require('path');
         const log = new LogHelper('DatabaseMigrator');
 
