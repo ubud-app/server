@@ -312,7 +312,7 @@ class ServerHelper {
         try {
             const migrations = await DatabaseHelper.getMigrator().up();
             if (migrations.length > 0) {
-                log.info('Executed %s migrations.\n - %s', migrations.length, migrations.map(m => m.file).join('\n - '));
+                log.info('Executed %s migrations.\n - %s', migrations.length, migrations.map(m => m.name).join('\n - '));
             }
         }
         catch (e) {
