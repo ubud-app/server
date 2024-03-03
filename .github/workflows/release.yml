@@ -85,7 +85,7 @@ jobs:
           context: .
           github-token: ${{ secrets.GITHUB_TOKEN }}
           builder: ${{ steps.buildx.outputs.name }}
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm64,linux/i386
           pull: true
           push: true
           tags: |
@@ -114,7 +114,7 @@ jobs:
           context: .
           github-token: ${{ secrets.GITHUB_TOKEN }}
           builder: ${{ steps.buildx.outputs.name }}
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm64,linux/i386
           push: true
           tags: ubud/server:${{ github.sha }}
           labels: |
@@ -167,12 +167,13 @@ jobs:
       - name: semantic-release
         run: BRANCH=${GITHUB_REF#refs/heads/} npx semantic-release
         env:
-          DOCKER_CLI_EXPERIMENTAL: enabled
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ubud
           SENTRY_PROJECT: server
           SENTRY_URL: ${{ secrets.SENTRY_URL }}
+          DOCKER_LOCAL_IMAGE_DH: ubud/server:${{ github.sha }}
+          DOCKER_LOCAL_IMAGE_GH: ghcr.io/${{ github.repository }}:${{ github.sha }}
           NOTIFY_WEBHOOK_SECRET: ${{ secrets.NOTIFY_WEBHOOK_SECRET }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           MICROBADGER_WEBHOOK_SECRET: ${{ secrets.MICROBADGER_WEBHOOK_SECRET }}
