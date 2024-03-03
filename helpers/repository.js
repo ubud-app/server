@@ -71,7 +71,6 @@ class RepositoryHelper {
      */
     static async _run () {
         const payload = await this._payload();
-        const fetch = await import('node-fetch');
         const res = await fetch('https://beacon.ubud.club/v1/beacon', {
             method: 'POST',
             body: JSON.stringify(payload),
