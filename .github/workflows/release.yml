@@ -145,6 +145,12 @@ jobs:
         with:
           cache: 'npm'
           node-version: '20'
+      - name: 🔧 Setup regclient
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 > "$HOME/.local/bin/regctl"
+          chmod +x "$HOME/.local/bin/regctl"
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
       - uses: actions/download-artifact@v4
         with:
           name: version
