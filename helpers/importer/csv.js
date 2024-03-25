@@ -1,7 +1,6 @@
 'use strict';
 
 const path = require('path');
-const neatCsv = require('neat-csv');
 const moment = require('moment');
 const TransactionLogic = require('../../logic/transaction');
 
@@ -49,6 +48,7 @@ class CSVImporter {
         const TransactionModel = TransactionLogic.getModel();
         const data = file.data.toString('latin1').split('\n\n').pop();
 
+        const { default: neatCsv } = await import('neat-csv');
         let csv = await neatCsv(data, {separator: ';'});
         if(Object.keys(csv[0]).length < 2) {
             csv = await neatCsv(data, {separator: ','});
