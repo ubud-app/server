@@ -20,7 +20,6 @@
 	},
 	"dependencies": {
 		"@sentry/node": "^7.94.1",
-		"@ubud-app/plugin-bunq": "^1.2.1",
 		"basic-auth": "^2.0.1",
 		"bcryptjs": "^2.4.3",
 		"bunyan": "^1.8.15",
