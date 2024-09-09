@@ -1,3 +1,14 @@
+## [0.8.1](https://github.com/ubud-app/server/compare/v0.8.0...v0.8.1) (2024-09-09)
+
+
+### Bug Fixes
+
+* Fix CSV Import ([79b4596](https://github.com/ubud-app/server/commit/79b45963fd812179934ef6a35bef3a88239ecc65))
+* Fix Umzug glob attribute ([5adf529](https://github.com/ubud-app/server/commit/5adf52947b25ee819b3361ba0c1680dcb28ba31a))
+* Fix umzug import ([3199bf1](https://github.com/ubud-app/server/commit/3199bf1c572ccdc99f536f936d665a07e3844b30))
+* Fix Umzug usage ([356e8ad](https://github.com/ubud-app/server/commit/356e8ada665977a179468df22b31a3bd92cef5ca))
+* Use import() for node-fetch ([54a68aa](https://github.com/ubud-app/server/commit/54a68aab9fbfc48e1e9b0127e2c2523daf1a1bb8))
+
 # [0.8.0](https://github.com/ubud-app/server/compare/v0.7.1...v0.8.0) (2023-07-11)
 
 
