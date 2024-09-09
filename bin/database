@@ -51,18 +51,13 @@ commander
 	});
 
 commander
-	.command('exec <id>')
-	.description('Run migration, also needs --up or --down')
-	.option('-u --up', 'Run up()', null, null)
-	.option('-d --down', 'Run down()', null, null)
-	.action(function (id, options) {
-		if (options.up || options.down) {
-			run(migrator.execute({
-				migrations: [id],
-				method: options.down ? 'down' : 'up'
+	.command('down [id]')
+	.description('Run pending migrations down to <id>')
+	.action(function (id) {
+		if (id !== true) {
+			run(migrator.down({
+				to: id
 			}), 'write');
-		} else {
-			log.warn('Either --up or --down required.');
 		}
 	});
 

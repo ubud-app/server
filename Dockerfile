@@ -1,4 +1,4 @@
-ARG BASEIMAGE=multiarch/alpine:x86_64-latest-stable
+ARG BASEIMAGE=alpine:latest
 FROM $BASEIMAGE as build-container
 
 ARG CLIENT_TAG=latest

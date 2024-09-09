@@ -194,22 +194,21 @@ class DatabaseHelper {
      * @returns {Umzug}
      */
     static getMigrator () {
-        const Umzug = require('umzug');
+        const { Umzug, SequelizeStorage } = require('umzug');
         const path = require('path');
         const log = new LogHelper('DatabaseMigrator');
 
         return new Umzug({
-            storage: 'sequelize',
-            storageOptions: {
+            storage: new SequelizeStorage({
                 sequelize: sequelize,
                 modelName: '_migrations'
-            },
+            }),
             logging: function (text) {
                 log.info(text);
             },
             migrations: {
                 params: [sequelize.getQueryInterface(), models, sequelize, Sequelize],
-                path: path.resolve(__dirname, '..', 'migrations')
+                glob: path.resolve(__dirname, '..', 'migrations', '*.js')
             }
         });
     }

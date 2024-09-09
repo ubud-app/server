@@ -6,7 +6,6 @@ const ConfigHelper = require('./config');
 const DatabaseHelper = require('./database');
 const PluginHelper = require('./plugin');
 const log = new LogHelper('RepositoryHelper');
-const fetch = require('node-fetch');
 
 let events = new EventEmitter();
 let initialized = false;

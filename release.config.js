@@ -23,7 +23,6 @@ const plugins = [
     '@semantic-release/changelog',
     ['@semantic-release/exec', {
         prepareCmd: 'VERSION=${nextRelease.version} BRANCH=${options.branch} ./.github/workflows/release-prepare.sh',
-        publishCmd: 'VERSION=${nextRelease.version} BRANCH=${options.branch} ./.github/workflows/release-publish.sh',
         successCmd: 'VERSION=${nextRelease.version} BRANCH=${options.branch} ./.github/workflows/release-success.sh'
     }],
     '@semantic-release/npm',
@@ -37,6 +36,13 @@ if (process.env.BRANCH === 'main') {
         'message': 'chore(release): :bookmark: ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}'
     }]);
 }
+
+plugins.push(['@sebbo2002/semantic-release-docker', {
+    images: [
+        process.env.DOCKER_LOCAL_IMAGE_DH,
+        process.env.DOCKER_LOCAL_IMAGE_GH
+    ]
+}]);
 
 module.exports = {
     branches: [
