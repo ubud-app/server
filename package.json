@@ -28,7 +28,7 @@
 		"cors": "^2.8.5",
 		"dtrace-provider": "^0.8.8",
 		"email-validator": "^2.0.4",
-		"express": "^4.18.2",
+		"express": "^5.0.0",
 		"express-fileupload": "^1.5.1",
 		"hibp": "^14.1.2",
 		"moment": "^2.30.1",
