@@ -131,7 +131,7 @@ class LogHelper {
 
         // sentry
         if (s.report && !ConfigHelper.isDev() && ConfigHelper.getSentryDSN()) {
-            Sentry.configureScope(scope => {
+            Sentry.withScope(scope => {
                 scope.setExtra('machine', os.hostname() + ':' + ConfigHelper.getPort());
                 scope.setTag('module', s.module);
                 scope.setTag('id', s.id);
